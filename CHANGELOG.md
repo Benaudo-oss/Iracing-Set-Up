@@ -7,6 +7,7 @@ utilise le versionnement sémantique.
 
 ### Ajouté
 
+- Publication GitHub Actions complète et relançable : compilation, tests, installateur, SHA-256 et notes automatiques.
 - Vérification GitHub Releases, téléchargement avec SHA-256, report/ignorance, installation séparée et retour arrière.
 - Installateur Windows 0.1.0 versionné, compatible mise à niveau et signature facultative, avec conservation des données locales.
 - Suite de tests étendue : classement, empreintes, reprise, fournisseurs simulés, iRacing et Garage61 simulé.

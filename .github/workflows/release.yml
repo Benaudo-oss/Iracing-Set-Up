@@ -3,16 +3,41 @@ name: Publier une version Windows
 on:
   push:
     tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag existant au format vX.Y.Z
+        required: true
+        type: string
 
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref_name }}-${{ inputs.tag }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - name: Récupérer le code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+
+      - name: Valider la version
+        id: version
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v(\d+)\.(\d+)\.(\d+)$') {
+            throw "Tag invalide : $env:RELEASE_TAG. Format attendu : vX.Y.Z"
+          }
+          "number=$($env:RELEASE_TAG.Substring(1))" >> $env:GITHUB_OUTPUT
 
       - name: Installer .NET 10
         uses: actions/setup-dotnet@v4
@@ -25,17 +50,24 @@ jobs:
       - name: Restaurer les dépendances
         run: dotnet restore IracingSetupManager.sln
 
-      - name: Tester
-        run: dotnet test IracingSetupManager.sln --configuration Release --maxcpucount:1
+      - name: Compiler l’application
+        run: dotnet build IracingSetupManager.sln --configuration Release --no-restore --maxcpucount:1
+
+      - name: Exécuter les tests
+        run: dotnet test IracingSetupManager.sln --configuration Release --no-build --maxcpucount:1
 
       - name: Importer le certificat facultatif
         id: certificate
-        if: ${{ secrets.SIGNING_CERTIFICATE_BASE64 != '' && secrets.SIGNING_CERTIFICATE_PASSWORD != '' }}
         shell: pwsh
         env:
           CERTIFICATE_BASE64: ${{ secrets.SIGNING_CERTIFICATE_BASE64 }}
           CERTIFICATE_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
         run: |
+          if ([string]::IsNullOrWhiteSpace($env:CERTIFICATE_BASE64) -or [string]::IsNullOrWhiteSpace($env:CERTIFICATE_PASSWORD)) {
+            "thumbprint=" >> $env:GITHUB_OUTPUT
+            Write-Host 'Aucun certificat configuré : la publication sera non signée.'
+            exit 0
+          }
           $path = Join-Path $env:RUNNER_TEMP 'codesigning.pfx'
           [IO.File]::WriteAllBytes($path, [Convert]::FromBase64String($env:CERTIFICATE_BASE64))
           $password = ConvertTo-SecureString $env:CERTIFICATE_PASSWORD -AsPlainText -Force
@@ -43,17 +75,44 @@ jobs:
           Remove-Item -LiteralPath $path -Force
           "thumbprint=$($certificate.Thumbprint)" >> $env:GITHUB_OUTPUT
 
-      - name: Construire l’installateur
+      - name: Créer l’installateur et son SHA-256
+        shell: pwsh
+        run: ./installer/Build-Installer.ps1 -Version '${{ steps.version.outputs.number }}' -CertificateThumbprint '${{ steps.certificate.outputs.thumbprint }}'
+
+      - name: Vérifier les fichiers de publication
+        id: assets
         shell: pwsh
         run: |
-          $version = '${{ github.ref_name }}'.TrimStart('v')
-          ./installer/Build-Installer.ps1 -Version $version -CertificateThumbprint '${{ steps.certificate.outputs.thumbprint }}'
+          $version = '${{ steps.version.outputs.number }}'
+          $installer = "artifacts/installer/IracingSetupManager-$version-win-x64-setup.exe"
+          $checksum = "$installer.sha256"
+          if (-not (Test-Path $installer) -or -not (Test-Path $checksum)) { throw 'Fichiers de publication manquants.' }
+          $expected = ((Get-Content $checksum -Raw) -split '\s+')[0].ToLowerInvariant()
+          $actual = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw 'Le contrôle SHA-256 final a échoué.' }
+          "installer=$installer" >> $env:GITHUB_OUTPUT
+          "checksum=$checksum" >> $env:GITHUB_OUTPUT
 
-      - name: Créer la GitHub Release
+      - name: Conserver les fichiers du workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: IracingSetupManager-${{ steps.version.outputs.number }}-win-x64
+          path: |
+            ${{ steps.assets.outputs.installer }}
+            ${{ steps.assets.outputs.checksum }}
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Publier dans GitHub Releases et générer les notes
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $version = '${{ github.ref_name }}'.TrimStart('v')
-          $installer = "artifacts/installer/IracingSetupManager-$version-win-x64-setup.exe"
-          gh release create '${{ github.ref_name }}' $installer "$installer.sha256" --generate-notes --title "iRacing Setup Manager $version"
+          $installer = '${{ steps.assets.outputs.installer }}'
+          $checksum = '${{ steps.assets.outputs.checksum }}'
+          if (gh release view $env:RELEASE_TAG 2>$null) {
+            gh release upload $env:RELEASE_TAG $installer $checksum --clobber
+          } else {
+            gh release create $env:RELEASE_TAG $installer $checksum --verify-tag --generate-notes --title "iRacing Setup Manager ${{ steps.version.outputs.number }}"
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'La publication GitHub Release a échoué.' }
