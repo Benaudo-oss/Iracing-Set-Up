@@ -49,10 +49,31 @@ public sealed class FolderMonitoringTests
         }
     }
 
+    [Fact]
+    public async Task ResumesDownloadAfterTemporaryFileIsRenamedAndAfterRestart()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var partial = Path.Combine(root, "race.sto.crdownload");
+            var completed = Path.Combine(root, "race.sto");
+            await File.WriteAllTextAsync(partial, "partial then complete");
+            using var firstMonitor = new ImportFolderMonitor(new MonitoredFolderPolicy(Path.Combine(root, "Documents")));
+            Assert.Empty(await firstMonitor.ScanAsync([new MonitoredFolder(root, ImportFolderKind.Downloads)]));
+
+            File.Move(partial, completed);
+            Assert.Single(await firstMonitor.ScanAsync([new MonitoredFolder(root, ImportFolderKind.Downloads)]));
+
+            using var restartedMonitor = new ImportFolderMonitor(new MonitoredFolderPolicy(Path.Combine(root, "Documents")));
+            var resumed = Assert.Single(await restartedMonitor.ScanAsync([new MonitoredFolder(root, ImportFolderKind.Downloads)]));
+            Assert.Equal(completed, resumed.FullPath);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     private static string CreateTemporaryDirectory() =>
         Directory.CreateDirectory(Path.Combine(
             Path.GetTempPath(),
             "IracingSetupManagerMonitoringTests",
             Guid.NewGuid().ToString("N"))).FullName;
 }
-

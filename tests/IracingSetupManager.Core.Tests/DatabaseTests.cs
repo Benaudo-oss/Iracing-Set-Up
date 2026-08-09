@@ -2,6 +2,7 @@ using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Database;
 using IracingSetupManager.Infrastructure.Database.Entities;
 using IracingSetupManager.Infrastructure.Settings;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace IracingSetupManager.Core.Tests;
@@ -38,6 +39,22 @@ public sealed class DatabaseTests
         Assert.Equal(first, second);
         Assert.Equal(1, picker.CallCount);
         Assert.True(Directory.Exists(archivePath));
+    }
+
+    [Fact]
+    public async Task DataPersistsAfterDatabaseIsReopenedAndHashRemainsUnique()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var repository = new SetupRepository(environment.Factory);
+        var setup = CreateSetup();
+        await repository.AddAsync(setup);
+        await Assert.ThrowsAsync<DbUpdateException>(() => repository.AddAsync(CreateSetup()));
+
+        var reopened = new LocalSetupDbContextFactory(Path.Combine(environment.RootPath, "setups.db"));
+        await using var context = reopened.Create();
+        var stored = await context.Setups.FindAsync(setup.Id);
+        Assert.NotNull(stored);
+        Assert.Equal(setup.Comment, stored.Comment);
     }
 
     private static SetupEntity CreateSetup() => new()

@@ -114,6 +114,20 @@ public sealed class LocalLibraryTests
         Assert.True(File.Exists(zipPath));
     }
 
+    [Fact]
+    public async Task RejectsZipWithDuplicateDestinationNamesBeforeWriting()
+    {
+        await using var environment = await LibraryTestEnvironment.CreateAsync();
+        var zipPath = Path.Combine(environment.SourcePath, "duplicates.zip");
+        using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+        {
+            archive.CreateEntry("same.sto");
+            archive.CreateEntry("same.sto");
+        }
+        await Assert.ThrowsAsync<InvalidDataException>(() => environment.Service.ImportAsync(zipPath, environment.ArchivePath, SetupSourceKind.DownloadsFolder));
+        Assert.True(File.Exists(zipPath));
+    }
+
     private sealed class LibraryTestEnvironment : IAsyncDisposable
     {
         private LibraryTestEnvironment(string rootPath, LibraryImportService service)
@@ -156,4 +170,3 @@ public sealed class LocalLibraryTests
         }
     }
 }
-

@@ -7,6 +7,7 @@ utilise le versionnement sémantique.
 
 ### Ajouté
 
+- Suite de tests étendue : classement, empreintes, reprise, fournisseurs simulés, iRacing et Garage61 simulé.
 - Coffre-fort Windows pour les secrets, journaux expurgés, chemins et ZIP durcis, réduction des données sensibles et sauvegarde SQLite.
 - Aperçu et copie sécurisée des setups validés vers iRacing, avec résolution explicite des conflits.
 - Structure initiale de la solution .NET 10 et WinUI 3.
