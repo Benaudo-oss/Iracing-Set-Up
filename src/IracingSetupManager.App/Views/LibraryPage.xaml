@@ -13,12 +13,12 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
             </Grid.ColumnDefinitions>
-            <TextBox PlaceholderText="Rechercher un fichier, une voiture ou un circuit…" />
-            <ComboBox Grid.Column="1" PlaceholderText="Fournisseur" HorizontalAlignment="Stretch"><x:String>HYMO</x:String><x:String>GO Setups</x:String><x:String>Grid &amp; Go</x:String></ComboBox>
-            <ComboBox Grid.Column="2" PlaceholderText="Catégorie" HorizontalAlignment="Stretch"><x:String>GT3</x:String><x:String>GT4</x:String><x:String>GTE</x:String><x:String>LMP2</x:String><x:String>GTP</x:String><x:String>PCUP</x:String></ComboBox>
-            <ComboBox Grid.Column="3" PlaceholderText="Saison" HorizontalAlignment="Stretch" />
-            <ComboBox Grid.Column="4" PlaceholderText="Type" HorizontalAlignment="Stretch" />
-            <ComboBox Grid.Column="5" PlaceholderText="Statut" HorizontalAlignment="Stretch" />
+            <TextBox x:Name="SearchBox" PlaceholderText="Rechercher un fichier, une voiture ou un circuit…" TextChanged="OnSearchChanged" />
+            <ComboBox x:Name="ProviderFilter" Grid.Column="1" PlaceholderText="Fournisseur" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
+            <ComboBox x:Name="CategoryFilter" Grid.Column="2" PlaceholderText="Catégorie" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
+            <ComboBox x:Name="SeasonFilter" Grid.Column="3" PlaceholderText="Saison" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
+            <ComboBox x:Name="TypeFilter" Grid.Column="4" PlaceholderText="Type" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
+            <ComboBox x:Name="StatusFilter" Grid.Column="5" PlaceholderText="Statut" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
         </Grid>
         <Border Grid.Row="2" Padding="20" Background="#FF20242B" CornerRadius="10">
             <Grid>
