@@ -79,6 +79,27 @@ jobs:
         shell: pwsh
         run: ./installer/Build-Installer.ps1 -Version '${{ steps.version.outputs.number }}' -CertificateThumbprint '${{ steps.certificate.outputs.thumbprint }}'
 
+      - name: Créer les fichiers de compatibilité
+        id: compatibility
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.number }}'
+          $parts = $version.Split('.')
+          if ($parts.Count -ne 4) {
+            "installer=" >> $env:GITHUB_OUTPUT
+            "checksum=" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          $shortVersion = ($parts[0..2] -join '.')
+          $source = "artifacts/installer/IracingSetupManager-$version-win-x64-setup.exe"
+          $installer = "artifacts/installer/IracingSetupManager-$shortVersion-win-x64-setup.exe"
+          $checksum = "$installer.sha256"
+          Copy-Item -LiteralPath $source -Destination $installer -Force
+          $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -LiteralPath $checksum -Value "$hash  $(Split-Path $installer -Leaf)" -Encoding ascii
+          "installer=$installer" >> $env:GITHUB_OUTPUT
+          "checksum=$checksum" >> $env:GITHUB_OUTPUT
+
       - name: Vérifier les fichiers de publication
         id: assets
         shell: pwsh
@@ -114,5 +135,10 @@ jobs:
             gh release upload $env:RELEASE_TAG $installer $checksum --clobber
           } else {
             gh release create $env:RELEASE_TAG $installer $checksum --verify-tag --generate-notes --title "iRacing Setup Manager ${{ steps.version.outputs.number }}"
+          }
+          $compatibilityInstaller = '${{ steps.compatibility.outputs.installer }}'
+          $compatibilityChecksum = '${{ steps.compatibility.outputs.checksum }}'
+          if ($compatibilityInstaller -and $compatibilityChecksum) {
+            gh release upload $env:RELEASE_TAG $compatibilityInstaller $compatibilityChecksum --clobber
           }
           if ($LASTEXITCODE -ne 0) { throw 'La publication GitHub Release a échoué.' }
