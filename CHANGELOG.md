@@ -28,6 +28,15 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.3.0
+
+- Copie vers l'arborescence officielle des voitures iRacing, puis `Garage 61/Saison/Fournisseur/Week`.
+- Détection automatique des semaines `W01` à `W13` dans les noms de fichiers.
+- Demande obligatoire d'une semaine comprise entre 1 et 13 lorsqu'elle est inconnue.
+- Blocage de la copie tant qu'une semaine manque et aperçu du chemin final avant confirmation.
+- Catalogue étendu aux voitures GT3, GT4, GTE, LMP2, GTP et Porsche Cup sélectionnées.
+- Redémarrage automatique de l'application après l'installation d'une mise à jour.
+
 # 0.1.2.5
 
 - Prise en charge sécurisée des archives RAR en plus des fichiers STO et ZIP.

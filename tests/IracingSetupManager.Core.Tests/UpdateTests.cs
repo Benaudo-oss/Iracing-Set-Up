@@ -11,6 +11,13 @@ namespace IracingSetupManager.Core.Tests;
 public sealed class UpdateTests
 {
     [Fact]
+    public void AutomaticUpdateRequestsApplicationRelaunch()
+    {
+        Assert.Contains("/RELAUNCHAPP=1", UpdateInstallerLauncher.AutomaticUpdateArguments);
+        Assert.Contains("/SILENT", UpdateInstallerLauncher.AutomaticUpdateArguments);
+    }
+
+    [Fact]
     public async Task FindsGitHubReleaseDownloadsAndVerifiesSha256()
     {
         var root = CreateRoot();

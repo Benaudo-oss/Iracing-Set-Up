@@ -9,7 +9,7 @@ namespace IracingSetupManager.Core.Tests;
 public sealed class FileClassificationAndHashTests
 {
     [Fact]
-    public void ClassificationUsesSeasonTrackCarProviderAndType()
+    public void ClassificationUsesSeasonTrackCarAndProvider()
     {
         var root = Path.Combine(Path.GetTempPath(), "archive");
         var metadata = new SetupMetadata("HYMO", "GT3", "Porsche 911 GT3 R", "Spa", "Grand Prix", "2026 S3", "Race");
@@ -58,6 +58,21 @@ public sealed class FileClassificationAndHashTests
         Assert.Equal(category, metadata.Category);
         Assert.Equal(track, metadata.Track);
         Assert.Equal(setupType, metadata.SetupType);
+    }
+
+    [Theory]
+    [InlineData(@"C:\Provider\bmwm4gt3\setup.sto", "BMW M4 GT3", "GT3")]
+    [InlineData(@"C:\Provider\porsche718gt4\setup.sto", "Porsche 718 Cayman GT4 Clubsport", "GT4")]
+    [InlineData(@"C:\Provider\bmwm8gte\setup.sto", "BMW M8 GTE", "GTE")]
+    [InlineData(@"C:\Provider\dallarap217\setup.sto", "Dallara P217", "LMP2")]
+    [InlineData(@"C:\Provider\ferrari499p\setup.sto", "Ferrari 499P", "GTP")]
+    [InlineData(@"C:\Provider\porsche9922cup\setup.sto", "Porsche 911 GT3 Cup (992) Gen 2", "PCUP")]
+    public void MetadataAnalyzerRecognizesSelectedIracingCarCatalog(string path, string car, string category)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(path);
+
+        Assert.Equal(car, metadata.Car);
+        Assert.Equal(category, metadata.Category);
     }
 
     [Fact]

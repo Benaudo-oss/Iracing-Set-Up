@@ -4,12 +4,14 @@ namespace IracingSetupManager.Integrations.Updates;
 
 public sealed class UpdateInstallerLauncher(string installerCache)
 {
+    public const string AutomaticUpdateArguments = "/SILENT /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /RELAUNCHAPP=1";
+
     public void Launch(string installerPath)
     {
         var fullPath = Path.GetFullPath(installerPath);
         if (!File.Exists(fullPath) || !fullPath.EndsWith("-setup.exe", StringComparison.OrdinalIgnoreCase))
             throw new FileNotFoundException("L'installateur de mise à jour est introuvable.", fullPath);
-        Process.Start(new ProcessStartInfo(fullPath, "/SILENT /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS")
+        Process.Start(new ProcessStartInfo(fullPath, AutomaticUpdateArguments)
         {
             UseShellExecute = true,
             WorkingDirectory = Path.GetDirectoryName(fullPath)!

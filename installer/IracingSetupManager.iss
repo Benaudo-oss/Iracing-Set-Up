@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "0.1.2.5"
+  #define AppVersion "0.1.3.0"
 #endif
 #ifndef PublishDir
   #define PublishDir "..\artifacts\publish\win-x64"
@@ -49,8 +49,14 @@ Name: "desktopicon"; Description: "Créer un raccourci sur le Bureau"; GroupDesc
 
 [Run]
 Filename: "{app}\IracingSetupManager.App.exe"; Description: "Lancer iRacing Setup Manager"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\IracingSetupManager.App.exe"; Flags: nowait; Check: ShouldRelaunchApplication
 
 [Code]
+function ShouldRelaunchApplication(): Boolean;
+begin
+  Result := CompareText(ExpandConstant('{param:RELAUNCHAPP|0}'), '1') = 0;
+end;
+
 function InitializeSetup(): Boolean;
 begin
   { Le même AppId et le même dossier permettent la mise à niveau. }

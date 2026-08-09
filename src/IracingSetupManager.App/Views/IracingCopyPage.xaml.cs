@@ -61,7 +61,23 @@ public sealed partial class IracingCopyPage : Page
             return;
         }
 
-        var plan = await App.Services.IracingCopy.CreatePlanAsync(selected.Select(item => item.Id).ToArray(), FolderPathBox.Text);
+        var ids = selected.Select(item => item.Id).ToArray();
+        var plan = await App.Services.IracingCopy.CreatePlanAsync(ids, FolderPathBox.Text);
+        var weeks = new Dictionary<Guid, int>();
+        foreach (var item in plan.Where(item => item.Week is null))
+        {
+            var week = await AskWeekAsync(item.OriginalFileName);
+            if (week is null)
+            {
+                Show("Aperçu annulé : la semaine est obligatoire pour tous les setups.", InfoBarSeverity.Warning);
+                return;
+            }
+            weeks[item.SetupId] = week.Value;
+        }
+        if (weeks.Count > 0)
+        {
+            plan = await App.Services.IracingCopy.CreatePlanAsync(ids, FolderPathBox.Text, weeks);
+        }
         rows = plan.Select(CopyRow.FromPlan).ToList();
         SetupList.ItemsSource = rows;
         SetupList.SelectAll();
@@ -111,6 +127,34 @@ public sealed partial class IracingCopyPage : Page
         ActionInfo.Message = message;
         ActionInfo.Severity = severity;
         ActionInfo.IsOpen = true;
+    }
+
+    private async Task<int?> AskWeekAsync(string fileName)
+    {
+        var input = new NumberBox
+        {
+            Header = "Numéro de semaine",
+            Minimum = 1,
+            Maximum = 13,
+            SmallChange = 1,
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact,
+            PlaceholderText = "Entre 1 et 13"
+        };
+        var content = new StackPanel { Spacing = 12 };
+        content.Children.Add(new TextBlock { Text = $"La semaine est inconnue pour :\n{fileName}", TextWrapping = TextWrapping.Wrap });
+        content.Children.Add(input);
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Choisir la semaine",
+            Content = content,
+            PrimaryButtonText = "Valider",
+            CloseButtonText = "Annuler",
+            IsPrimaryButtonEnabled = false,
+            DefaultButton = ContentDialogButton.Primary
+        };
+        input.ValueChanged += (_, _) => dialog.IsPrimaryButtonEnabled = !double.IsNaN(input.Value) && input.Value >= 1 && input.Value <= 13 && input.Value == Math.Truncate(input.Value);
+        return await dialog.ShowAsync() == ContentDialogResult.Primary ? (int)input.Value : null;
     }
 
     private sealed class CopyRow

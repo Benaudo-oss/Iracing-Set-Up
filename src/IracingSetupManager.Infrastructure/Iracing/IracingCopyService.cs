@@ -2,6 +2,7 @@ using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using IracingSetupManager.Infrastructure.Files;
+using System.Text.RegularExpressions;
 
 namespace IracingSetupManager.Infrastructure.Iracing;
 
@@ -18,6 +19,7 @@ public sealed record IracingCopyPlanItem(
     string Car,
     string SourcePath,
     string DestinationPath,
+    int? Week,
     bool HasConflict,
     IracingConflictChoice ConflictChoice = IracingConflictChoice.None);
 
@@ -25,6 +27,16 @@ public sealed record IracingCopyResult(int Copied, int Skipped);
 
 public sealed class IracingCopyService(ISetupDbContextFactory contextFactory)
 {
+    private static readonly Regex WeekPattern = new(@"(?:^|[_\- ])W(?<week>0?[1-9]|1[0-3])(?:[_\- .]|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly IReadOnlyDictionary<string, string> CarFolders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Acura ARX-06"] = "acuraarx06gtp", ["BMW M Hybrid V8"] = "bmwlmdh",
+        ["Cadillac V-Series.R"] = "cadillacvseriesrgtp", ["Ferrari 499P"] = "ferrari499p",
+        ["Porsche 963"] = "porsche963gtp", ["BMW M4 GT3"] = "bmwm4gt3",
+        ["McLaren 720S GT3"] = "mclaren720sgt3", ["Porsche 911 GT3 R (992)"] = "porsche992rgt3",
+        ["Porsche 911 GT3 Cup (992)"] = "porsche992cup", ["Dallara P217"] = "dallarap217"
+    };
     public static string? DetectSetupsFolder()
     {
         var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -35,6 +47,7 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory)
     public async Task<IReadOnlyList<IracingCopyPlanItem>> CreatePlanAsync(
         IReadOnlyCollection<Guid> setupIds,
         string iracingSetupsFolder,
+        IReadOnlyDictionary<Guid, int>? weekOverrides = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(iracingSetupsFolder);
@@ -50,13 +63,24 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory)
 
         return setups.Select(setup =>
         {
-            var destination = SecurePath.EnsureChildOf(Path.Combine(root, SanitizeSegment(setup.Car), setup.OriginalFileName), root);
+            var week = ReadWeek(setup.OriginalFileName);
+            if (weekOverrides?.TryGetValue(setup.Id, out var overriddenWeek) == true)
+            {
+                if (overriddenWeek is < 1 or > 13) throw new ArgumentOutOfRangeException(nameof(weekOverrides), "La semaine doit être comprise entre 1 et 13.");
+                week = overriddenWeek;
+            }
+
+            var carFolder = CarFolders.TryGetValue(setup.Car, out var knownFolder) ? knownFolder : SanitizeSegment(setup.Car);
+            var season = SanitizeSegment(setup.Season ?? "Saison inconnue").Replace(' ', '_');
+            var weekFolder = week is null ? "Week inconnue" : $"Week {week:00}";
+            var destination = SecurePath.EnsureChildOf(Path.Combine(root, carFolder, "Garage 61", season, SanitizeSegment(setup.Provider), weekFolder, setup.OriginalFileName), root);
             return new IracingCopyPlanItem(
                 setup.Id,
                 setup.OriginalFileName,
                 setup.Car,
                 setup.ArchivePath,
                 destination,
+                week,
                 File.Exists(destination));
         }).ToList();
     }
@@ -74,6 +98,11 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory)
         if (plan.Any(item => item.HasConflict && item.ConflictChoice == IracingConflictChoice.None))
         {
             throw new InvalidOperationException("Chaque conflit doit être résolu avant la copie.");
+        }
+
+        if (plan.Any(item => item.Week is null))
+        {
+            throw new InvalidOperationException("Indiquez une semaine comprise entre 1 et 13 pour chaque setup avant la copie.");
         }
 
         var planIds = plan.Select(item => item.SetupId).Distinct().ToArray();
@@ -140,5 +169,12 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory)
         }
 
         return string.IsNullOrWhiteSpace(result) ? "Voiture à identifier" : result;
+    }
+
+
+    private static int? ReadWeek(string fileName)
+    {
+        var match = WeekPattern.Match(fileName);
+        return match.Success && int.TryParse(match.Groups["week"].Value, out var week) ? week : null;
     }
 }

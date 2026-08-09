@@ -12,10 +12,57 @@ public sealed partial class SetupMetadataAnalyzer
     private static readonly IReadOnlyDictionary<string, (string Car, string Category)> Cars =
         new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase)
         {
+            ["acuransxevo22gt3"] = ("Acura NSX GT3 Evo 22", "GT3"),
+            ["amvantageevogt3"] = ("Aston Martin Vantage GT3 Evo", "GT3"),
+            ["audir8gt3"] = ("Audi R8 LMS GT3", "GT3"),
+            ["audir8lmsevo2gt3"] = ("Audi R8 LMS Evo II GT3", "GT3"),
+            ["bmwm4gt3"] = ("BMW M4 GT3", "GT3"),
+            ["bmwz4gt3"] = ("BMW Z4 GT3", "GT3"),
+            ["chevyvettez06rgt3"] = ("Chevrolet Corvette Z06 GT3.R", "GT3"),
+            ["ferrari296gt3"] = ("Ferrari 296 GT3", "GT3"),
+            ["ferrari488gt3"] = ("Ferrari 488 GT3", "GT3"),
+            ["ferrarievogt3"] = ("Ferrari 488 GT3 Evo", "GT3"),
+            ["fordgtgt3"] = ("Ford GT GT3", "GT3"),
+            ["fordmustanggt3"] = ("Ford Mustang GT3", "GT3"),
+            ["lamborghinievogt3"] = ("Lamborghini Huracán GT3 Evo", "GT3"),
+            ["mclaren720sgt3"] = ("McLaren 720S GT3", "GT3"),
+            ["mclarenmp4"] = ("McLaren MP4-12C GT3", "GT3"),
+            ["mercedesamgevogt3"] = ("Mercedes-AMG GT3 Evo", "GT3"),
+            ["mercedesamggt3"] = ("Mercedes-AMG GT3", "GT3"),
+            ["porsche911rgt3"] = ("Porsche 911 GT3 R", "GT3"),
+            ["porsche992rgt3"] = ("Porsche 911 GT3 R (992)", "GT3"),
             ["720SGT3"] = ("McLaren 720S GT3", "GT3"),
             ["M4GT3"] = ("BMW M4 GT3", "GT3"),
+
+            ["amvantagegt4"] = ("Aston Martin Vantage GT4", "GT4"),
+            ["bmwm4evogt4"] = ("BMW M4 GT4 Evo", "GT4"),
+            ["bmwm4gt4"] = ("BMW M4 GT4", "GT4"),
+            ["fordmustanggt4"] = ("Ford Mustang GT4", "GT4"),
+            ["mclaren570sgt4"] = ("McLaren 570S GT4", "GT4"),
+            ["mercedesamggt4"] = ("Mercedes-AMG GT4", "GT4"),
+            ["porsche718gt4"] = ("Porsche 718 Cayman GT4 Clubsport", "GT4"),
+
+            ["bmwm8gte"] = ("BMW M8 GTE", "GTE"),
+            ["c8rvettegte"] = ("Chevrolet Corvette C8.R GTE", "GTE"),
+            ["ferrari488gte"] = ("Ferrari 488 GTE", "GTE"),
+            ["fordgt2017"] = ("Ford GT GTE", "GTE"),
+            ["porsche991rsr"] = ("Porsche 911 RSR", "GTE"),
+
+            ["dallarap217"] = ("Dallara P217", "LMP2"),
+            ["hpdarx01c"] = ("HPD ARX-01c", "LMP2"),
+
+            ["acuraarx06gtp"] = ("Acura ARX-06", "GTP"),
+            ["bmwlmdh"] = ("BMW M Hybrid V8", "GTP"),
+            ["cadillacvseriesrgtp"] = ("Cadillac V-Series.R", "GTP"),
+            ["ferrari499p"] = ("Ferrari 499P", "GTP"),
+            ["nissangtpzxt"] = ("Nissan GTP ZX-T", "GTP"),
+            ["porsche963gtp"] = ("Porsche 963", "GTP"),
             ["ARX06"] = ("Acura ARX-06", "GTP"),
-            ["BMWGTP"] = ("BMW M Hybrid V8", "GTP")
+            ["BMWGTP"] = ("BMW M Hybrid V8", "GTP"),
+
+            ["porsche911cup"] = ("Porsche 911 GT3 Cup", "PCUP"),
+            ["porsche992cup"] = ("Porsche 911 GT3 Cup (992)", "PCUP"),
+            ["porsche9922cup"] = ("Porsche 911 GT3 Cup (992) Gen 2", "PCUP")
         };
     private static readonly IReadOnlyDictionary<string, string> Tracks =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)

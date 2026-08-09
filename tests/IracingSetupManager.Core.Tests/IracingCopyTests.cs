@@ -12,17 +12,17 @@ public sealed class IracingCopyTests
     public async Task PreviewContainsOnlyValidatedSetups()
     {
         await using var environment = await TestEnvironment.CreateAsync();
-        var plan = await environment.Service.CreatePlanAsync(environment.Ids, environment.Target);
+        var plan = await environment.Service.CreatePlanAsync(environment.Ids, environment.Target, new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
         var item = Assert.Single(plan);
         Assert.Equal(environment.ValidatedId, item.SetupId);
-        Assert.EndsWith(Path.Combine("Porsche 911", "race.sto"), item.DestinationPath);
+        Assert.EndsWith(Path.Combine("bmwlmdh", "Garage 61", "2026_S3", "Grid & Go", "Week 07", "race.sto"), item.DestinationPath);
     }
 
     [Fact]
     public async Task CopyRequiresConfirmationAndKeepsOriginal()
     {
         await using var environment = await TestEnvironment.CreateAsync();
-        var plan = await environment.Service.CreatePlanAsync([environment.ValidatedId], environment.Target);
+        var plan = await environment.Service.CreatePlanAsync([environment.ValidatedId], environment.Target, new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
         await Assert.ThrowsAsync<InvalidOperationException>(() => environment.Service.ExecuteAsync(plan, false));
         var result = await environment.Service.ExecuteAsync(plan, true);
         Assert.Equal(1, result.Copied);
@@ -34,22 +34,22 @@ public sealed class IracingCopyTests
     public async Task ConflictMustBeResolvedAndKeepBothNeverOverwrites()
     {
         await using var environment = await TestEnvironment.CreateAsync();
-        var destination = Path.Combine(environment.Target, "Porsche 911", "race.sto");
+        var destination = Path.Combine(environment.Target, "bmwlmdh", "Garage 61", "2026_S3", "Grid & Go", "Week 07", "race.sto");
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
         await File.WriteAllTextAsync(destination, "existing");
-        var plan = await environment.Service.CreatePlanAsync([environment.ValidatedId], environment.Target);
+        var plan = await environment.Service.CreatePlanAsync([environment.ValidatedId], environment.Target, new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
         Assert.True(plan[0].HasConflict);
         await Assert.ThrowsAsync<InvalidOperationException>(() => environment.Service.ExecuteAsync(plan, true));
         await environment.Service.ExecuteAsync(plan.Select(item => item with { ConflictChoice = IracingConflictChoice.KeepBoth }).ToList(), true);
         Assert.Equal("existing", await File.ReadAllTextAsync(destination));
-        Assert.True(File.Exists(Path.Combine(environment.Target, "Porsche 911", "race (2).sto")));
+        Assert.True(File.Exists(Path.Combine(Path.GetDirectoryName(destination)!, "race (2).sto")));
     }
 
     [Fact]
     public async Task SetupMustStillBeValidatedAtExecutionTime()
     {
         await using var environment = await TestEnvironment.CreateAsync();
-        var plan = await environment.Service.CreatePlanAsync([environment.ValidatedId], environment.Target);
+        var plan = await environment.Service.CreatePlanAsync([environment.ValidatedId], environment.Target, new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
         await using (var context = environment.Factory.Create())
         {
             (await context.Setups.FindAsync(environment.ValidatedId))!.Status = SetupStatus.Refuse;
@@ -59,13 +59,32 @@ public sealed class IracingCopyTests
         Assert.False(File.Exists(plan[0].DestinationPath));
     }
 
+    [Fact]
+    public async Task UnknownWeekMustBeProvidedBetweenOneAndThirteen()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var unknown = await environment.Service.CreatePlanAsync([environment.ValidatedId], environment.Target);
+        Assert.Null(unknown[0].Week);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => environment.Service.ExecuteAsync(unknown, true));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => environment.Service.CreatePlanAsync([environment.ValidatedId], environment.Target, new Dictionary<Guid, int> { [environment.ValidatedId] = 14 }));
+    }
+
+    [Fact]
+    public async Task WeekIsReadFromFileName()
+    {
+        await using var environment = await TestEnvironment.CreateAsync("26S3-W07-GnG-Monza-BMWGTP-R-Safe.sto");
+        var plan = await environment.Service.CreatePlanAsync([environment.ValidatedId], environment.Target);
+        Assert.Equal(7, plan[0].Week);
+        Assert.Contains(Path.Combine("Week 07", "26S3-W07-GnG-Monza-BMWGTP-R-Safe.sto"), plan[0].DestinationPath);
+    }
+
     private sealed class TestEnvironment : IAsyncDisposable
     {
         private readonly string root;
-        private TestEnvironment(string root, LocalSetupDbContextFactory factory, Guid validatedId, Guid rejectedId)
+        private TestEnvironment(string root, LocalSetupDbContextFactory factory, Guid validatedId, Guid rejectedId, string validFileName)
         {
             this.root = root; Factory = factory; ValidatedId = validatedId; Ids = [validatedId, rejectedId];
-            Source = Path.Combine(root, "archive", "race.sto"); Target = Path.Combine(root, "iRacing", "setups");
+            Source = Path.Combine(root, "archive", validFileName); Target = Path.Combine(root, "iRacing", "setups");
             Service = new IracingCopyService(factory);
         }
         public LocalSetupDbContextFactory Factory { get; }
@@ -75,23 +94,23 @@ public sealed class IracingCopyTests
         public string Source { get; }
         public string Target { get; }
 
-        public static async Task<TestEnvironment> CreateAsync()
+        public static async Task<TestEnvironment> CreateAsync(string validFileName = "race.sto")
         {
             var root = Path.Combine(Path.GetTempPath(), "IracingCopyTests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path.Combine(root, "archive"));
             var factory = new LocalSetupDbContextFactory(Path.Combine(root, "setups.db"));
             await new SetupDatabase(factory).InitializeAsync();
             var valid = Guid.NewGuid(); var rejected = Guid.NewGuid();
-            await File.WriteAllTextAsync(Path.Combine(root, "archive", "race.sto"), "original");
+            await File.WriteAllTextAsync(Path.Combine(root, "archive", validFileName), "original");
             await File.WriteAllTextAsync(Path.Combine(root, "archive", "rejected.sto"), "rejected");
             await using var context = factory.Create();
-            context.Setups.AddRange(Create(valid, "race.sto", SetupStatus.Valide, Path.Combine(root, "archive", "race.sto")), Create(rejected, "rejected.sto", SetupStatus.Refuse, Path.Combine(root, "archive", "rejected.sto")));
+            context.Setups.AddRange(Create(valid, validFileName, SetupStatus.Valide, Path.Combine(root, "archive", validFileName)), Create(rejected, "rejected.sto", SetupStatus.Refuse, Path.Combine(root, "archive", "rejected.sto")));
             await context.SaveChangesAsync();
-            return new TestEnvironment(root, factory, valid, rejected);
+            return new TestEnvironment(root, factory, valid, rejected, validFileName);
         }
         private static SetupEntity Create(Guid id, string name, SetupStatus status, string path) => new()
         {
-            Id = id, OriginalFileName = name, Provider = "Test", Category = "GT3", Car = "Porsche 911", Track = "Spa", SetupType = "Race",
+            Id = id, OriginalFileName = name, Provider = "Grid & Go", Category = "GTP", Car = "BMW M Hybrid V8", Track = "Monza", Season = "2026 S3", SetupType = "Race",
             SizeInBytes = 8, Sha256 = id.ToString("N").PadRight(64, '0'), ArchivePath = path, Status = status, DownloadedAtUtc = DateTimeOffset.UtcNow
         };
         public ValueTask DisposeAsync() { Directory.Delete(root, true); return ValueTask.CompletedTask; }

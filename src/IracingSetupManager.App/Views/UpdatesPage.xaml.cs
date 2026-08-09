@@ -61,7 +61,7 @@ public sealed partial class UpdatesPage : Page
     private async void OnInstall(object sender, RoutedEventArgs e)
     {
         if (downloadedUpdate is null) return;
-        var dialog = new ContentDialog { XamlRoot = XamlRoot, Title = "Installer la mise à jour", Content = "L’application va se fermer. L’installation continuera dans un processus séparé.", PrimaryButtonText = "Installer", CloseButtonText = "Annuler", DefaultButton = ContentDialogButton.Close };
+        var dialog = new ContentDialog { XamlRoot = XamlRoot, Title = "Installer la mise à jour", Content = "L’application va se fermer, installer la mise à jour puis redémarrer automatiquement.", PrimaryButtonText = "Installer", CloseButtonText = "Annuler", DefaultButton = ContentDialogButton.Close };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
         if (!await TryCreateSafetyBackupAsync("avant-mise-a-jour")) return;
         App.Services.UpdateInstaller.Launch(downloadedUpdate.InstallerPath);
