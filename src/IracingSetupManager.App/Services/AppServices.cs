@@ -5,6 +5,7 @@ using IracingSetupManager.Infrastructure.Files.Monitoring;
 using IracingSetupManager.Infrastructure.Settings;
 using IracingSetupManager.Infrastructure.Iracing;
 using IracingSetupManager.Infrastructure.Security;
+using IracingSetupManager.Integrations.Updates;
 
 namespace IracingSetupManager.App.Services;
 
@@ -15,6 +16,7 @@ public sealed class AppServices
         var dataRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "IracingSetupManager");
+        var installerCache = Path.Combine(dataRoot, "Updates", "Installers");
         ContextFactory = new LocalSetupDbContextFactory(Path.Combine(dataRoot, "setups.db"));
         Database = new SetupDatabase(ContextFactory);
         Backups = new DatabaseBackupService(ContextFactory);
@@ -26,6 +28,9 @@ public sealed class AppServices
         ArchivePaths = new ArchivePathService(ContextFactory, new WinUiFolderPicker());
         FolderPolicy = new MonitoredFolderPolicy();
         MonitoredFolders = new MonitoredFolderSettingsService(ContextFactory, FolderPolicy);
+        UpdatePreferences = new UpdatePreferenceService(ContextFactory);
+        Updates = new GitHubReleaseUpdateService(new HttpClient { Timeout = TimeSpan.FromMinutes(10) }, installerCache);
+        UpdateInstaller = new UpdateInstallerLauncher(installerCache);
 
         var sha256 = new Sha256Calculator();
         var importer = new LibraryImportService(
@@ -55,4 +60,7 @@ public sealed class AppServices
     public MonitoredFolderPolicy FolderPolicy { get; }
     public MonitoredFolderSettingsService MonitoredFolders { get; }
     public ImportMonitoringService Monitoring { get; }
+    public UpdatePreferenceService UpdatePreferences { get; }
+    public IUpdateService Updates { get; }
+    public UpdateInstallerLauncher UpdateInstaller { get; }
 }

@@ -20,6 +20,19 @@ $iss = Join-Path $PSScriptRoot 'IracingSetupManager.iss'
     -p:Version=$Version -p:FileVersion="$Version.0" -p:AssemblyVersion="$Version.0"
 if ($LASTEXITCODE -ne 0) { throw 'La publication Windows a échoué.' }
 
+$signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } | Sort-Object FullName -Descending | Select-Object -First 1
+if (-not $CertificateThumbprint) {
+    $CertificateThumbprint = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert -ErrorAction SilentlyContinue |
+        Where-Object { $_.HasPrivateKey -and $_.NotAfter -gt (Get-Date) } | Sort-Object NotAfter -Descending | Select-Object -First 1 -ExpandProperty Thumbprint
+}
+$canSign = $CertificateThumbprint -and $signTool
+if ($canSign) {
+    $appExecutable = Join-Path $publish 'IracingSetupManager.App.exe'
+    & $signTool.FullName sign /sha1 $CertificateThumbprint /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 $appExecutable
+    if ($LASTEXITCODE -ne 0) { throw "La signature a échoué pour $appExecutable" }
+}
+
 $iscc = @((Get-Command iscc.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source), "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "${env:LocalAppData}\Programs\Inno Setup 6\ISCC.exe") |
     Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 if (-not $iscc) { throw 'Inno Setup 6 est requis. Installez JRSoftware.InnoSetup avec winget.' }
@@ -28,17 +41,9 @@ New-Item -ItemType Directory -Force -Path $output | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'La génération de l’installateur a échoué.' }
 
 $installer = Join-Path $output "IracingSetupManager-$Version-win-x64-setup.exe"
-$signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } | Sort-Object FullName -Descending | Select-Object -First 1
-if (-not $CertificateThumbprint) {
-    $CertificateThumbprint = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert -ErrorAction SilentlyContinue |
-        Where-Object { $_.HasPrivateKey -and $_.NotAfter -gt (Get-Date) } | Sort-Object NotAfter -Descending | Select-Object -First 1 -ExpandProperty Thumbprint
-}
-if ($CertificateThumbprint -and $signTool) {
-    foreach ($file in @((Join-Path $publish 'IracingSetupManager.App.exe'), $installer)) {
-        & $signTool.FullName sign /sha1 $CertificateThumbprint /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 $file
-        if ($LASTEXITCODE -ne 0) { throw "La signature a échoué pour $file" }
-    }
+if ($canSign) {
+    & $signTool.FullName sign /sha1 $CertificateThumbprint /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 $installer
+    if ($LASTEXITCODE -ne 0) { throw "La signature a échoué pour $installer" }
     Write-Host "Installateur signé : $installer"
 } else { Write-Warning 'Aucun certificat utilisable ou SignTool absent : installateur non signé.' }
 

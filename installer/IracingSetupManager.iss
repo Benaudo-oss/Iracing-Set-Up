@@ -55,3 +55,18 @@ begin
   { Aucune suppression ne cible LocalAppData\IracingSetupManager. }
   Result := True;
 end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  CacheDirectory: String;
+  CachedInstaller: String;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    CacheDirectory := ExpandConstant('{localappdata}\IracingSetupManager\Updates\Installers');
+    ForceDirectories(CacheDirectory);
+    CachedInstaller := CacheDirectory + '\IracingSetupManager-{#AppVersion}-win-x64-setup.exe';
+    if not FileExists(CachedInstaller) then
+      CopyFile(ExpandConstant('{srcexe}'), CachedInstaller, False);
+  end;
+end;

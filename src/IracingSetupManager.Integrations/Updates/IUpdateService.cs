@@ -2,9 +2,8 @@ namespace IracingSetupManager.Integrations.Updates;
 
 public interface IUpdateService
 {
-    Task<UpdateAvailability> CheckAsync(
-        Version installedVersion,
-        CancellationToken cancellationToken = default);
+    Task<UpdateAvailability> CheckAsync(Version installedVersion, CancellationToken cancellationToken = default);
+    Task<DownloadedUpdate> DownloadAndVerifyAsync(UpdateAvailability update, CancellationToken cancellationToken = default);
 }
 
 public sealed record UpdateAvailability(
@@ -12,5 +11,8 @@ public sealed record UpdateAvailability(
     Version InstalledVersion,
     Version? AvailableVersion,
     Uri? DownloadUri,
-    string? Sha256);
+    Uri? Sha256Uri,
+    string? AssetName,
+    string? ReleaseNotes);
 
+public sealed record DownloadedUpdate(Version Version, string InstallerPath, string Sha256);

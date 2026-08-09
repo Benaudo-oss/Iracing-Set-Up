@@ -1,16 +1,40 @@
 <Page
     x:Class="IracingSetupManager.App.Views.UpdatesPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Loaded="OnLoaded">
     <ScrollViewer>
         <StackPanel Padding="32" Spacing="20">
             <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Mises à jour" /><TextBlock Opacity="0.65" Text="Versions publiées et intégrité des installateurs" /></StackPanel>
             <Border Padding="24" Background="#FF20242B" CornerRadius="10">
-                <Grid ColumnSpacing="24"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel Spacing="8"><TextBlock FontSize="20" FontWeight="SemiBold" Text="Version installée" /><TextBlock FontSize="32" Text="0.1.0-dev" /><TextBlock Opacity="0.65" Text="Canal stable · vérification SHA-256 activée" /></StackPanel><Button Grid.Column="1" VerticalAlignment="Center" Content="Rechercher les mises à jour" Style="{StaticResource AccentButtonStyle}" Click="OnCheckUpdates" /></Grid>
+                <Grid ColumnSpacing="24">
+                    <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Spacing="8"><TextBlock FontSize="18" FontWeight="SemiBold" Text="Version installée" /><TextBlock x:Name="InstalledVersionText" FontSize="30" /></StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="8"><TextBlock FontSize="18" FontWeight="SemiBold" Text="Nouvelle version" /><TextBlock x:Name="AvailableVersionText" FontSize="30" Text="—" /></StackPanel>
+                    <Button Grid.Column="2" VerticalAlignment="Center" Content="Rechercher" Style="{StaticResource AccentButtonStyle}" Click="OnCheckUpdates" />
+                </Grid>
             </Border>
-            <InfoBar x:Name="UpdateInfo" IsOpen="False" IsClosable="True" Severity="Informational" Title="Recherche terminée" Message="Aucune mise à jour disponible." />
-            <Border Padding="20" Background="#FF20242B" CornerRadius="10"><StackPanel Spacing="10"><TextBlock FontSize="20" FontWeight="SemiBold" Text="Notes de version" /><TextBlock Opacity="0.65" TextWrapping="Wrap" Text="Les nouveautés, corrections et modifications importantes apparaîtront ici lorsqu’une version sera publiée sur GitHub Releases." /></StackPanel></Border>
+            <ProgressBar x:Name="UpdateProgress" IsIndeterminate="True" Visibility="Collapsed" />
+            <InfoBar x:Name="UpdateInfo" IsOpen="False" IsClosable="True" />
+            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+                <StackPanel Spacing="12">
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="Notes de version" />
+                    <TextBlock x:Name="ReleaseNotesText" Opacity="0.75" TextWrapping="Wrap" Text="Recherchez une version publiée sur GitHub Releases." />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="DownloadButton" Content="Télécharger" IsEnabled="False" Click="OnDownload" />
+                        <Button x:Name="InstallButton" Content="Installer maintenant" IsEnabled="False" Style="{StaticResource AccentButtonStyle}" Click="OnInstall" />
+                        <Button x:Name="DeferButton" Content="Reporter de 7 jours" IsEnabled="False" Click="OnDefer" />
+                        <Button x:Name="IgnoreButton" Content="Ignorer cette version" IsEnabled="False" Click="OnIgnore" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+                <StackPanel Spacing="10">
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="Retour à la version précédente" />
+                    <TextBlock x:Name="RollbackDescription" Opacity="0.7" Text="Aucun installateur précédent conservé." />
+                    <Button x:Name="RollbackButton" HorizontalAlignment="Left" Content="Réinstaller la version précédente" IsEnabled="False" Click="OnRollback" />
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Page>
-

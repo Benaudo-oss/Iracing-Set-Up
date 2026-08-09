@@ -105,6 +105,14 @@ niveau. L’installateur ne supprime jamais `%LocalAppData%\IracingSetupManager`
 afin de conserver la base SQLite et les réglages. Si un certificat valide et
 SignTool sont disponibles, les exécutables sont signés automatiquement.
 
+### Publication des mises à jour
+
+Un tag Git `vX.Y.Z` déclenche `.github/workflows/release.yml`. Le workflow teste
+l’application, construit l’installateur et publie automatiquement l’exécutable et
+son fichier SHA-256 dans GitHub Releases. Les secrets facultatifs
+`SIGNING_CERTIFICATE_BASE64` et `SIGNING_CERTIFICATE_PASSWORD` activent la
+signature. L’application ne propose jamais une release privée d’un des deux assets.
+
 ## Licence
 
 Tous droits réservés. Voir [LICENSE](LICENSE).

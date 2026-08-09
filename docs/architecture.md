@@ -79,3 +79,12 @@ sont refusés. Les ZIP sont contrôlés avant extraction (traversée, liens, dou
 nombre, tailles et taux de compression). Les chemins sources devenus inutiles sont
 effacés au démarrage. La sauvegarde utilise l’API SQLite afin de produire une base
 cohérente pendant que l’application est ouverte.
+
+## Mises à jour
+
+Le canal stable interroge l’API GitHub Releases et cherche deux assets portant le
+nom versionné attendu : l’installateur et son fichier `.sha256`. Le téléchargement
+reste temporaire jusqu’à la comparaison SHA-256. L’installation et le retour
+arrière lancent ensuite Inno Setup dans un processus séparé avant la fermeture de
+l’application. Chaque installateur conserve une copie de lui-même dans les données
+locales, ce qui rend la version précédente disponible sans toucher à la base SQLite.
