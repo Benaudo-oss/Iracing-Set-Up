@@ -78,6 +78,7 @@ public sealed partial class SettingsPage : Page
         AddProviderIfEnabled(folders, VrsToggle, VrsPathBox, "VRS");
         await App.Services.MonitoredFolders.SaveAsync(folders);
         await App.Services.IracingPathLayout.SaveAsync(pathLayout.Select(item => item.Key).ToArray());
+        await App.Services.Monitoring.StartAsync();
         SettingsInfo.Severity = InfoBarSeverity.Success;
         SettingsInfo.Message = "Les paramètres ont été enregistrés.";
         SettingsInfo.IsOpen = true;

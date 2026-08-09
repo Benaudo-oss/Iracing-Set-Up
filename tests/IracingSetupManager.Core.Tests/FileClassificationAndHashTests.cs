@@ -38,6 +38,17 @@ public sealed class FileClassificationAndHashTests
     }
 
     [Theory]
+    [InlineData("HYMO_GTS_25S12_M4GT3_LeMans_ER.sto", "2025 S12")]
+    [InlineData("VRS_27S5_M4GT3_LeMans_R.sto", "2027 S5")]
+    [InlineData("setup_2030S123.sto", "2030 S123")]
+    public void MetadataAnalyzerAcceptsAnyPositiveSeasonNumber(string fileName, string expectedSeason)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal(expectedSeason, metadata.Season);
+    }
+
+    [Theory]
     [InlineData("GO_26S3_GTS_720SGT3_LeMans_R_Safe.sto", "GO Setups", "McLaren 720S GT3", "GT3", "Le Mans", "Race Safe")]
     [InlineData("VRS_26S3PG_M4GT3_LeMans_R1_V2.sto", "VRS", "BMW M4 GT3", "GT3", "Le Mans", "Race V2")]
     [InlineData("HYMO_IMSA_26S3_ARX06_Fuji_WR.sto", "HYMO", "Acura ARX-06", "GTP", "Fuji", "Wet Race")]

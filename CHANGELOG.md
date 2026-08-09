@@ -28,6 +28,15 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.4.2
+
+- Sélection d'une week inconnue avec treize boutons et confirmation obligatoire.
+- Démarrage automatique de la surveillance locale avec l'application.
+- Redémarrage de la surveillance après l'enregistrement des paramètres.
+- Import garanti de tous les fichiers `.sto`, quel que soit leur nom ou la casse de l'extension.
+- Prise en charge des numéros de saison positifs sans limite à quatre, comme `25S12` et `27S5`.
+- Création des dossiers de copie `2025_S12`, `2027_S5` et équivalents.
+
 # 0.1.4.1
 
 - Arborescence de copie vers iRacing personnalisable depuis les paramètres.

@@ -29,6 +29,29 @@ public sealed class LocalLibraryTests
         Assert.Contains(Path.Combine("2026 S3", "Spa", "Porsche 911 GT3 R", "HYMO"), result.ArchivePath);
     }
 
+    [Theory]
+    [InlineData("nom totalement libre.STO")]
+    [InlineData("HYMO_GTS_26S12_M4GT3_LeMans_ER.sto")]
+    [InlineData("123456789.sto")]
+    public async Task ImportsEveryStoFileRegardlessOfItsName(string fileName)
+    {
+        await using var environment = await LibraryTestEnvironment.CreateAsync();
+        var source = Path.Combine(environment.SourcePath, fileName);
+        await File.WriteAllTextAsync(source, $"content-{fileName}");
+
+        var result = Assert.Single(await environment.Service.ImportAsync(
+            source,
+            environment.ArchivePath,
+            SetupSourceKind.DownloadsFolder));
+        var setup = Assert.Single(await new SetupQueryService(environment.Factory).GetAllAsync());
+
+        Assert.Equal(SetupImportOutcome.Imported, result.Outcome);
+        Assert.Equal(fileName, setup.OriginalFileName);
+        Assert.Equal(SetupStatus.AVerifier, setup.Status);
+        Assert.True(File.Exists(result.ArchivePath));
+        Assert.True(File.Exists(source));
+    }
+
     [Fact]
     public async Task IdenticalContentIsDetectedAsDuplicate()
     {

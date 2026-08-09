@@ -3,6 +3,7 @@ using IracingSetupManager.Infrastructure.Iracing;
 using IracingSetupManager.Core.Setups;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace IracingSetupManager.App.Views;
 
@@ -131,30 +132,47 @@ public sealed partial class IracingCopyPage : Page
 
     private async Task<int?> AskWeekAsync(string fileName)
     {
-        var input = new NumberBox
-        {
-            Header = "Numéro de semaine",
-            Minimum = 1,
-            Maximum = 13,
-            SmallChange = 1,
-            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact,
-            PlaceholderText = "Entre 1 et 13"
-        };
+        int? selectedWeek = null;
+        var weekButtons = new List<ToggleButton>();
+        var weekGrid = new Grid { RowSpacing = 8, ColumnSpacing = 8 };
+        for (var column = 0; column < 7; column++)
+            weekGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        weekGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        weekGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
         var content = new StackPanel { Spacing = 12 };
         content.Children.Add(new TextBlock { Text = $"La semaine est inconnue pour :\n{fileName}", TextWrapping = TextWrapping.Wrap });
-        content.Children.Add(input);
+        content.Children.Add(new TextBlock { Text = "Sélectionnez une week comprise entre 1 et 13 :", Opacity = 0.75 });
+        content.Children.Add(weekGrid);
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
             Title = "Choisir la semaine",
             Content = content,
-            PrimaryButtonText = "Valider",
+            PrimaryButtonText = "Confirmer",
             CloseButtonText = "Annuler",
             IsPrimaryButtonEnabled = false,
             DefaultButton = ContentDialogButton.Primary
         };
-        input.ValueChanged += (_, _) => dialog.IsPrimaryButtonEnabled = !double.IsNaN(input.Value) && input.Value >= 1 && input.Value <= 13 && input.Value == Math.Truncate(input.Value);
-        return await dialog.ShowAsync() == ContentDialogResult.Primary ? (int)input.Value : null;
+
+        for (var week = 1; week <= 13; week++)
+        {
+            var value = week;
+            var button = new ToggleButton { Content = week.ToString(), Width = 48, Height = 40 };
+            button.Click += (_, _) =>
+            {
+                foreach (var candidate in weekButtons) candidate.IsChecked = false;
+                button.IsChecked = true;
+                selectedWeek = value;
+                dialog.IsPrimaryButtonEnabled = true;
+            };
+            Grid.SetRow(button, (week - 1) / 7);
+            Grid.SetColumn(button, (week - 1) % 7);
+            weekButtons.Add(button);
+            weekGrid.Children.Add(button);
+        }
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary ? selectedWeek : null;
     }
 
     private sealed class CopyRow

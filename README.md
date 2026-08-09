@@ -9,7 +9,7 @@ des setups iRacing sans modifier les fichiers originaux.
 
 ## État du projet
 
-Le projet est en phase d'initialisation. La version actuelle est `0.1.4.1` :
+Le projet est en phase d'initialisation. La version actuelle est `0.1.4.2` :
 bibliothèque locale, calcul SHA-256, base SQLite et interface de consultation.
 
 ## Technologies
@@ -98,7 +98,7 @@ dotnet publish src/IracingSetupManager.App/IracingSetupManager.App.csproj `
 
 ### Installateur Windows
 
-La commande `installer/Build-Installer.ps1 -Version 0.1.4.1` publie l’application
+La commande `installer/Build-Installer.ps1 -Version 0.1.4.2` publie l’application
 autonome, génère l’installateur Inno Setup versionné et son empreinte SHA-256. Le
 même identifiant d’application assure installation, désinstallation et mise à
 niveau. L’installateur ne supprime jamais `%LocalAppData%\IracingSetupManager`,

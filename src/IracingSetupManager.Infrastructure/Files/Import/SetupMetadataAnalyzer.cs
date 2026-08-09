@@ -166,7 +166,7 @@ public sealed partial class SetupMetadataAnalyzer
 
     private static string NormalizeYear(string year) => year.Length == 2 ? $"20{year}" : year;
 
-    [GeneratedRegex(@"(?<year>(?:20)?\d{2})[ _-]*S(?<season>[1-4])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"(?<year>(?:20)?\d{2})[ _-]*S(?<season>[1-9]\d*)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SeasonRegex();
 
     [GeneratedRegex(@"^R\d*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]

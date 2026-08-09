@@ -101,6 +101,26 @@ public sealed class IracingCopyTests
         await Assert.ThrowsAsync<ArgumentException>(() => layout.SaveAsync(["Season", "Season", "Week"]));
     }
 
+    [Theory]
+    [InlineData("2025 S12", "2025_S12")]
+    [InlineData("2027 S5", "2027_S5")]
+    public async Task CopyPathUsesFullSeasonNumber(string season, string expectedFolder)
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        await using (var context = environment.Factory.Create())
+        {
+            (await context.Setups.FindAsync(environment.ValidatedId))!.Season = season;
+            await context.SaveChangesAsync();
+        }
+
+        var plan = await environment.Service.CreatePlanAsync(
+            [environment.ValidatedId],
+            environment.Target,
+            new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
+
+        Assert.Contains(Path.Combine("Garage 61", expectedFolder, "Grid & Go"), plan[0].DestinationPath);
+    }
+
     private sealed class TestEnvironment : IAsyncDisposable
     {
         private readonly string root;
