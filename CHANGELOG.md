@@ -28,6 +28,10 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.1.3
+
+- Ajout d’un bouton pour effacer la recherche et tous les filtres de la bibliothèque.
+
 # 0.1.1.2
 
 - Ajout de VRS comme quatrième fournisseur indépendant.

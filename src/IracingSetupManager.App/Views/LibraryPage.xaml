@@ -11,7 +11,7 @@
         </StackPanel>
         <Grid Grid.Row="1" ColumnSpacing="10">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
+                <ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBox x:Name="SearchBox" PlaceholderText="Rechercher un fichier, une voiture ou un circuit…" TextChanged="OnSearchChanged" />
             <ComboBox x:Name="ProviderFilter" Grid.Column="1" PlaceholderText="Fournisseur" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
@@ -19,6 +19,7 @@
             <ComboBox x:Name="SeasonFilter" Grid.Column="3" PlaceholderText="Saison" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
             <ComboBox x:Name="TypeFilter" Grid.Column="4" PlaceholderText="Type" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
             <ComboBox x:Name="StatusFilter" Grid.Column="5" PlaceholderText="Statut" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
+            <Button Grid.Column="6" Content="Effacer les filtres" Click="OnClearFilters" />
         </Grid>
         <Border Grid.Row="2" Padding="20" Background="#FF20242B" CornerRadius="10">
             <Grid>

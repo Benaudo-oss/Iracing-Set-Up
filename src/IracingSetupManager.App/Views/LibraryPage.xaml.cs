@@ -25,6 +25,17 @@ public sealed partial class LibraryPage : Page
 
     private void OnFilterChanged(object sender, SelectionChangedEventArgs e) => ApplyFilters();
 
+    private void OnClearFilters(object sender, RoutedEventArgs e)
+    {
+        SearchBox.Text = string.Empty;
+        ProviderFilter.SelectedItem = null;
+        CategoryFilter.SelectedItem = null;
+        SeasonFilter.SelectedItem = null;
+        TypeFilter.SelectedItem = null;
+        StatusFilter.SelectedItem = null;
+        ApplyFilters();
+    }
+
     private void ApplyFilters()
     {
         var search = SearchBox.Text.Trim();
@@ -64,4 +75,3 @@ public sealed partial class LibraryPage : Page
     private static bool Contains(string? value, string search) =>
         value?.Contains(search, StringComparison.CurrentCultureIgnoreCase) == true;
 }
-
