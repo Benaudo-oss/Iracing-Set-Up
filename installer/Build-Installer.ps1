@@ -10,7 +10,7 @@ $dotnet = @(
     (Join-Path (Split-Path -Parent $repo) 'tools\dotnet\dotnet.exe'),
     (Get-Command dotnet -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)
 ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
-if (-not $dotnet) { throw 'Le SDK .NET 10 est requis pour construire l’installateur.' }
+if (-not $dotnet) { throw 'Le SDK .NET 10 est requis pour construire cet installateur.' }
 $publish = Join-Path $repo "artifacts\publish\$Runtime"
 $output = Join-Path $repo 'artifacts\installer'
 $project = Join-Path $repo 'src\IracingSetupManager.App\IracingSetupManager.App.csproj'
@@ -38,7 +38,7 @@ $iscc = @((Get-Command iscc.exe -ErrorAction SilentlyContinue | Select-Object -E
 if (-not $iscc) { throw 'Inno Setup 6 est requis. Installez JRSoftware.InnoSetup avec winget.' }
 New-Item -ItemType Directory -Force -Path $output | Out-Null
 & $iscc "/DAppVersion=$Version" "/DPublishDir=$publish" "/DOutputDir=$output" $iss
-if ($LASTEXITCODE -ne 0) { throw 'La génération de l’installateur a échoué.' }
+if ($LASTEXITCODE -ne 0) { throw 'La génération de cet installateur a échoué.' }
 
 $installer = Join-Path $output "IracingSetupManager-$Version-win-x64-setup.exe"
 if ($canSign) {
