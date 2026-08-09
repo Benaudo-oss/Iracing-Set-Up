@@ -18,13 +18,16 @@ public sealed class SetupQueryService(ISetupDbContextFactory contextFactory)
         CancellationToken cancellationToken = default)
     {
         await using var context = contextFactory.Create();
+        var downloadDates = await context.Setups.AsNoTracking()
+            .Select(item => item.DownloadedAtUtc)
+            .ToListAsync(cancellationToken);
         return new DashboardStatistics(
             await context.Setups.CountAsync(cancellationToken),
             await context.Setups.CountAsync(item => item.Status == SetupStatus.AVerifier, cancellationToken),
             await context.Setups.CountAsync(item => item.Status == SetupStatus.Valide, cancellationToken),
             await context.Setups.CountAsync(item => item.Status == SetupStatus.EnvoyeVersGarage61, cancellationToken),
             await context.Setups.Select(item => item.Provider).Distinct().CountAsync(cancellationToken),
-            await context.Setups.MaxAsync(item => (DateTimeOffset?)item.DownloadedAtUtc, cancellationToken));
+            downloadDates.Count == 0 ? null : downloadDates.Max());
     }
 
     public async Task<IReadOnlyList<SetupEntity>> GetAllAsync(

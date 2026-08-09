@@ -57,6 +57,22 @@ public sealed class DatabaseTests
         Assert.Equal(setup.Comment, stored.Comment);
     }
 
+    [Fact]
+    public async Task DashboardStatisticsSupportEmptyAndPopulatedDatabase()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var queries = new SetupQueryService(environment.Factory);
+        var empty = await queries.GetDashboardStatisticsAsync();
+        Assert.Equal(0, empty.Total);
+        Assert.Null(empty.LastDownloadUtc);
+
+        var setup = CreateSetup();
+        await new SetupRepository(environment.Factory).AddAsync(setup);
+        var populated = await queries.GetDashboardStatisticsAsync();
+        Assert.Equal(1, populated.Total);
+        Assert.Equal(setup.DownloadedAtUtc, populated.LastDownloadUtc);
+    }
+
     private static SetupEntity CreateSetup() => new()
     {
         Id = Guid.NewGuid(),

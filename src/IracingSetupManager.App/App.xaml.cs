@@ -1,4 +1,5 @@
 using IracingSetupManager.App.Services;
+using IracingSetupManager.Infrastructure.Logging;
 using Microsoft.UI.Xaml;
 
 namespace IracingSetupManager.App;
@@ -11,15 +12,39 @@ public partial class App : Application
 
     public App()
     {
+        UnhandledException += OnUnhandledException;
         InitializeComponent();
     }
 
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
-        await Services.Database.InitializeAsync();
-        await Services.SensitiveData.PurgeUnneededSourcePathsAsync();
-        MainWindowInstance = new MainWindow();
-        MainWindowInstance.Closed += async (_, _) => await Services.Monitoring.DisposeAsync();
-        MainWindowInstance.Activate();
+        try
+        {
+            await Services.Database.InitializeAsync();
+            await Services.SensitiveData.PurgeUnneededSourcePathsAsync();
+            MainWindowInstance = new MainWindow();
+            MainWindowInstance.Closed += async (_, _) => await Services.Monitoring.DisposeAsync();
+            MainWindowInstance.Activate();
+        }
+        catch (Exception exception)
+        {
+            WriteStartupError(exception);
+            throw;
+        }
+    }
+
+    private static void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs args) =>
+        WriteStartupError(args.Exception);
+
+    private static void WriteStartupError(Exception exception)
+    {
+        try
+        {
+            var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "IracingSetupManager", "Logs");
+            Directory.CreateDirectory(folder);
+            var safeDetails = SensitiveDataRedactor.Redact(exception.ToString());
+            File.AppendAllText(Path.Combine(folder, "startup-errors.log"), $"[{DateTimeOffset.Now:O}]{Environment.NewLine}{safeDetails}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch { }
     }
 }
