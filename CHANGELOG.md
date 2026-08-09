@@ -28,3 +28,8 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.1
+
+- Ajout du logo voiture et engrenage dans l’application et l’installateur.
+- Amélioration du contraste et de la lisibilité du menu de navigation.
+- Nouvelle version destinée à valider le mécanisme de mise à jour.
