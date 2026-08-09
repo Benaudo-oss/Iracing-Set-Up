@@ -27,9 +27,9 @@ bibliothèque locale, calcul SHA-256, base SQLite et interface de consultation.
 src/
   IracingSetupManager.App/              Interface Windows WinUI 3
   IracingSetupManager.Core/             Modèles et règles métier
-  IracingSetupManager.Infrastructure/   Base locale, fichiers et sécurité
-  IracingSetupManager.Providers/        Contrats des fournisseurs
-  IracingSetupManager.Integrations/     iRacing et Garage61
+  IracingSetupManager.Infrastructure/   Base, fichiers, journaux et sécurité
+  IracingSetupManager.Providers/        HYMO, GO, GNG et orchestration parallèle
+  IracingSetupManager.Integrations/     iRacing, Garage61 et mises à jour
 tests/
   IracingSetupManager.Core.Tests/       Tests automatisés
 docs/                                   Architecture et décisions

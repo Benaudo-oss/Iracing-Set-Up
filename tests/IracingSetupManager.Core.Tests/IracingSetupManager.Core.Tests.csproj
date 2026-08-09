@@ -12,6 +12,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <ProjectReference Include="..\..\src\IracingSetupManager.Core\IracingSetupManager.Core.csproj" />
+    <ProjectReference Include="..\..\src\IracingSetupManager.Providers\IracingSetupManager.Providers.csproj" />
   </ItemGroup>
 </Project>
-
