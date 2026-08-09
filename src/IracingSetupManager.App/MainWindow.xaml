@@ -26,6 +26,9 @@
             <NavigationViewItem Content="Synchronisation" Tag="synchronization">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE895;" /></NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem Content="Copie vers iRacing" Tag="iracing-copy">
+                <NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
             <NavigationViewItem Content="À vérifier" Tag="review">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D5;" /></NavigationViewItem.Icon>
             </NavigationViewItem>
@@ -39,4 +42,3 @@
         <Frame x:Name="ContentFrame" />
     </NavigationView>
 </Window>
-

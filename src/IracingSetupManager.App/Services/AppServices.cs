@@ -3,6 +3,7 @@ using IracingSetupManager.Infrastructure.Files;
 using IracingSetupManager.Infrastructure.Files.Import;
 using IracingSetupManager.Infrastructure.Files.Monitoring;
 using IracingSetupManager.Infrastructure.Settings;
+using IracingSetupManager.Infrastructure.Iracing;
 
 namespace IracingSetupManager.App.Services;
 
@@ -17,6 +18,7 @@ public sealed class AppServices
         Database = new SetupDatabase(ContextFactory);
         QueryService = new SetupQueryService(ContextFactory);
         Validation = new SetupValidationService(ContextFactory);
+        IracingCopy = new IracingCopyService(ContextFactory);
         ArchivePaths = new ArchivePathService(ContextFactory, new WinUiFolderPicker());
         FolderPolicy = new MonitoredFolderPolicy();
         MonitoredFolders = new MonitoredFolderSettingsService(ContextFactory, FolderPolicy);
@@ -41,6 +43,7 @@ public sealed class AppServices
     public SetupDatabase Database { get; }
     public SetupQueryService QueryService { get; }
     public SetupValidationService Validation { get; }
+    public IracingCopyService IracingCopy { get; }
     public ArchivePathService ArchivePaths { get; }
     public MonitoredFolderPolicy FolderPolicy { get; }
     public MonitoredFolderSettingsService MonitoredFolders { get; }

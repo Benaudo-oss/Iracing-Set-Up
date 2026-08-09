@@ -7,6 +7,7 @@ utilise le versionnement sémantique.
 
 ### Ajouté
 
+- Aperçu et copie sécurisée des setups validés vers iRacing, avec résolution explicite des conflits.
 - Structure initiale de la solution .NET 10 et WinUI 3.
 - Séparation des modules métier, infrastructure, fournisseurs et intégrations.
 - Protections Git contre l'ajout de secrets et de données locales.

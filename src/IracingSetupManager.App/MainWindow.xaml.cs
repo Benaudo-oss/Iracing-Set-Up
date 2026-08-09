@@ -34,6 +34,7 @@ public sealed partial class MainWindow : Window
         {
             "library" => typeof(LibraryPage),
             "synchronization" => typeof(SynchronizationPage),
+            "iracing-copy" => typeof(IracingCopyPage),
             "review" => typeof(ReviewPage),
             "history" => typeof(HistoryPage),
             "updates" => typeof(UpdatesPage),
@@ -49,4 +50,3 @@ public sealed partial class MainWindow : Window
         }
     }
 }
-

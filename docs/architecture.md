@@ -59,3 +59,12 @@ Tout nouvel import reçoit le statut `À vérifier`. Les validations et refus pe
 sur plusieurs setups si la confirmation explicite n'est pas fournie. La note sur 5,
 le commentaire, les anciens et nouveaux statuts sont conservés dans la table
 `SetupChangeHistory` avec la date de chaque changement.
+
+## Copie vers iRacing
+
+Le dossier `Documents\iRacing\setups` est détecté quand il existe et reste
+sélectionnable manuellement. Seuls les setups ayant le statut `Valide` entrent
+dans le plan de copie, avec une seconde vérification juste avant l’écriture.
+L’aperçu indique chaque destination et chaque conflit. Les choix possibles sont
+ignorer ou conserver les deux ; aucun écrasement implicite n’est autorisé. La
+copie lit l’original depuis l’archive sans jamais le déplacer ou le supprimer.
