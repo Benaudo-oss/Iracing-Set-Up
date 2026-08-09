@@ -34,6 +34,8 @@ SetupLogging=yes
 VersionInfoVersion={#AppVersion}.0
 VersionInfoProductVersion={#AppVersion}.0
 VersionInfoProductName=iRacing Setup Manager
+SetupIconFile={#PublishDir}\Assets\AppLogo.ico
+UninstallDisplayIcon={app}\IracingSetupManager.App.exe
 
 [Files]
 Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs

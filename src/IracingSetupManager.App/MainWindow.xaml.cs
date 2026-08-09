@@ -1,6 +1,7 @@
 using IracingSetupManager.App.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using System.IO;
 using Windows.Graphics;
 
 namespace IracingSetupManager.App;
@@ -10,6 +11,12 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "AppLogo.ico");
+        if (File.Exists(iconPath))
+        {
+            AppWindow.SetIcon(iconPath);
+        }
+
         AppWindow.Resize(new SizeInt32(1440, 900));
         ContentFrame.Navigate(typeof(DashboardPage));
         MainNavigation.SelectedItem = MainNavigation.MenuItems[0];
