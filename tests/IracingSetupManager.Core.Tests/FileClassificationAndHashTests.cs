@@ -41,6 +41,7 @@ public sealed class FileClassificationAndHashTests
     [InlineData("GO_26S3_GTS_720SGT3_LeMans_R_Safe.sto", "GO Setups", "McLaren 720S GT3", "GT3", "Le Mans", "Race Safe")]
     [InlineData("VRS_26S3PG_M4GT3_LeMans_R1_V2.sto", "VRS", "BMW M4 GT3", "GT3", "Le Mans", "Race V2")]
     [InlineData("HYMO_IMSA_26S3_ARX06_Fuji_WR.sto", "HYMO", "Acura ARX-06", "GTP", "Fuji", "Wet Race")]
+    [InlineData("HYMO_IMSA_26S3_NSX_Fuji_WR.sto", "HYMO", "Acura NSX GT3 Evo 22", "GT3", "Fuji", "Wet Race")]
     [InlineData("26S3-W07-GnG-Monza-BMWGTP-R-Safe.sto", "Grid & Go", "BMW M Hybrid V8", "GTP", "Monza", "Race Safe")]
     public void MetadataAnalyzerUnderstandsKnownProviderNamingConventions(
         string fileName,

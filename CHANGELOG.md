@@ -28,6 +28,13 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.3.1
+
+- Actualisation automatique des onglets Bibliothèque et À vérifier après chaque nouvel import.
+- Rechargement systématique des données à l'ouverture de ces deux onglets.
+- Reconnaissance de l'alias `NSX` comme Acura NSX GT3 Evo 22, catégorie GT3.
+- Actualisation des anciennes entrées non identifiées lors de l'ouverture de la bibliothèque.
+
 # 0.1.3.0
 
 - Copie vers l'arborescence officielle des voitures iRacing, puis `Garage 61/Saison/Fournisseur/Week`.

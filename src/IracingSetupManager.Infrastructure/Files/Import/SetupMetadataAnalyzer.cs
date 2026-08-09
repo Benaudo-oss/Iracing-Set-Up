@@ -13,6 +13,7 @@ public sealed partial class SetupMetadataAnalyzer
         new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase)
         {
             ["acuransxevo22gt3"] = ("Acura NSX GT3 Evo 22", "GT3"),
+            ["NSX"] = ("Acura NSX GT3 Evo 22", "GT3"),
             ["amvantageevogt3"] = ("Aston Martin Vantage GT3 Evo", "GT3"),
             ["audir8gt3"] = ("Audi R8 LMS GT3", "GT3"),
             ["audir8lmsevo2gt3"] = ("Audi R8 LMS Evo II GT3", "GT3"),

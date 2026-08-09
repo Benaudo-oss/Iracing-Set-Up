@@ -1,4 +1,5 @@
 using IracingSetupManager.Infrastructure.Database.Entities;
+using IracingSetupManager.Infrastructure.Files.Import;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -6,9 +7,37 @@ namespace IracingSetupManager.App.Views;
 
 public sealed partial class ReviewPage : Page
 {
+    private bool _isListeningForImports;
+
     public ReviewPage() => InitializeComponent();
 
-    private async void OnLoaded(object sender, RoutedEventArgs e) => await ReloadAsync();
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        StartListeningForImports();
+        await ReloadAsync();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (!_isListeningForImports) return;
+        App.Services.Monitoring.ImportCompleted -= OnImportCompleted;
+        _isListeningForImports = false;
+    }
+
+    private void StartListeningForImports()
+    {
+        if (_isListeningForImports) return;
+        App.Services.Monitoring.ImportCompleted += OnImportCompleted;
+        _isListeningForImports = true;
+    }
+
+    private void OnImportCompleted(object? sender, SetupImportResult result)
+    {
+        DispatcherQueue.TryEnqueue(async () =>
+        {
+            if (IsLoaded) await ReloadAsync();
+        });
+    }
 
     private void OnSelectAll(object sender, RoutedEventArgs e) => ReviewList.SelectAll();
 

@@ -1,4 +1,5 @@
 using IracingSetupManager.Infrastructure.Database.Entities;
+using IracingSetupManager.Infrastructure.Files.Import;
 using IracingSetupManager.Core.Setups;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -8,11 +9,13 @@ namespace IracingSetupManager.App.Views;
 public sealed partial class LibraryPage : Page
 {
     private IReadOnlyList<SetupEntity> _setups = [];
+    private bool _isListeningForImports;
 
     public LibraryPage() => InitializeComponent();
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        StartListeningForImports();
         var archiveRoot = await App.Services.ArchivePaths.GetAsync();
         if (!string.IsNullOrWhiteSpace(archiveRoot))
         {
@@ -21,6 +24,28 @@ public sealed partial class LibraryPage : Page
         await App.Services.LibraryIntegrity.MarkMissingFilesAsync();
         await App.Services.MetadataRefresh.RefreshAsync();
         await ReloadAsync();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (!_isListeningForImports) return;
+        App.Services.Monitoring.ImportCompleted -= OnImportCompleted;
+        _isListeningForImports = false;
+    }
+
+    private void StartListeningForImports()
+    {
+        if (_isListeningForImports) return;
+        App.Services.Monitoring.ImportCompleted += OnImportCompleted;
+        _isListeningForImports = true;
+    }
+
+    private void OnImportCompleted(object? sender, SetupImportResult result)
+    {
+        DispatcherQueue.TryEnqueue(async () =>
+        {
+            if (IsLoaded) await ReloadAsync();
+        });
     }
 
     private async Task ReloadAsync()
