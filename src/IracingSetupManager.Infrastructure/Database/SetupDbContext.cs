@@ -24,6 +24,8 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
         setup.Property(item => item.SetupType).HasMaxLength(128).IsRequired();
         setup.Property(item => item.Sha256).HasMaxLength(64).IsFixedLength().IsRequired();
         setup.Property(item => item.ArchivePath).HasMaxLength(2048).IsRequired();
+        setup.Property(item => item.SourceKind).HasConversion<string>().HasMaxLength(64);
+        setup.Property(item => item.SourcePath).HasMaxLength(2048);
         setup.Property(item => item.Status).HasConversion<string>().HasMaxLength(64);
         setup.Property(item => item.Comment).HasMaxLength(4000);
         setup.Property(item => item.Garage61Result).HasMaxLength(4000);
@@ -33,6 +35,7 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
         setup.HasIndex(item => item.OriginalFileName);
         setup.HasIndex(item => new { item.Provider, item.Category, item.Status });
         setup.HasIndex(item => new { item.Car, item.Track, item.Season });
+        setup.HasIndex(item => new { item.IsPrivate, item.Garage61ExportApproved, item.Status });
 
         var setting = modelBuilder.Entity<ApplicationSettingEntity>();
         setting.ToTable("ApplicationSettings");
@@ -41,4 +44,3 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
         setting.Property(item => item.Value).HasMaxLength(4096).IsRequired();
     }
 }
-

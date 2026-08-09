@@ -29,3 +29,11 @@ empreinte SHA-256 unique, son classement, son statut et le résultat Garage61. L
 index couvrent les recherches par fournisseur, catégorie, statut, voiture, circuit
 et saison. La table `ApplicationSettings` conserve le dossier d'archive : le
 sélecteur est affiché uniquement si aucun chemin n'a encore été enregistré.
+
+## Surveillance et confidentialité
+
+Seuls le dossier Téléchargements et les dossiers explicitement configurés des
+applications officielles peuvent être surveillés. `Documents\\iRacing\\setups` et
+tous ses sous-dossiers sont refusés par le code afin de ne pas mélanger les setups
+personnels avec ceux des fournisseurs. Un setup privé, non validé ou non approuvé
+manuellement ne peut pas être proposé à l'export Garage61.

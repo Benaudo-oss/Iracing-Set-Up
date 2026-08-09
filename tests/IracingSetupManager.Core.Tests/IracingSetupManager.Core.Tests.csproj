@@ -14,5 +14,6 @@
     <ProjectReference Include="..\..\src\IracingSetupManager.Core\IracingSetupManager.Core.csproj" />
     <ProjectReference Include="..\..\src\IracingSetupManager.Providers\IracingSetupManager.Providers.csproj" />
     <ProjectReference Include="..\..\src\IracingSetupManager.Infrastructure\IracingSetupManager.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\IracingSetupManager.Integrations\IracingSetupManager.Integrations.csproj" />
   </ItemGroup>
 </Project>

@@ -13,3 +13,5 @@ utilise le versionnement sémantique.
 - Projet de tests automatisés.
 - Schéma SQLite complet pour les setups et les résultats Garage61.
 - Choix persistant du dossier d'archive, demandé uniquement la première fois.
+- Surveillance limitée aux téléchargements et applications officielles.
+- Interdiction explicite de surveiller le dossier iRacing et protection des setups privés.

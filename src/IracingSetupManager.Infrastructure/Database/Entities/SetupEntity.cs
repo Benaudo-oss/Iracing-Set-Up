@@ -28,6 +28,14 @@ public sealed class SetupEntity
 
     public required string ArchivePath { get; set; }
 
+    public SetupSourceKind SourceKind { get; set; } = SetupSourceKind.Unknown;
+
+    public string? SourcePath { get; set; }
+
+    public bool IsPrivate { get; set; }
+
+    public bool Garage61ExportApproved { get; set; }
+
     public SetupStatus Status { get; set; } = SetupStatus.Nouveau;
 
     public int? PersonalRating { get; set; }
@@ -46,4 +54,3 @@ public sealed class SetupEntity
 
     public string? Garage61SetupUrl { get; set; }
 }
-

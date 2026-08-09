@@ -7,5 +7,8 @@ public sealed record SetupFile(
     long SizeInBytes,
     string ArchivePath,
     SetupStatus Status,
-    DateTimeOffset ImportedAtUtc);
-
+    DateTimeOffset ImportedAtUtc,
+    SetupSourceKind SourceKind = SetupSourceKind.Unknown,
+    string? SourcePath = null,
+    bool IsPrivate = false,
+    bool Garage61ExportApproved = false);
