@@ -35,7 +35,17 @@ tests/
 docs/                                   Architecture et décisions
 ```
 
-## Prérequis
+## Prérequis utilisateur
+
+Pour installer et utiliser une version publiée :
+
+- Windows 10 version 1809 ou Windows 11 ;
+- l'installateur iRacing Setup Manager.
+
+Visual Studio et le SDK .NET ne sont pas nécessaires. Les versions publiées seront
+autonomes et embarqueront .NET ainsi que les composants Windows App SDK requis.
+
+## Prérequis de développement
 
 - Windows 10 version 1809 ou Windows 11
 - Visual Studio 2026 avec la charge de travail de développement d'applications
@@ -75,6 +85,16 @@ doivent être enregistrés dans GitHub Actions Secrets.
 Les versions suivront le format `MAJEURE.MINEURE.CORRECTIF`. À terme, la création
 d'un tag déclenchera les tests, la compilation, la génération de l'installateur,
 le calcul SHA-256 et la publication dans GitHub Releases.
+
+Les livrables Windows seront publiés en mode autonome. Exemple pour Windows x64 :
+
+```powershell
+dotnet publish src/IracingSetupManager.App/IracingSetupManager.App.csproj `
+  --configuration Release `
+  --runtime win-x64 `
+  --self-contained true `
+  --maxcpucount:1
+```
 
 ## Licence
 

@@ -7,6 +7,8 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <RootNamespace>IracingSetupManager.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <WindowsAppSDKSelfContained Condition="'$(RuntimeIdentifier)' != ''">true</WindowsAppSDKSelfContained>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />
@@ -17,4 +19,3 @@
     <ProjectReference Include="..\IracingSetupManager.Integrations\IracingSetupManager.Integrations.csproj" />
   </ItemGroup>
 </Project>
-
