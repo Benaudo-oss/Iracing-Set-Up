@@ -24,16 +24,21 @@
         <Border Grid.Row="2" Padding="20" Background="#FF20242B" CornerRadius="10">
             <Grid>
                 <ListView x:Name="SetupList" HorizontalContentAlignment="Stretch" SelectionMode="Multiple">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
                     <ListView.Header>
                         <Grid Margin="40,0,0,0" Padding="8" ColumnSpacing="16">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="260" /><ColumnDefinition Width="130" /><ColumnDefinition Width="200" /><ColumnDefinition Width="180" /><ColumnDefinition Width="130" /></Grid.ColumnDefinitions>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                             <TextBlock FontWeight="SemiBold" Text="Fichier" /><TextBlock Grid.Column="1" FontWeight="SemiBold" Text="Fournisseur" /><TextBlock Grid.Column="2" FontWeight="SemiBold" Text="Voiture" /><TextBlock Grid.Column="3" FontWeight="SemiBold" Text="Circuit" /><TextBlock Grid.Column="4" FontWeight="SemiBold" Text="Statut" />
                         </Grid>
                     </ListView.Header>
                     <ListView.ItemTemplate>
                         <DataTemplate>
                             <Grid Padding="8" ColumnSpacing="16">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="260" /><ColumnDefinition Width="130" /><ColumnDefinition Width="200" /><ColumnDefinition Width="180" /><ColumnDefinition Width="130" /></Grid.ColumnDefinitions>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                                 <TextBlock Text="{Binding OriginalFileName}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="1" Text="{Binding Provider}" /><TextBlock Grid.Column="2" Text="{Binding Car}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="3" Text="{Binding Track}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="4" Text="{Binding Status}" />
                             </Grid>
                         </DataTemplate>

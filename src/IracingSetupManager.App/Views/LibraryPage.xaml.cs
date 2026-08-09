@@ -12,6 +12,7 @@ public sealed partial class LibraryPage : Page
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        await App.Services.MetadataRefresh.RefreshAsync();
         _setups = await App.Services.QueryService.GetAllAsync();
         ProviderFilter.ItemsSource = Distinct(item => item.Provider);
         CategoryFilter.ItemsSource = Distinct(item => item.Category);

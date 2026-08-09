@@ -28,6 +28,12 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.1.6
+
+- Alignement du tableau de la bibliothèque sur toute la largeur disponible.
+- Actualisation automatique des métadonnées des setups déjà enregistrés.
+- Conservation stricte des fichiers originaux et de leurs chemins d’archive.
+
 # 0.1.1.5
 
 - Classement automatique des exemples GO, VRS, HYMO et Grid & Go fournis.

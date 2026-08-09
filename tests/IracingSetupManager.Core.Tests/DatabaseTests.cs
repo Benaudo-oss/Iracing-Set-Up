@@ -1,6 +1,7 @@
 using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Database;
 using IracingSetupManager.Infrastructure.Database.Entities;
+using IracingSetupManager.Infrastructure.Files.Import;
 using IracingSetupManager.Infrastructure.Settings;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -102,6 +103,36 @@ public sealed class DatabaseTests
         Assert.Equal(newer.Id, all[0].Id);
         Assert.Equal(2, history.Count);
         Assert.True(history[0].ChangedAtUtc >= history[1].ChangedAtUtc);
+    }
+
+    [Fact]
+    public async Task ExistingSetupMetadataIsRefreshedWithoutChangingItsArchivePath()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var setup = CreateSetup();
+        setup.OriginalFileName = "VRS_26S3PG_M4GT3_LeMans_R1_V2.sto";
+        setup.Provider = "À identifier";
+        setup.Category = "À identifier";
+        setup.Car = "À identifier";
+        setup.Track = "À identifier";
+        setup.Season = null;
+        setup.SetupType = "À identifier";
+        var originalArchivePath = setup.ArchivePath;
+        await new SetupRepository(environment.Factory).AddAsync(setup);
+
+        var count = await new SetupMetadataRefreshService(
+            environment.Factory,
+            new SetupMetadataAnalyzer()).RefreshAsync();
+        var refreshed = await new SetupRepository(environment.Factory).FindBySha256Async(setup.Sha256);
+
+        Assert.Equal(1, count);
+        Assert.NotNull(refreshed);
+        Assert.Equal("VRS", refreshed.Provider);
+        Assert.Equal("BMW M4 GT3", refreshed.Car);
+        Assert.Equal("Le Mans", refreshed.Track);
+        Assert.Equal("2026 S3", refreshed.Season);
+        Assert.Equal("Race V2", refreshed.SetupType);
+        Assert.Equal(originalArchivePath, refreshed.ArchivePath);
     }
 
     private static SetupEntity CreateSetup() => new()

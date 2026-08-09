@@ -23,6 +23,7 @@ public sealed class AppServices
         SensitiveData = new SensitiveDataRetentionService(ContextFactory);
         Secrets = new WindowsCredentialManagerSecretStore();
         QueryService = new SetupQueryService(ContextFactory);
+        MetadataRefresh = new SetupMetadataRefreshService(ContextFactory, new SetupMetadataAnalyzer());
         Validation = new SetupValidationService(ContextFactory);
         IracingCopy = new IracingCopyService(ContextFactory);
         ArchivePaths = new ArchivePathService(ContextFactory, new WinUiFolderPicker());
@@ -54,6 +55,7 @@ public sealed class AppServices
     public SensitiveDataRetentionService SensitiveData { get; }
     public ISecretStore Secrets { get; }
     public SetupQueryService QueryService { get; }
+    public SetupMetadataRefreshService MetadataRefresh { get; }
     public SetupValidationService Validation { get; }
     public IracingCopyService IracingCopy { get; }
     public ArchivePathService ArchivePaths { get; }
