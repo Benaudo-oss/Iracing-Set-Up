@@ -1,4 +1,5 @@
 using IracingSetupManager.Core.Setups;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace IracingSetupManager.Infrastructure.Database.Entities;
 
@@ -37,6 +38,17 @@ public sealed class SetupEntity
     public bool Garage61ExportApproved { get; set; }
 
     public SetupStatus Status { get; set; } = SetupStatus.Nouveau;
+
+    [NotMapped]
+    public string StatusDisplay => Status switch
+    {
+        SetupStatus.AVerifier => "À vérifier",
+        SetupStatus.ACorriger => "À corriger",
+        SetupStatus.EnvoyeVersGarage61 => "Envoyé vers Garage61",
+        SetupStatus.ErreurEnvoi => "Erreur d’envoi",
+        SetupStatus.FichierManquant => "Fichier manquant",
+        _ => Status.ToString()
+    };
 
     public int? PersonalRating { get; set; }
 

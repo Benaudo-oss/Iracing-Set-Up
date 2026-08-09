@@ -28,6 +28,13 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.2.1
+
+- Suppression des cases de sélection inutiles dans la bibliothèque.
+- Filtres alignés avec les colonnes Fichier, Fournisseur, Catégorie, Voiture, Circuit et Statut.
+- Réimportation d’un fichier manquant dans l’archive et retour automatique au statut « À vérifier ».
+- Libellés de statut rendus plus lisibles.
+
 # 0.1.2.0
 
 - Détection automatique des fichiers supprimés de l'archive.

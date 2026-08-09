@@ -23,21 +23,20 @@ public sealed partial class LibraryPage : Page
         _setups = await App.Services.QueryService.GetAllAsync();
         ProviderFilter.ItemsSource = Distinct(item => item.Provider);
         CategoryFilter.ItemsSource = Distinct(item => item.Category);
-        SeasonFilter.ItemsSource = Distinct(item => item.Season);
-        TypeFilter.ItemsSource = Distinct(item => item.SetupType);
-        StatusFilter.ItemsSource = _setups.Select(item => item.Status.ToString()).Distinct().Order().ToList();
+        CarFilter.ItemsSource = Distinct(item => item.Car);
+        TrackFilter.ItemsSource = Distinct(item => item.Track);
+        StatusFilter.ItemsSource = _setups.Select(item => item.StatusDisplay).Distinct().Order().ToList();
         ApplyFilters();
     }
 
     private async void OnRemoveMissing(object sender, RoutedEventArgs e)
     {
-        var selected = SetupList.SelectedItems.Cast<SetupEntity>()
+        var selected = _setups
             .Where(item => item.Status == SetupStatus.FichierManquant)
             .Select(item => item.Id)
             .ToArray();
         if (selected.Length == 0)
         {
-            await ShowMessageAsync("Sélectionnez au moins une ligne ayant le statut « Fichier manquant ».");
             return;
         }
 
@@ -56,18 +55,6 @@ public sealed partial class LibraryPage : Page
         await ReloadAsync();
     }
 
-    private async Task ShowMessageAsync(string message)
-    {
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = "Bibliothèque",
-            Content = message,
-            CloseButtonText = "OK"
-        };
-        await dialog.ShowAsync();
-    }
-
     private void OnSearchChanged(object sender, TextChangedEventArgs e) => ApplyFilters();
 
     private void OnFilterChanged(object sender, SelectionChangedEventArgs e) => ApplyFilters();
@@ -77,8 +64,8 @@ public sealed partial class LibraryPage : Page
         SearchBox.Text = string.Empty;
         ProviderFilter.SelectedItem = null;
         CategoryFilter.SelectedItem = null;
-        SeasonFilter.SelectedItem = null;
-        TypeFilter.SelectedItem = null;
+        CarFilter.SelectedItem = null;
+        TrackFilter.SelectedItem = null;
         StatusFilter.SelectedItem = null;
         ApplyFilters();
     }
@@ -90,9 +77,9 @@ public sealed partial class LibraryPage : Page
             MatchesSearch(item, search) &&
             Matches(item.Provider, ProviderFilter.SelectedItem) &&
             Matches(item.Category, CategoryFilter.SelectedItem) &&
-            Matches(item.Season, SeasonFilter.SelectedItem) &&
-            Matches(item.SetupType, TypeFilter.SelectedItem) &&
-            Matches(item.Status.ToString(), StatusFilter.SelectedItem)).ToList();
+            Matches(item.Car, CarFilter.SelectedItem) &&
+            Matches(item.Track, TrackFilter.SelectedItem) &&
+            Matches(item.StatusDisplay, StatusFilter.SelectedItem)).ToList();
 
         SetupList.ItemsSource = filtered;
         EmptyState.Visibility = filtered.Count == 0 ? Visibility.Visible : Visibility.Collapsed;

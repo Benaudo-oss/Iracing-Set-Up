@@ -4,46 +4,83 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Loaded="OnLoaded">
     <Grid Padding="32" RowSpacing="18">
-        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /></Grid.RowDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+
         <StackPanel Spacing="4">
             <TextBlock FontSize="32" FontWeight="SemiBold" Text="Bibliothèque" />
             <TextBlock Opacity="0.65" Text="Recherchez et filtrez tous les setups archivés" />
         </StackPanel>
-        <Grid Grid.Row="1" ColumnSpacing="10">
+
+        <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="10">
+            <Button Content="Effacer les filtres" Click="OnClearFilters" />
+            <Button Content="Retirer les fichiers manquants" Click="OnRemoveMissing" />
+        </StackPanel>
+
+        <Grid Grid.Row="2" Padding="8,0" ColumnSpacing="16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition />
+                <ColumnDefinition />
+                <ColumnDefinition />
+                <ColumnDefinition />
+                <ColumnDefinition />
             </Grid.ColumnDefinitions>
-            <TextBox x:Name="SearchBox" PlaceholderText="Rechercher un fichier, une voiture ou un circuit…" TextChanged="OnSearchChanged" />
-            <ComboBox x:Name="ProviderFilter" Grid.Column="1" PlaceholderText="Fournisseur" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="CategoryFilter" Grid.Column="2" PlaceholderText="Catégorie" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="SeasonFilter" Grid.Column="3" PlaceholderText="Saison" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="TypeFilter" Grid.Column="4" PlaceholderText="Type" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="StatusFilter" Grid.Column="5" PlaceholderText="Statut" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
-            <Button Grid.Column="6" Content="Effacer les filtres" Click="OnClearFilters" />
-            <Button Grid.Column="7" Content="Retirer les fichiers manquants" Click="OnRemoveMissing" />
+            <TextBox x:Name="SearchBox" PlaceholderText="Rechercher un fichier…" TextChanged="OnSearchChanged" />
+            <ComboBox x:Name="ProviderFilter" Grid.Column="1" HorizontalAlignment="Stretch" PlaceholderText="Fournisseur" SelectionChanged="OnFilterChanged" />
+            <ComboBox x:Name="CategoryFilter" Grid.Column="2" HorizontalAlignment="Stretch" PlaceholderText="Catégorie" SelectionChanged="OnFilterChanged" />
+            <ComboBox x:Name="CarFilter" Grid.Column="3" HorizontalAlignment="Stretch" PlaceholderText="Voiture" SelectionChanged="OnFilterChanged" />
+            <ComboBox x:Name="TrackFilter" Grid.Column="4" HorizontalAlignment="Stretch" PlaceholderText="Circuit" SelectionChanged="OnFilterChanged" />
+            <ComboBox x:Name="StatusFilter" Grid.Column="5" HorizontalAlignment="Stretch" PlaceholderText="Statut" SelectionChanged="OnFilterChanged" />
         </Grid>
-        <Border Grid.Row="2" Padding="20" Background="#FF20242B" CornerRadius="10">
+
+        <Border Grid.Row="3" Padding="20" Background="#FF20242B" CornerRadius="10">
             <Grid>
-                <ListView x:Name="SetupList" HorizontalContentAlignment="Stretch" SelectionMode="Multiple">
+                <ListView x:Name="SetupList" HorizontalContentAlignment="Stretch" SelectionMode="None">
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem">
                             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                         </Style>
                     </ListView.ItemContainerStyle>
                     <ListView.Header>
-                        <!-- The right inset mirrors the space retained by ListViewItem's
-                             multi-selection presenter, so every star column has exactly
-                             the same usable width in the header and in each data row. -->
-                        <Grid Margin="40,0,10,0" Padding="8" ColumnSpacing="16">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                            <TextBlock FontWeight="SemiBold" Text="Fichier" /><TextBlock Grid.Column="1" FontWeight="SemiBold" Text="Fournisseur" /><TextBlock Grid.Column="2" FontWeight="SemiBold" Text="Voiture" /><TextBlock Grid.Column="3" FontWeight="SemiBold" Text="Circuit" /><TextBlock Grid.Column="4" FontWeight="SemiBold" Text="Statut" />
+                        <Grid Padding="8" ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock FontWeight="SemiBold" Text="Fichier" />
+                            <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="Fournisseur" />
+                            <TextBlock Grid.Column="2" FontWeight="SemiBold" Text="Catégorie" />
+                            <TextBlock Grid.Column="3" FontWeight="SemiBold" Text="Voiture" />
+                            <TextBlock Grid.Column="4" FontWeight="SemiBold" Text="Circuit" />
+                            <TextBlock Grid.Column="5" FontWeight="SemiBold" Text="Statut" />
                         </Grid>
                     </ListView.Header>
                     <ListView.ItemTemplate>
                         <DataTemplate>
                             <Grid Padding="8" ColumnSpacing="16">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding OriginalFileName}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="1" Text="{Binding Provider}" /><TextBlock Grid.Column="2" Text="{Binding Car}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="3" Text="{Binding Track}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="4" Text="{Binding Status}" />
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2*" />
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding OriginalFileName}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="1" Text="{Binding Provider}" />
+                                <TextBlock Grid.Column="2" Text="{Binding Category}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="3" Text="{Binding Car}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="4" Text="{Binding Track}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="5" Text="{Binding StatusDisplay}" />
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>

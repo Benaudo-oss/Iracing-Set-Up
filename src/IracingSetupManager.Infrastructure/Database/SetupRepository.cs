@@ -14,6 +14,13 @@ public sealed class SetupRepository(ISetupDbContextFactory contextFactory) : ISe
         await context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task UpdateAsync(SetupEntity setup, CancellationToken cancellationToken = default)
+    {
+        await using var context = contextFactory.Create();
+        context.Setups.Update(setup);
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<SetupEntity?> FindBySha256Async(
         string sha256,
         CancellationToken cancellationToken = default)
@@ -26,4 +33,3 @@ public sealed class SetupRepository(ISetupDbContextFactory contextFactory) : ISe
             .SingleOrDefaultAsync(item => item.Sha256 == sha256, cancellationToken);
     }
 }
-

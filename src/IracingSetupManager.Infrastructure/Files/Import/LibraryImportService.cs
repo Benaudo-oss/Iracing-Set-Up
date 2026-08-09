@@ -113,6 +113,18 @@ public sealed class LibraryImportService(
         var existing = await repository.FindBySha256Async(sha256, cancellationToken);
         if (existing is not null)
         {
+            if (existing.Status == SetupStatus.FichierManquant && !File.Exists(existing.ArchivePath))
+            {
+                return await RestoreMissingSetupAsync(
+                    existing,
+                    setupPath,
+                    archiveRoot,
+                    sourceKind,
+                    metadataDefaults,
+                    cancellationToken,
+                    originalSourcePath);
+            }
+
             return new SetupImportResult(
                 originalSourcePath ?? setupPath,
                 SetupImportOutcome.Duplicate,
@@ -156,6 +168,48 @@ public sealed class LibraryImportService(
             SetupImportOutcome.Imported,
             archivePath,
             sha256);
+    }
+
+    private async Task<SetupImportResult> RestoreMissingSetupAsync(
+        SetupEntity existing,
+        string setupPath,
+        string archiveRoot,
+        SetupSourceKind sourceKind,
+        SetupMetadata? metadataDefaults,
+        CancellationToken cancellationToken,
+        string? originalSourcePath)
+    {
+        var metadata = metadataAnalyzer.Analyze(setupPath, metadataDefaults);
+        var destinationDirectory = archivePathBuilder.BuildDirectory(archiveRoot, metadata);
+        var archivePath = await archiveFileManager.CopyWithoutOverwriteAsync(
+            setupPath,
+            destinationDirectory,
+            cancellationToken);
+        var fileInfo = new FileInfo(setupPath);
+
+        existing.OriginalFileName = fileInfo.Name;
+        existing.Provider = metadata.Provider;
+        existing.Category = metadata.Category;
+        existing.Car = metadata.Car;
+        existing.Track = metadata.Track;
+        existing.TrackConfiguration = metadata.TrackConfiguration;
+        existing.Season = metadata.Season;
+        existing.SetupType = metadata.SetupType;
+        existing.SizeInBytes = fileInfo.Length;
+        existing.ArchivePath = archivePath;
+        existing.SourceKind = sourceKind;
+        existing.SourcePath = null;
+        existing.IsPrivate = metadata.Provider.Equals("À identifier", StringComparison.OrdinalIgnoreCase);
+        existing.Garage61ExportApproved = false;
+        existing.Status = SetupStatus.AVerifier;
+        existing.DownloadedAtUtc = new DateTimeOffset(fileInfo.LastWriteTimeUtc, TimeSpan.Zero);
+        await repository.UpdateAsync(existing, cancellationToken);
+
+        return new SetupImportResult(
+            originalSourcePath ?? setupPath,
+            SetupImportOutcome.Imported,
+            archivePath,
+            existing.Sha256);
     }
 
     private static bool IsSupported(string extension) =>

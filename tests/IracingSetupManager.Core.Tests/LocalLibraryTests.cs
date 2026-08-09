@@ -51,6 +51,30 @@ public sealed class LocalLibraryTests
     }
 
     [Fact]
+    public async Task ReimportRestoresMissingSetupAndReturnsItToReview()
+    {
+        await using var environment = await LibraryTestEnvironment.CreateAsync();
+        var source = Path.Combine(environment.SourcePath, "HYMO_26S3_ARX06_Fuji_WR.sto");
+        await File.WriteAllTextAsync(source, "restorable-content");
+        var first = Assert.Single(await environment.Service.ImportAsync(
+            source,
+            environment.ArchivePath,
+            SetupSourceKind.DownloadsFolder));
+        File.Delete(first.ArchivePath!);
+        await new SetupLibraryIntegrityService(environment.Factory).MarkMissingFilesAsync();
+
+        var restored = Assert.Single(await environment.Service.ImportAsync(
+            source,
+            environment.ArchivePath,
+            SetupSourceKind.DownloadsFolder));
+        var setup = Assert.Single(await new SetupQueryService(environment.Factory).GetToReviewAsync());
+
+        Assert.Equal(SetupImportOutcome.Imported, restored.Outcome);
+        Assert.Equal(SetupStatus.AVerifier, setup.Status);
+        Assert.True(File.Exists(setup.ArchivePath));
+    }
+
+    [Fact]
     public async Task SameNameWithDifferentContentUsesConflictFolder()
     {
         await using var environment = await LibraryTestEnvironment.CreateAsync();
@@ -130,11 +154,12 @@ public sealed class LocalLibraryTests
 
     private sealed class LibraryTestEnvironment : IAsyncDisposable
     {
-        private LibraryTestEnvironment(string rootPath, LibraryImportService service)
+        private LibraryTestEnvironment(string rootPath, LocalSetupDbContextFactory factory, LibraryImportService service)
         {
             RootPath = rootPath;
             SourcePath = Directory.CreateDirectory(Path.Combine(rootPath, "Source")).FullName;
             ArchivePath = Directory.CreateDirectory(Path.Combine(rootPath, "Archive")).FullName;
+            Factory = factory;
             Service = service;
         }
 
@@ -142,6 +167,7 @@ public sealed class LocalLibraryTests
         public string SourcePath { get; }
         public string ArchivePath { get; }
         public LibraryImportService Service { get; }
+        public LocalSetupDbContextFactory Factory { get; }
 
         public static async Task<LibraryTestEnvironment> CreateAsync()
         {
@@ -156,7 +182,7 @@ public sealed class LocalLibraryTests
                 new SetupMetadataAnalyzer(),
                 new ArchivePathBuilder(),
                 new SecureZipExtractor());
-            return new LibraryTestEnvironment(root, service);
+            return new LibraryTestEnvironment(root, factory, service);
         }
 
         public ValueTask DisposeAsync()
