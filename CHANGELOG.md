@@ -1,0 +1,14 @@
+# Journal des modifications
+
+Les changements importants de ce projet sont consignés dans ce fichier. Le projet
+utilise le versionnement sémantique.
+
+## [Non publié]
+
+### Ajouté
+
+- Structure initiale de la solution .NET 10 et WinUI 3.
+- Séparation des modules métier, infrastructure, fournisseurs et intégrations.
+- Protections Git contre l'ajout de secrets et de données locales.
+- Projet de tests automatisés.
+

@@ -1,0 +1,31 @@
+name: Vérification continue
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restaurer les dépendances
+        run: dotnet restore IracingSetupManager.sln
+
+      - name: Compiler
+        run: dotnet build IracingSetupManager.sln --configuration Release --no-restore --maxcpucount:1
+
+      - name: Tester
+        run: dotnet test IracingSetupManager.sln --configuration Release --no-build --maxcpucount:1

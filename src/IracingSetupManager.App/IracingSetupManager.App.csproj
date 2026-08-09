@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <UseWinUI>true</UseWinUI>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <RootNamespace>IracingSetupManager.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" />
+    <ProjectReference Include="..\IracingSetupManager.Core\IracingSetupManager.Core.csproj" />
+    <ProjectReference Include="..\IracingSetupManager.Infrastructure\IracingSetupManager.Infrastructure.csproj" />
+    <ProjectReference Include="..\IracingSetupManager.Providers\IracingSetupManager.Providers.csproj" />
+    <ProjectReference Include="..\IracingSetupManager.Integrations\IracingSetupManager.Integrations.csproj" />
+  </ItemGroup>
+</Project>
+
