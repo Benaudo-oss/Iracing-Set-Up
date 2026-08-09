@@ -1,0 +1,57 @@
+#ifndef AppVersion
+  #define AppVersion "0.1.0"
+#endif
+#ifndef PublishDir
+  #define PublishDir "..\artifacts\publish\win-x64"
+#endif
+#ifndef OutputDir
+  #define OutputDir "..\artifacts\installer"
+#endif
+
+[Setup]
+AppId={{8FA61ABA-1765-40E6-9F7D-56FF46D8D587}
+AppName=iRacing Setup Manager
+AppVersion={#AppVersion}
+AppVerName=iRacing Setup Manager {#AppVersion}
+AppPublisher=Benaudo
+DefaultDirName={localappdata}\Programs\IracingSetupManager
+DefaultGroupName=iRacing Setup Manager
+UninstallDisplayName=iRacing Setup Manager
+OutputDir={#OutputDir}
+OutputBaseFilename=IracingSetupManager-{#AppVersion}-win-x64-setup
+Compression=lzma2/max
+SolidCompression=yes
+PrivilegesRequired=lowest
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
+CloseApplications=yes
+RestartApplications=yes
+UsePreviousAppDir=yes
+UsePreviousGroup=yes
+DisableProgramGroupPage=yes
+WizardStyle=modern
+SetupLogging=yes
+VersionInfoVersion={#AppVersion}.0
+VersionInfoProductVersion={#AppVersion}.0
+VersionInfoProductName=iRacing Setup Manager
+
+[Files]
+Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+[Icons]
+Name: "{group}\iRacing Setup Manager"; Filename: "{app}\IracingSetupManager.App.exe"
+Name: "{autodesktop}\iRacing Setup Manager"; Filename: "{app}\IracingSetupManager.App.exe"; Tasks: desktopicon
+
+[Tasks]
+Name: "desktopicon"; Description: "Créer un raccourci sur le Bureau"; GroupDescription: "Raccourcis supplémentaires :"; Flags: unchecked
+
+[Run]
+Filename: "{app}\IracingSetupManager.App.exe"; Description: "Lancer iRacing Setup Manager"; Flags: nowait postinstall skipifsilent
+
+[Code]
+function InitializeSetup(): Boolean;
+begin
+  { Le même AppId et le même dossier permettent la mise à niveau. }
+  { Aucune suppression ne cible LocalAppData\IracingSetupManager. }
+  Result := True;
+end;

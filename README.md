@@ -96,6 +96,15 @@ dotnet publish src/IracingSetupManager.App/IracingSetupManager.App.csproj `
   --maxcpucount:1
 ```
 
+### Installateur Windows
+
+La commande `installer/Build-Installer.ps1 -Version 0.1.0` publie l’application
+autonome, génère l’installateur Inno Setup versionné et son empreinte SHA-256. Le
+même identifiant d’application assure installation, désinstallation et mise à
+niveau. L’installateur ne supprime jamais `%LocalAppData%\IracingSetupManager`,
+afin de conserver la base SQLite et les réglages. Si un certificat valide et
+SignTool sont disponibles, les exécutables sont signés automatiquement.
+
 ## Licence
 
 Tous droits réservés. Voir [LICENSE](LICENSE).

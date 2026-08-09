@@ -15,6 +15,7 @@ artifacts/
 *.cer
 *.pfx
 *.snk
+*.exe.sha256
 
 # Local application data
 *.db
@@ -42,4 +43,3 @@ credentials.json
 Thumbs.db
 Desktop.ini
 .DS_Store
-
