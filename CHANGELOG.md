@@ -15,3 +15,5 @@ utilise le versionnement sémantique.
 - Choix persistant du dossier d'archive, demandé uniquement la première fois.
 - Surveillance limitée aux téléchargements et applications officielles.
 - Interdiction explicite de surveiller le dossier iRacing et protection des setups privés.
+- Import de bibliothèques existantes, extraction ZIP sécurisée et classement sans renommage.
+- Détection SHA-256 et conservation des collisions sans écrasement.

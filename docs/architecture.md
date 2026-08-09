@@ -37,3 +37,12 @@ applications officielles peuvent être surveillés. `Documents\\iRacing\\setups`
 tous ses sous-dossiers sont refusés par le code afin de ne pas mélanger les setups
 personnels avec ceux des fournisseurs. Un setup privé, non validé ou non approuvé
 manuellement ne peut pas être proposé à l'export Garage61.
+
+## Bibliothèque locale
+
+Le service d'import accepte les fichiers `.sto`, les archives ZIP et les dossiers
+existants. Il analyse les noms et chemins sans jamais renommer les fichiers, calcule
+le SHA-256 puis classe les originaux sous
+`Saison/Circuit/Voiture/Fournisseur/Type`. Le fichier source est uniquement lu.
+Une collision de nom avec un contenu différent est conservée dans un sous-dossier
+`Conflits/<début-du-SHA>` ; aucun fichier existant n'est remplacé.

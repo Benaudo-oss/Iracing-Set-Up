@@ -54,6 +54,8 @@ public sealed class DatabaseTests
         SizeInBytes = 4096,
         Sha256 = new string('a', 64),
         ArchivePath = @"C:\Archive\2026 S3\Spa\Porsche\HYMO\Race\spa_race.sto",
+        SourceKind = SetupSourceKind.OfficialProviderApplication,
+        SourcePath = @"C:\HYMO\spa_race.sto",
         Status = SetupStatus.EnvoyeVersGarage61,
         PersonalRating = 5,
         Comment = "Stable",
@@ -107,4 +109,3 @@ public sealed class DatabaseTests
         }
     }
 }
-
