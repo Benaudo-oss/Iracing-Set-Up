@@ -9,6 +9,7 @@ public sealed partial class DashboardPage : Page
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        await App.Services.LibraryIntegrity.MarkMissingFilesAsync();
         var statistics = await App.Services.QueryService.GetDashboardStatisticsAsync();
         TotalText.Text = statistics.Total.ToString();
         ReviewText.Text = statistics.ToReview.ToString();

@@ -135,6 +135,25 @@ public sealed class DatabaseTests
         Assert.Equal(originalArchivePath, refreshed.ArchivePath);
     }
 
+    [Fact]
+    public async Task MissingArchiveFileIsExcludedFromDashboardAndCanBeRemoved()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var setup = CreateSetup();
+        setup.Status = SetupStatus.Valide;
+        setup.ArchivePath = Path.Combine(environment.RootPath, "missing.sto");
+        await new SetupRepository(environment.Factory).AddAsync(setup);
+        var integrity = new SetupLibraryIntegrityService(environment.Factory);
+
+        Assert.Equal(1, await integrity.MarkMissingFilesAsync());
+        var statistics = await new SetupQueryService(environment.Factory).GetDashboardStatisticsAsync();
+        Assert.Equal(0, statistics.Total);
+        Assert.Equal(0, statistics.Validated);
+
+        Assert.Equal(1, await integrity.RemoveMissingEntriesAsync([setup.Id]));
+        Assert.Empty(await new SetupQueryService(environment.Factory).GetAllAsync());
+    }
+
     private static SetupEntity CreateSetup() => new()
     {
         Id = Guid.NewGuid(),

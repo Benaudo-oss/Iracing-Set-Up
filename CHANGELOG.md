@@ -28,6 +28,13 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.2.0
+
+- Détection automatique des fichiers supprimés de l'archive.
+- Statut « Fichier manquant » et exclusion de ces entrées des statistiques du tableau de bord.
+- Retrait manuel et confirmé des entrées manquantes depuis la bibliothèque, sans suppression de fichier.
+- Alignement précis des en-têtes et des données du tableau avec les cases de sélection.
+
 # 0.1.1.6
 
 - Alignement du tableau de la bibliothèque sur toute la largeur disponible.

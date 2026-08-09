@@ -1,4 +1,5 @@
 using IracingSetupManager.Infrastructure.Database.Entities;
+using IracingSetupManager.Core.Setups;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -12,7 +13,13 @@ public sealed partial class LibraryPage : Page
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        await App.Services.LibraryIntegrity.MarkMissingFilesAsync();
         await App.Services.MetadataRefresh.RefreshAsync();
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
         _setups = await App.Services.QueryService.GetAllAsync();
         ProviderFilter.ItemsSource = Distinct(item => item.Provider);
         CategoryFilter.ItemsSource = Distinct(item => item.Category);
@@ -20,6 +27,45 @@ public sealed partial class LibraryPage : Page
         TypeFilter.ItemsSource = Distinct(item => item.SetupType);
         StatusFilter.ItemsSource = _setups.Select(item => item.Status.ToString()).Distinct().Order().ToList();
         ApplyFilters();
+    }
+
+    private async void OnRemoveMissing(object sender, RoutedEventArgs e)
+    {
+        var selected = SetupList.SelectedItems.Cast<SetupEntity>()
+            .Where(item => item.Status == SetupStatus.FichierManquant)
+            .Select(item => item.Id)
+            .ToArray();
+        if (selected.Length == 0)
+        {
+            await ShowMessageAsync("Sélectionnez au moins une ligne ayant le statut « Fichier manquant ».");
+            return;
+        }
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Retirer de la bibliothèque ?",
+            Content = $"{selected.Length} entrée(s) seront retirées. Aucun fichier ne sera supprimé.",
+            PrimaryButtonText = "Retirer",
+            CloseButtonText = "Annuler",
+            DefaultButton = ContentDialogButton.Close
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+
+        await App.Services.LibraryIntegrity.RemoveMissingEntriesAsync(selected);
+        await ReloadAsync();
+    }
+
+    private async Task ShowMessageAsync(string message)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Bibliothèque",
+            Content = message,
+            CloseButtonText = "OK"
+        };
+        await dialog.ShowAsync();
     }
 
     private void OnSearchChanged(object sender, TextChangedEventArgs e) => ApplyFilters();

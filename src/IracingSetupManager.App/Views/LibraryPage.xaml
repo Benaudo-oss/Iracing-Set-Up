@@ -11,7 +11,7 @@
         </StackPanel>
         <Grid Grid.Row="1" ColumnSpacing="10">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBox x:Name="SearchBox" PlaceholderText="Rechercher un fichier, une voiture ou un circuit…" TextChanged="OnSearchChanged" />
             <ComboBox x:Name="ProviderFilter" Grid.Column="1" PlaceholderText="Fournisseur" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
@@ -20,6 +20,7 @@
             <ComboBox x:Name="TypeFilter" Grid.Column="4" PlaceholderText="Type" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
             <ComboBox x:Name="StatusFilter" Grid.Column="5" PlaceholderText="Statut" HorizontalAlignment="Stretch" SelectionChanged="OnFilterChanged" />
             <Button Grid.Column="6" Content="Effacer les filtres" Click="OnClearFilters" />
+            <Button Grid.Column="7" Content="Retirer les fichiers manquants" Click="OnRemoveMissing" />
         </Grid>
         <Border Grid.Row="2" Padding="20" Background="#FF20242B" CornerRadius="10">
             <Grid>
@@ -30,7 +31,10 @@
                         </Style>
                     </ListView.ItemContainerStyle>
                     <ListView.Header>
-                        <Grid Margin="40,0,0,0" Padding="8" ColumnSpacing="16">
+                        <!-- The right inset mirrors the space retained by ListViewItem's
+                             multi-selection presenter, so every star column has exactly
+                             the same usable width in the header and in each data row. -->
+                        <Grid Margin="40,0,10,0" Padding="8" ColumnSpacing="16">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                             <TextBlock FontWeight="SemiBold" Text="Fichier" /><TextBlock Grid.Column="1" FontWeight="SemiBold" Text="Fournisseur" /><TextBlock Grid.Column="2" FontWeight="SemiBold" Text="Voiture" /><TextBlock Grid.Column="3" FontWeight="SemiBold" Text="Circuit" /><TextBlock Grid.Column="4" FontWeight="SemiBold" Text="Statut" />
                         </Grid>
