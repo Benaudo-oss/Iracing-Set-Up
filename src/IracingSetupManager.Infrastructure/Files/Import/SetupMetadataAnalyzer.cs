@@ -59,6 +59,12 @@ public sealed partial class SetupMetadataAnalyzer
             {
                 return "Grid & Go";
             }
+
+            if (token.Equals("VRS", StringComparison.OrdinalIgnoreCase) ||
+                token.Contains("VIRTUALRACINGSCHOOL", StringComparison.OrdinalIgnoreCase))
+            {
+                return "VRS";
+            }
         }
 
         return null;

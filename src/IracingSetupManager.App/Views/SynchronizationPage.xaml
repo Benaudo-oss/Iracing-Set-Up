@@ -14,6 +14,7 @@
                         <CheckBox Content="HYMO" IsChecked="True" />
                         <CheckBox Content="GO Setups" IsChecked="True" />
                         <CheckBox Content="Grid &amp; Go" IsChecked="True" />
+                        <CheckBox Content="VRS" IsChecked="True" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="1" Padding="20" Background="#FF20242B" CornerRadius="10">
@@ -43,4 +44,3 @@
         </StackPanel>
     </ScrollViewer>
 </Page>
-

@@ -9,7 +9,7 @@ fournisseur n'empêche pas les autres fonctions de travailler.
 - `Infrastructure/Files` gère l'archive, les ZIP et les empreintes.
 - `Infrastructure/Logging` contient la journalisation sans données sensibles.
 - `Infrastructure/Security` protège les secrets avec les services Windows.
-- `Providers/Hymo`, `Providers/GoSetups` et `Providers/GridAndGo` sont trois
+- `Providers/Hymo`, `Providers/GoSetups`, `Providers/GridAndGo` et `Providers/Vrs` sont quatre
   connecteurs indépendants qui partagent uniquement des contrats communs.
 - `Providers/Synchronization` exécute seulement les fournisseurs choisis. Plusieurs
   fournisseurs peuvent travailler simultanément et chaque erreur reste isolée.
@@ -19,7 +19,7 @@ fournisseur n'empêche pas les autres fonctions de travailler.
 
 Les dépendances pointent vers `Core`. Aucun module fournisseur ne doit dépendre
 d'un autre fournisseur. L'orchestrateur collecte un résultat par fournisseur :
-une panne HYMO ne bloque donc ni GO Setups ni Grid & Go. Les secrets ne transitent jamais dans les modèles métier
+une panne HYMO ne bloque donc ni GO Setups, ni Grid & Go, ni VRS. Les secrets ne transitent jamais dans les modèles métier
 et ne doivent jamais apparaître dans les journaux.
 
 ## Base locale

@@ -18,6 +18,7 @@ public sealed partial class SettingsPage : Page
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "HYMO"));
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "GO Setups"));
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "Grid & Go"));
+        SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "VRS"));
     }
 
     private async void OnChooseArchive(object sender, RoutedEventArgs e)
@@ -70,6 +71,7 @@ public sealed partial class SettingsPage : Page
         AddProviderIfEnabled(folders, HymoToggle, HymoPathBox, "HYMO");
         AddProviderIfEnabled(folders, GoToggle, GoPathBox, "GO Setups");
         AddProviderIfEnabled(folders, GngToggle, GngPathBox, "Grid & Go");
+        AddProviderIfEnabled(folders, VrsToggle, VrsPathBox, "VRS");
         await App.Services.MonitoredFolders.SaveAsync(folders);
         SettingsInfo.Severity = InfoBarSeverity.Success;
         SettingsInfo.Message = "Les paramètres ont été enregistrés.";
@@ -106,7 +108,9 @@ public sealed partial class SettingsPage : Page
         {
             "HYMO" => (HymoPathBox, HymoToggle),
             "GO Setups" => (GoPathBox, GoToggle),
-            _ => (GngPathBox, GngToggle)
+            "Grid & Go" => (GngPathBox, GngToggle),
+            "VRS" => (VrsPathBox, VrsToggle),
+            _ => throw new InvalidOperationException("Fournisseur inconnu.")
         };
         textBox.Text = folder.Path;
         toggle.IsOn = true;

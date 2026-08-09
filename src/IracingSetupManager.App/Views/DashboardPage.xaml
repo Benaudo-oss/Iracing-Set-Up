@@ -26,7 +26,7 @@
                     <StackPanel><TextBlock Opacity="0.65" Text="Envoyés vers Garage61" /><TextBlock x:Name="Garage61Text" FontSize="36" FontWeight="SemiBold" Text="0" /></StackPanel>
                 </Border>
                 <Border Grid.Row="1" Grid.Column="1" Padding="20" Background="#FF20242B" CornerRadius="10">
-                    <StackPanel><TextBlock Opacity="0.65" Text="Fournisseurs présents" /><TextBlock x:Name="ProvidersText" FontSize="36" FontWeight="SemiBold" Text="0 / 3" /></StackPanel>
+                    <StackPanel><TextBlock Opacity="0.65" Text="Fournisseurs présents" /><TextBlock x:Name="ProvidersText" FontSize="36" FontWeight="SemiBold" Text="0 / 4" /></StackPanel>
                 </Border>
                 <Border Grid.Row="1" Grid.Column="2" Padding="20" Background="#FF20242B" CornerRadius="10">
                     <StackPanel><TextBlock Opacity="0.65" Text="Dernier import" /><TextBlock x:Name="LastSyncText" Margin="0,10,0,0" FontSize="18" Text="Jamais" /></StackPanel>

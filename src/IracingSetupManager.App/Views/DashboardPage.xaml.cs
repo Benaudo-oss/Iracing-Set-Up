@@ -14,8 +14,7 @@ public sealed partial class DashboardPage : Page
         ReviewText.Text = statistics.ToReview.ToString();
         ValidatedText.Text = statistics.Validated.ToString();
         Garage61Text.Text = statistics.SentToGarage61.ToString();
-        ProvidersText.Text = $"{statistics.ProviderCount} / 3";
+        ProvidersText.Text = $"{statistics.ProviderCount} / 4";
         LastSyncText.Text = statistics.LastDownloadUtc?.ToLocalTime().ToString("g") ?? "Jamais";
     }
 }
-

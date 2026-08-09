@@ -26,6 +26,17 @@ public sealed class FileClassificationAndHashTests
         Assert.Contains("Saison inconnue", result);
     }
 
+    [Theory]
+    [InlineData("VRS_2026S3_GT3_Race.sto")]
+    [InlineData("VirtualRacingSchool-2026S3-GTP-Quali.sto")]
+    public void MetadataAnalyzerRecognizesVrs(string fileName)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal("VRS", metadata.Provider);
+        Assert.Equal("2026 S3", metadata.Season);
+    }
+
     [Fact]
     public async Task Sha256MatchesKnownVectorAndChangesWithContent()
     {
