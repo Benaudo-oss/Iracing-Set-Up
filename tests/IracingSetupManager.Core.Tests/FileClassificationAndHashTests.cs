@@ -14,7 +14,7 @@ public sealed class FileClassificationAndHashTests
         var root = Path.Combine(Path.GetTempPath(), "archive");
         var metadata = new SetupMetadata("HYMO", "GT3", "Porsche 911 GT3 R", "Spa", "Grand Prix", "2026 S3", "Race");
         var result = new ArchivePathBuilder().BuildDirectory(root, metadata);
-        Assert.Equal(Path.Combine(Path.GetFullPath(root), "2026 S3", "Spa", "Porsche 911 GT3 R", "HYMO", "Race"), result);
+        Assert.Equal(Path.Combine(Path.GetFullPath(root), "2026 S3", "Spa", "Porsche 911 GT3 R", "HYMO"), result);
     }
 
     [Fact]

@@ -6,21 +6,22 @@ namespace IracingSetupManager.Core.Tests;
 public sealed class FolderMonitoringTests
 {
     [Fact]
-    public async Task ScanFindsOnlyStoAndZipFiles()
+    public async Task ScanFindsOnlyStoZipAndRarFiles()
     {
         var root = CreateTemporaryDirectory();
         try
         {
             await File.WriteAllTextAsync(Path.Combine(root, "setup.sto"), "setup");
             await File.WriteAllTextAsync(Path.Combine(root, "setups.zip"), "zip-placeholder");
+            await File.WriteAllTextAsync(Path.Combine(root, "setups.rar"), "rar-placeholder");
             await File.WriteAllTextAsync(Path.Combine(root, "partial.crdownload"), "partial");
             await File.WriteAllTextAsync(Path.Combine(root, "notes.txt"), "notes");
             using var monitor = new ImportFolderMonitor(new MonitoredFolderPolicy(Path.Combine(root, "Documents")));
 
             var files = await monitor.ScanAsync([new MonitoredFolder(root, ImportFolderKind.Downloads)]);
 
-            Assert.Equal(2, files.Count);
-            Assert.All(files, file => Assert.Contains(Path.GetExtension(file.FullPath), new[] { ".sto", ".zip" }));
+            Assert.Equal(3, files.Count);
+            Assert.All(files, file => Assert.Contains(Path.GetExtension(file.FullPath), new[] { ".sto", ".zip", ".rar" }));
         }
         finally
         {

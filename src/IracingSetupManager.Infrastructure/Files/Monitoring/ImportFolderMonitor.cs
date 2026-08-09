@@ -3,7 +3,7 @@ namespace IracingSetupManager.Infrastructure.Files.Monitoring;
 public sealed class ImportFolderMonitor(MonitoredFolderPolicy policy) : IDisposable
 {
     private static readonly HashSet<string> SupportedExtensions =
-        new(StringComparer.OrdinalIgnoreCase) { ".sto", ".zip" };
+        new(StringComparer.OrdinalIgnoreCase) { ".sto", ".zip", ".rar" };
 
     private readonly List<FileSystemWatcher> _watchers = [];
 
@@ -82,4 +82,3 @@ public sealed class ImportFolderMonitor(MonitoredFolderPolicy policy) : IDisposa
     private static bool IsSupported(string path) =>
         SupportedExtensions.Contains(Path.GetExtension(path));
 }
-

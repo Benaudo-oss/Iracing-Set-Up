@@ -13,6 +13,11 @@ public sealed partial class LibraryPage : Page
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        var archiveRoot = await App.Services.ArchivePaths.GetAsync();
+        if (!string.IsNullOrWhiteSpace(archiveRoot))
+        {
+            await App.Services.ArchiveReorganization.ReorganizeAsync(archiveRoot);
+        }
         await App.Services.LibraryIntegrity.MarkMissingFilesAsync();
         await App.Services.MetadataRefresh.RefreshAsync();
         await ReloadAsync();

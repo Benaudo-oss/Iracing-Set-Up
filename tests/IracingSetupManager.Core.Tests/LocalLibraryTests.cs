@@ -26,7 +26,7 @@ public sealed class LocalLibraryTests
         Assert.True(File.Exists(source));
         Assert.NotNull(result.ArchivePath);
         Assert.Equal(Path.GetFileName(source), Path.GetFileName(result.ArchivePath));
-        Assert.Contains(Path.Combine("2026 S3", "Spa", "Porsche 911 GT3 R", "HYMO", "Race"), result.ArchivePath);
+        Assert.Contains(Path.Combine("2026 S3", "Spa", "Porsche 911 GT3 R", "HYMO"), result.ArchivePath);
     }
 
     [Fact]
@@ -71,6 +71,35 @@ public sealed class LocalLibraryTests
 
         Assert.Equal(SetupImportOutcome.Imported, restored.Outcome);
         Assert.Equal(SetupStatus.AVerifier, setup.Status);
+        Assert.True(File.Exists(setup.ArchivePath));
+    }
+
+    [Fact]
+    public async Task ExistingArchiveIsMovedSoProviderIsTheLastFolder()
+    {
+        await using var environment = await LibraryTestEnvironment.CreateAsync();
+        var oldDirectory = Directory.CreateDirectory(Path.Combine(
+            environment.ArchivePath, "2026 S3", "Le Mans", "BMW M4 GT3", "VRS", "Race V2")).FullName;
+        var oldPath = Path.Combine(oldDirectory, "VRS_26S3PG_M4GT3_LeMans_R1_V2.sto");
+        await File.WriteAllTextAsync(oldPath, "archive-to-move");
+        var hash = await new Sha256Calculator().CalculateAsync(oldPath);
+        await new SetupRepository(environment.Factory).AddAsync(new IracingSetupManager.Infrastructure.Database.Entities.SetupEntity
+        {
+            Id = Guid.NewGuid(), OriginalFileName = Path.GetFileName(oldPath), Provider = "VRS", Category = "GT3",
+            Car = "BMW M4 GT3", Track = "Le Mans", Season = "2026 S3", SetupType = "Race V2",
+            SizeInBytes = new FileInfo(oldPath).Length, Sha256 = hash, ArchivePath = oldPath,
+            Status = SetupStatus.AVerifier, DownloadedAtUtc = DateTimeOffset.UtcNow
+        });
+
+        var moved = await new ArchiveReorganizationService(
+            environment.Factory,
+            new ArchivePathBuilder(),
+            new Sha256Calculator()).ReorganizeAsync(environment.ArchivePath);
+        var setup = Assert.Single(await new SetupQueryService(environment.Factory).GetAllAsync());
+
+        Assert.Equal(1, moved);
+        Assert.False(File.Exists(oldPath));
+        Assert.Equal(Path.Combine(environment.ArchivePath, "2026 S3", "Le Mans", "BMW M4 GT3", "VRS", Path.GetFileName(oldPath)), setup.ArchivePath);
         Assert.True(File.Exists(setup.ArchivePath));
     }
 
@@ -181,7 +210,8 @@ public sealed class LocalLibraryTests
                 new ArchiveFileManager(sha),
                 new SetupMetadataAnalyzer(),
                 new ArchivePathBuilder(),
-                new SecureZipExtractor());
+                new SecureZipExtractor(),
+                new SecureRarExtractor());
             return new LibraryTestEnvironment(root, factory, service);
         }
 

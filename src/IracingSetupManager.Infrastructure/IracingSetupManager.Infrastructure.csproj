@@ -6,6 +6,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
     <PackageReference Include="Serilog" />
     <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="SharpCompress" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
     <ProjectReference Include="..\IracingSetupManager.Core\IracingSetupManager.Core.csproj" />
   </ItemGroup>

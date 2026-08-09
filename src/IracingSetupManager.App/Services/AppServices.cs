@@ -25,6 +25,7 @@ public sealed class AppServices
         QueryService = new SetupQueryService(ContextFactory);
         MetadataRefresh = new SetupMetadataRefreshService(ContextFactory, new SetupMetadataAnalyzer());
         LibraryIntegrity = new SetupLibraryIntegrityService(ContextFactory);
+        ArchiveReorganization = new ArchiveReorganizationService(ContextFactory, new ArchivePathBuilder(), new Sha256Calculator());
         Validation = new SetupValidationService(ContextFactory);
         IracingCopy = new IracingCopyService(ContextFactory);
         ArchivePaths = new ArchivePathService(ContextFactory, new WinUiFolderPicker());
@@ -41,7 +42,8 @@ public sealed class AppServices
             new ArchiveFileManager(sha256),
             new SetupMetadataAnalyzer(),
             new ArchivePathBuilder(),
-            new SecureZipExtractor());
+            new SecureZipExtractor(),
+            new SecureRarExtractor());
         Monitoring = new ImportMonitoringService(
             new ImportFolderMonitor(FolderPolicy),
             MonitoredFolders,
@@ -58,6 +60,7 @@ public sealed class AppServices
     public SetupQueryService QueryService { get; }
     public SetupMetadataRefreshService MetadataRefresh { get; }
     public SetupLibraryIntegrityService LibraryIntegrity { get; }
+    public ArchiveReorganizationService ArchiveReorganization { get; }
     public SetupValidationService Validation { get; }
     public IracingCopyService IracingCopy { get; }
     public ArchivePathService ArchivePaths { get; }

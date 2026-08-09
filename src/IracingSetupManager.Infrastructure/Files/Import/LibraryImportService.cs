@@ -10,7 +10,8 @@ public sealed class LibraryImportService(
     IArchiveFileManager archiveFileManager,
     SetupMetadataAnalyzer metadataAnalyzer,
     ArchivePathBuilder archivePathBuilder,
-    SecureZipExtractor zipExtractor)
+    SecureZipExtractor zipExtractor,
+    SecureRarExtractor rarExtractor)
 {
     public async Task<IReadOnlyList<SetupImportResult>> ImportAsync(
         string sourcePath,
@@ -32,7 +33,8 @@ public sealed class LibraryImportService(
                 cancellationToken)];
         }
 
-        if (!extension.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+        if (!extension.Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+            !extension.Equals(".rar", StringComparison.OrdinalIgnoreCase))
         {
             return [new SetupImportResult(sourcePath, SetupImportOutcome.Unsupported)];
         }
@@ -45,10 +47,9 @@ public sealed class LibraryImportService(
 
         try
         {
-            var extractedFiles = await zipExtractor.ExtractAsync(
-                sourcePath,
-                temporaryRoot,
-                cancellationToken);
+            var extractedFiles = extension.Equals(".rar", StringComparison.OrdinalIgnoreCase)
+                ? await rarExtractor.ExtractAsync(sourcePath, temporaryRoot, cancellationToken)
+                : await zipExtractor.ExtractAsync(sourcePath, temporaryRoot, cancellationToken);
             var results = new List<SetupImportResult>();
 
             foreach (var extractedFile in extractedFiles.Where(path =>
@@ -214,5 +215,6 @@ public sealed class LibraryImportService(
 
     private static bool IsSupported(string extension) =>
         extension.Equals(".sto", StringComparison.OrdinalIgnoreCase) ||
-        extension.Equals(".zip", StringComparison.OrdinalIgnoreCase);
+        extension.Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
+        extension.Equals(".rar", StringComparison.OrdinalIgnoreCase);
 }

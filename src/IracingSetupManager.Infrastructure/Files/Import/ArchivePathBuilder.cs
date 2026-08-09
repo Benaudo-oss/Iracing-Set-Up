@@ -12,8 +12,7 @@ public sealed class ArchivePathBuilder
             SanitizeFolder(metadata.Season ?? "Saison inconnue"),
             SanitizeFolder(metadata.Track),
             SanitizeFolder(metadata.Car),
-            SanitizeFolder(metadata.Provider),
-            SanitizeFolder(metadata.SetupType));
+            SanitizeFolder(metadata.Provider));
     }
 
     private static string SanitizeFolder(string value)
@@ -27,4 +26,3 @@ public sealed class ArchivePathBuilder
         return string.IsNullOrWhiteSpace(sanitized) ? "À identifier" : sanitized;
     }
 }
-

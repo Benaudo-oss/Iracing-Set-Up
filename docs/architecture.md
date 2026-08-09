@@ -43,7 +43,9 @@ manuellement ne peut pas être proposé à l'export Garage61.
 Le service d'import accepte les fichiers `.sto`, les archives ZIP et les dossiers
 existants. Il analyse les noms et chemins sans jamais renommer les fichiers, calcule
 le SHA-256 puis classe les originaux sous
-`Saison/Circuit/Voiture/Fournisseur/Type`. Le fichier source est uniquement lu.
+`Saison/Circuit/Voiture/Fournisseur`. Le fichier source est uniquement lu.
+Les imports acceptent les fichiers `.sto` ainsi que les archives `.zip` et `.rar`,
+avec contrôle des chemins, du nombre d’entrées et des tailles avant extraction.
 Une collision de nom avec un contenu différent est conservée dans un sous-dossier
 `Conflits/<début-du-SHA>` ; aucun fichier existant n'est remplacé.
 
