@@ -46,3 +46,8 @@ le SHA-256 puis classe les originaux sous
 `Saison/Circuit/Voiture/Fournisseur/Type`. Le fichier source est uniquement lu.
 Une collision de nom avec un contenu différent est conservée dans un sous-dossier
 `Conflits/<début-du-SHA>` ; aucun fichier existant n'est remplacé.
+
+La surveillance combine `FileSystemWatcher` avec un balayage au démarrage et à la
+demande. Les événements passent dans une file séquentielle ; un fichier doit rester
+stable et lisible plusieurs fois avant import. Les fichiers temporaires sont ignorés
+et seuls `.sto` et `.zip` sont acceptés.

@@ -1,0 +1,12 @@
+<Page
+    x:Class="IracingSetupManager.App.Views.HistoryPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Padding="32" RowSpacing="18">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /></Grid.RowDefinitions>
+        <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Historique et erreurs" /><TextBlock Opacity="0.65" Text="Téléchargements, imports, validations, copies et envois" /></StackPanel>
+        <Grid Grid.Row="1" ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><TextBox PlaceholderText="Rechercher dans le journal…" /><ComboBox Grid.Column="1" PlaceholderText="Type d’action" HorizontalAlignment="Stretch" /><ComboBox Grid.Column="2" PlaceholderText="Résultat" HorizontalAlignment="Stretch"><x:String>Réussi</x:String><x:String>Erreur</x:String></ComboBox></Grid>
+        <Border Grid.Row="2" Padding="20" Background="#FF20242B" CornerRadius="10"><Grid><ListView /><StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8"><FontIcon FontSize="36" Glyph="&#xE81C;" Opacity="0.45" /><TextBlock Opacity="0.65" Text="Aucun événement enregistré" /></StackPanel></Grid></Border>
+    </Grid>
+</Page>
+

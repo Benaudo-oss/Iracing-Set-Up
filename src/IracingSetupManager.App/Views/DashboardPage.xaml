@@ -1,0 +1,43 @@
+<Page
+    x:Class="IracingSetupManager.App.Views.DashboardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer Loaded="OnLoaded">
+        <StackPanel Padding="32" Spacing="24">
+            <StackPanel Spacing="4">
+                <TextBlock FontSize="32" FontWeight="SemiBold" Text="Tableau de bord" />
+                <TextBlock Opacity="0.65" Text="Vue d’ensemble de votre bibliothèque de setups" />
+            </StackPanel>
+            <Grid ColumnSpacing="16" RowSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+                    <StackPanel><TextBlock Opacity="0.65" Text="Total des setups" /><TextBlock x:Name="TotalText" FontSize="36" FontWeight="SemiBold" Text="0" /></StackPanel>
+                </Border>
+                <Border Grid.Column="1" Padding="20" Background="#FF20242B" CornerRadius="10">
+                    <StackPanel><TextBlock Opacity="0.65" Text="À vérifier" /><TextBlock x:Name="ReviewText" FontSize="36" FontWeight="SemiBold" Foreground="#FFFFB74D" Text="0" /></StackPanel>
+                </Border>
+                <Border Grid.Column="2" Padding="20" Background="#FF20242B" CornerRadius="10">
+                    <StackPanel><TextBlock Opacity="0.65" Text="Validés" /><TextBlock x:Name="ValidatedText" FontSize="36" FontWeight="SemiBold" Foreground="#FF66BB6A" Text="0" /></StackPanel>
+                </Border>
+                <Border Grid.Row="1" Padding="20" Background="#FF20242B" CornerRadius="10">
+                    <StackPanel><TextBlock Opacity="0.65" Text="Envoyés vers Garage61" /><TextBlock x:Name="Garage61Text" FontSize="36" FontWeight="SemiBold" Text="0" /></StackPanel>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="1" Padding="20" Background="#FF20242B" CornerRadius="10">
+                    <StackPanel><TextBlock Opacity="0.65" Text="Fournisseurs présents" /><TextBlock x:Name="ProvidersText" FontSize="36" FontWeight="SemiBold" Text="0 / 3" /></StackPanel>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="2" Padding="20" Background="#FF20242B" CornerRadius="10">
+                    <StackPanel><TextBlock Opacity="0.65" Text="Dernier import" /><TextBlock x:Name="LastSyncText" Margin="0,10,0,0" FontSize="18" Text="Jamais" /></StackPanel>
+                </Border>
+            </Grid>
+            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+                <StackPanel Spacing="12">
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="Activité récente" />
+                    <TextBlock Opacity="0.65" Text="Aucune activité enregistrée pour le moment." />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -1,0 +1,48 @@
+<Page
+    x:Class="IracingSetupManager.App.Views.LibraryPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Loaded="OnLoaded">
+    <Grid Padding="32" RowSpacing="18">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /></Grid.RowDefinitions>
+        <StackPanel Spacing="4">
+            <TextBlock FontSize="32" FontWeight="SemiBold" Text="Bibliothèque" />
+            <TextBlock Opacity="0.65" Text="Recherchez et filtrez tous les setups archivés" />
+        </StackPanel>
+        <Grid Grid.Row="1" ColumnSpacing="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <TextBox PlaceholderText="Rechercher un fichier, une voiture ou un circuit…" />
+            <ComboBox Grid.Column="1" PlaceholderText="Fournisseur" HorizontalAlignment="Stretch"><x:String>HYMO</x:String><x:String>GO Setups</x:String><x:String>Grid &amp; Go</x:String></ComboBox>
+            <ComboBox Grid.Column="2" PlaceholderText="Catégorie" HorizontalAlignment="Stretch"><x:String>GT3</x:String><x:String>GT4</x:String><x:String>GTE</x:String><x:String>LMP2</x:String><x:String>GTP</x:String><x:String>PCUP</x:String></ComboBox>
+            <ComboBox Grid.Column="3" PlaceholderText="Saison" HorizontalAlignment="Stretch" />
+            <ComboBox Grid.Column="4" PlaceholderText="Type" HorizontalAlignment="Stretch" />
+            <ComboBox Grid.Column="5" PlaceholderText="Statut" HorizontalAlignment="Stretch" />
+        </Grid>
+        <Border Grid.Row="2" Padding="20" Background="#FF20242B" CornerRadius="10">
+            <Grid>
+                <ListView x:Name="SetupList" SelectionMode="Multiple">
+                    <ListView.Header>
+                        <Grid Padding="8" ColumnSpacing="16">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <TextBlock FontWeight="SemiBold" Text="Fichier" /><TextBlock Grid.Column="1" FontWeight="SemiBold" Text="Fournisseur" /><TextBlock Grid.Column="2" FontWeight="SemiBold" Text="Voiture" /><TextBlock Grid.Column="3" FontWeight="SemiBold" Text="Circuit" /><TextBlock Grid.Column="4" FontWeight="SemiBold" Text="Statut" />
+                        </Grid>
+                    </ListView.Header>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Padding="8" ColumnSpacing="16">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260" /><ColumnDefinition Width="130" /><ColumnDefinition Width="200" /><ColumnDefinition Width="180" /><ColumnDefinition Width="130" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding OriginalFileName}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="1" Text="{Binding Provider}" /><TextBlock Grid.Column="2" Text="{Binding Car}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="3" Text="{Binding Track}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="4" Text="{Binding Status}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                    <FontIcon FontSize="36" Glyph="&#xE8F1;" Opacity="0.45" />
+                    <TextBlock Opacity="0.65" Text="La bibliothèque est vide" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

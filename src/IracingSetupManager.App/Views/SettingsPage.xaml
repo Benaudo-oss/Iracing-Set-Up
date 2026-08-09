@@ -1,0 +1,31 @@
+<Page
+    x:Class="IracingSetupManager.App.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Loaded="OnLoaded">
+    <ScrollViewer>
+        <StackPanel Padding="32" Spacing="20">
+            <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Paramètres" /><TextBlock Opacity="0.65" Text="Archive, dossiers surveillés, sécurité et préférences" /></StackPanel>
+            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+                <StackPanel Spacing="14">
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="Bibliothèque principale" />
+                    <TextBlock Opacity="0.65" Text="Les fichiers originaux restent dans cette archive et ne sont jamais renommés." />
+                    <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBox x:Name="ArchivePathBox" IsReadOnly="True" PlaceholderText="Choisir le dossier d’archive…" /><Button Grid.Column="1" Content="Parcourir" Click="OnChooseArchive" /></Grid>
+                </StackPanel>
+            </Border>
+            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+                <StackPanel Spacing="14">
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="Dossiers surveillés" />
+                    <InfoBar IsOpen="True" IsClosable="False" Severity="Warning" Title="Protection des setups privés" Message="Documents\iRacing\setups est volontairement interdit. Seuls Téléchargements et les dossiers des applications officielles sont acceptés." />
+                    <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Téléchargements" /><TextBox x:Name="DownloadsPathBox" Grid.Column="1" IsReadOnly="True" /><ToggleSwitch x:Name="DownloadsToggle" Grid.Column="2" IsOn="True" OnContent="Actif" OffContent="Inactif" /></Grid>
+                    <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="HYMO" /><TextBox x:Name="HymoPathBox" Grid.Column="1" IsReadOnly="True" PlaceholderText="Dossier de l’application HYMO" /><ToggleSwitch x:Name="HymoToggle" Grid.Column="2" OnContent="Actif" OffContent="Inactif" /><Button Grid.Column="3" Content="Choisir" Tag="HYMO" Click="OnChooseProviderFolder" /></Grid>
+                    <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="GO Setups" /><TextBox x:Name="GoPathBox" Grid.Column="1" IsReadOnly="True" PlaceholderText="Dossier de GO Fast" /><ToggleSwitch x:Name="GoToggle" Grid.Column="2" OnContent="Actif" OffContent="Inactif" /><Button Grid.Column="3" Content="Choisir" Tag="GO Setups" Click="OnChooseProviderFolder" /></Grid>
+                    <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Grid &amp; Go" /><TextBox x:Name="GngPathBox" Grid.Column="1" IsReadOnly="True" PlaceholderText="Dossier de Grid &amp; Go" /><ToggleSwitch x:Name="GngToggle" Grid.Column="2" OnContent="Actif" OffContent="Inactif" /><Button Grid.Column="3" Content="Choisir" Tag="Grid &amp; Go" Click="OnChooseProviderFolder" /></Grid>
+                </StackPanel>
+            </Border>
+            <Border Padding="20" Background="#FF20242B" CornerRadius="10"><StackPanel Spacing="14"><TextBlock FontSize="20" FontWeight="SemiBold" Text="Confidentialité et Garage61" /><ToggleSwitch Header="Bloquer par défaut les setups dont l’origine est inconnue" IsOn="True" /><ToggleSwitch Header="Exiger une confirmation avant toute validation groupée" IsOn="True" IsEnabled="False" /><ToggleSwitch Header="Exiger une confirmation avant tout envoi Garage61" IsOn="True" IsEnabled="False" /></StackPanel></Border>
+            <InfoBar x:Name="SettingsInfo" IsOpen="False" IsClosable="True" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Enregistrer les paramètres" Style="{StaticResource AccentButtonStyle}" Click="OnSave" /></StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

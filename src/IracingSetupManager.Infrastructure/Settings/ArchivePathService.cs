@@ -10,6 +10,9 @@ public sealed class ArchivePathService(
 {
     private const string ArchivePathKey = "ArchivePath";
 
+    public Task<string?> GetAsync(CancellationToken cancellationToken = default) =>
+        GetSavedPathAsync(cancellationToken);
+
     public async Task<string?> GetOrChooseAsync(CancellationToken cancellationToken = default)
     {
         var savedPath = await GetSavedPathAsync(cancellationToken);
@@ -66,4 +69,3 @@ public sealed class ArchivePathService(
         return normalizedPath;
     }
 }
-
