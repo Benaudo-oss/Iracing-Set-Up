@@ -1,6 +1,7 @@
 using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
+using IracingSetupManager.Infrastructure.Files;
 
 namespace IracingSetupManager.Infrastructure.Iracing;
 
@@ -37,7 +38,7 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory)
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(iracingSetupsFolder);
-        var root = Path.GetFullPath(iracingSetupsFolder);
+        var root = SecurePath.GetFullPath(iracingSetupsFolder);
         var ids = setupIds.Distinct().ToArray();
 
         await using var context = contextFactory.Create();
@@ -49,7 +50,7 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory)
 
         return setups.Select(setup =>
         {
-            var destination = Path.Combine(root, SanitizeSegment(setup.Car), setup.OriginalFileName);
+            var destination = SecurePath.EnsureChildOf(Path.Combine(root, SanitizeSegment(setup.Car), setup.OriginalFileName), root);
             return new IracingCopyPlanItem(
                 setup.Id,
                 setup.OriginalFileName,

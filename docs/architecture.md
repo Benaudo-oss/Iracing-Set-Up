@@ -68,3 +68,14 @@ dans le plan de copie, avec une seconde vérification juste avant l’écriture.
 L’aperçu indique chaque destination et chaque conflit. Les choix possibles sont
 ignorer ou conserver les deux ; aucun écrasement implicite n’est autorisé. La
 copie lit l’original depuis l’archive sans jamais le déplacer ou le supprimer.
+
+## Sécurité et sauvegarde
+
+Les secrets sont confiés au Gestionnaire d’identifiants Windows et ne transitent
+pas par SQLite. Le filtre de journalisation masque mots de passe, jetons, clés API,
+en-têtes d’autorisation et cookies ; les messages d’exception externes ne sont pas
+écrits. Les chemins de périphérique, sorties de dossier et flux NTFS alternatifs
+sont refusés. Les ZIP sont contrôlés avant extraction (traversée, liens, doublons,
+nombre, tailles et taux de compression). Les chemins sources devenus inutiles sont
+effacés au démarrage. La sauvegarde utilise l’API SQLite afin de produire une base
+cohérente pendant que l’application est ouverte.

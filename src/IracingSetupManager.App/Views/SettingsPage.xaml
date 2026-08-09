@@ -24,6 +24,13 @@
                 </StackPanel>
             </Border>
             <Border Padding="20" Background="#FF20242B" CornerRadius="10"><StackPanel Spacing="14"><TextBlock FontSize="20" FontWeight="SemiBold" Text="Confidentialité et Garage61" /><ToggleSwitch Header="Bloquer par défaut les setups dont l’origine est inconnue" IsOn="True" /><ToggleSwitch Header="Exiger une confirmation avant toute validation groupée" IsOn="True" IsEnabled="False" /><ToggleSwitch Header="Exiger une confirmation avant tout envoi Garage61" IsOn="True" IsEnabled="False" /></StackPanel></Border>
+            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+                <StackPanel Spacing="12">
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="Sauvegarde locale" />
+                    <TextBlock Opacity="0.65" Text="Crée une copie cohérente de la base SQLite, sans mot de passe ni cookie." />
+                    <Button HorizontalAlignment="Left" Content="Sauvegarder la base de données" Click="OnBackupDatabase" />
+                </StackPanel>
+            </Border>
             <InfoBar x:Name="SettingsInfo" IsOpen="False" IsClosable="True" />
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Enregistrer les paramètres" Style="{StaticResource AccentButtonStyle}" Click="OnSave" /></StackPanel>
         </StackPanel>

@@ -10,10 +10,11 @@ public sealed class ArchiveFileManager(Sha256Calculator sha256Calculator) : IArc
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationDirectory);
 
-        var sourceFullPath = Path.GetFullPath(sourcePath);
+        var sourceFullPath = SecurePath.GetFullPath(sourcePath);
+        var destinationRoot = SecurePath.GetFullPath(destinationDirectory);
         var originalFileName = Path.GetFileName(sourceFullPath);
-        Directory.CreateDirectory(destinationDirectory);
-        var destinationPath = Path.Combine(destinationDirectory, originalFileName);
+        Directory.CreateDirectory(destinationRoot);
+        var destinationPath = SecurePath.EnsureChildOf(Path.Combine(destinationRoot, originalFileName), destinationRoot);
 
         if (File.Exists(destinationPath))
         {
@@ -24,7 +25,7 @@ public sealed class ArchiveFileManager(Sha256Calculator sha256Calculator) : IArc
                 return destinationPath;
             }
 
-            var conflictDirectory = Path.Combine(destinationDirectory, "Conflits", sourceHash[..12]);
+            var conflictDirectory = SecurePath.EnsureChildOf(Path.Combine(destinationRoot, "Conflits", sourceHash[..12]), destinationRoot);
             Directory.CreateDirectory(conflictDirectory);
             destinationPath = Path.Combine(conflictDirectory, originalFileName);
 
@@ -58,4 +59,3 @@ public sealed class ArchiveFileManager(Sha256Calculator sha256Calculator) : IArc
         return destinationPath;
     }
 }
-

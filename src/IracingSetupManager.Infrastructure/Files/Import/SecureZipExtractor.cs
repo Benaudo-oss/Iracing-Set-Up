@@ -4,74 +4,51 @@ namespace IracingSetupManager.Infrastructure.Files.Import;
 
 public sealed class SecureZipExtractor(
     int maximumEntries = 10_000,
-    long maximumUncompressedBytes = 2L * 1024 * 1024 * 1024)
+    long maximumUncompressedBytes = 2L * 1024 * 1024 * 1024,
+    long maximumEntryBytes = 256L * 1024 * 1024,
+    int maximumCompressionRatio = 200)
 {
-    public async Task<IReadOnlyList<string>> ExtractAsync(
-        string zipPath,
-        string destinationDirectory,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<string>> ExtractAsync(string zipPath, string destinationDirectory, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(zipPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(destinationDirectory);
-
-        var destinationRoot = Path.GetFullPath(destinationDirectory);
+        var source = SecurePath.GetFullPath(zipPath);
+        var destinationRoot = SecurePath.GetFullPath(destinationDirectory);
         Directory.CreateDirectory(destinationRoot);
-        var extractedFiles = new List<string>();
 
-        using var archive = ZipFile.OpenRead(zipPath);
-        if (archive.Entries.Count > maximumEntries)
-        {
-            throw new InvalidDataException("L'archive contient trop de fichiers.");
-        }
+        using var archive = ZipFile.OpenRead(source);
+        if (archive.Entries.Count > maximumEntries) throw new InvalidDataException("L'archive contient trop de fichiers.");
 
         long totalSize = 0;
+        var entries = new List<(ZipArchiveEntry Entry, string Destination)>();
+        var destinations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var entry in archive.Entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
             totalSize = checked(totalSize + entry.Length);
-            if (totalSize > maximumUncompressedBytes)
-            {
-                throw new InvalidDataException("L'archive dépasse la taille maximale autorisée.");
-            }
+            if (totalSize > maximumUncompressedBytes) throw new InvalidDataException("L'archive dépasse la taille maximale autorisée.");
+            if (entry.Length > maximumEntryBytes) throw new InvalidDataException("Un fichier de l'archive dépasse la taille maximale autorisée.");
+            if (entry.Length > 0 && (entry.CompressedLength == 0 || entry.Length / Math.Max(1, entry.CompressedLength) > maximumCompressionRatio))
+                throw new InvalidDataException("Le taux de compression de l'archive est anormalement élevé.");
+            if (IsSymbolicLink(entry)) throw new InvalidDataException("Les liens symboliques ne sont pas autorisés dans une archive.");
 
-            if (IsSymbolicLink(entry))
-            {
-                throw new InvalidDataException("Les liens symboliques ne sont pas autorisés dans une archive.");
-            }
-
-            var destinationPath = Path.GetFullPath(Path.Combine(destinationRoot, entry.FullName));
-            if (!IsSameOrChildOf(destinationPath, destinationRoot))
-            {
-                throw new InvalidDataException("L'archive tente d'écrire en dehors du dossier d'extraction.");
-            }
-
-            if (string.IsNullOrEmpty(entry.Name))
-            {
-                Directory.CreateDirectory(destinationPath);
-                continue;
-            }
-
-            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
-            await using var input = entry.Open();
-            await using var output = new FileStream(
-                destinationPath,
-                FileMode.CreateNew,
-                FileAccess.Write,
-                FileShare.None,
-                81920,
-                FileOptions.Asynchronous);
-            await input.CopyToAsync(output, cancellationToken);
-            extractedFiles.Add(destinationPath);
+            SecurePath.ValidateArchiveEntry(entry.FullName);
+            var destination = SecurePath.EnsureChildOf(Path.Combine(destinationRoot, entry.FullName), destinationRoot);
+            if (!destinations.Add(destination)) throw new InvalidDataException("L'archive contient plusieurs entrées vers le même fichier.");
+            entries.Add((entry, destination));
         }
 
-        return extractedFiles;
+        var extracted = new List<string>();
+        foreach (var (entry, destination) in entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (string.IsNullOrEmpty(entry.Name)) { Directory.CreateDirectory(destination); continue; }
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            await using var input = entry.Open();
+            await using var output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, FileOptions.Asynchronous);
+            await input.CopyToAsync(output, cancellationToken);
+            extracted.Add(destination);
+        }
+        return extracted;
     }
 
-    private static bool IsSameOrChildOf(string candidate, string parent) =>
-        candidate.Equals(parent, StringComparison.OrdinalIgnoreCase) ||
-        candidate.StartsWith(parent + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsSymbolicLink(ZipArchiveEntry entry) =>
-        ((entry.ExternalAttributes >> 16) & 0xF000) == 0xA000;
+    private static bool IsSymbolicLink(ZipArchiveEntry entry) => ((entry.ExternalAttributes >> 16) & 0xF000) == 0xA000;
 }
-

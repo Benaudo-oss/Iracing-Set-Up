@@ -17,9 +17,9 @@ public partial class App : Application
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
         await Services.Database.InitializeAsync();
+        await Services.SensitiveData.PurgeUnneededSourcePathsAsync();
         MainWindowInstance = new MainWindow();
         MainWindowInstance.Closed += async (_, _) => await Services.Monitoring.DisposeAsync();
         MainWindowInstance.Activate();
     }
 }
-

@@ -4,6 +4,7 @@ using IracingSetupManager.Infrastructure.Files.Import;
 using IracingSetupManager.Infrastructure.Files.Monitoring;
 using IracingSetupManager.Infrastructure.Settings;
 using IracingSetupManager.Infrastructure.Iracing;
+using IracingSetupManager.Infrastructure.Security;
 
 namespace IracingSetupManager.App.Services;
 
@@ -16,6 +17,9 @@ public sealed class AppServices
             "IracingSetupManager");
         ContextFactory = new LocalSetupDbContextFactory(Path.Combine(dataRoot, "setups.db"));
         Database = new SetupDatabase(ContextFactory);
+        Backups = new DatabaseBackupService(ContextFactory);
+        SensitiveData = new SensitiveDataRetentionService(ContextFactory);
+        Secrets = new WindowsCredentialManagerSecretStore();
         QueryService = new SetupQueryService(ContextFactory);
         Validation = new SetupValidationService(ContextFactory);
         IracingCopy = new IracingCopyService(ContextFactory);
@@ -41,6 +45,9 @@ public sealed class AppServices
 
     public LocalSetupDbContextFactory ContextFactory { get; }
     public SetupDatabase Database { get; }
+    public DatabaseBackupService Backups { get; }
+    public SensitiveDataRetentionService SensitiveData { get; }
+    public ISecretStore Secrets { get; }
     public SetupQueryService QueryService { get; }
     public SetupValidationService Validation { get; }
     public IracingCopyService IracingCopy { get; }

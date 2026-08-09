@@ -76,6 +76,25 @@ public sealed partial class SettingsPage : Page
         SettingsInfo.IsOpen = true;
     }
 
+    private async void OnBackupDatabase(object sender, RoutedEventArgs e)
+    {
+        var folder = await WinUiFolderPicker.PickAsync();
+        if (string.IsNullOrWhiteSpace(folder)) return;
+        try
+        {
+            var name = $"IracingSetupManager-{DateTime.Now:yyyyMMdd-HHmmss}.db";
+            var path = await App.Services.Backups.BackupAsync(Path.Combine(folder, name));
+            SettingsInfo.Severity = InfoBarSeverity.Success;
+            SettingsInfo.Message = $"Sauvegarde créée : {path}";
+        }
+        catch (Exception exception)
+        {
+            SettingsInfo.Severity = InfoBarSeverity.Error;
+            SettingsInfo.Message = exception.Message;
+        }
+        SettingsInfo.IsOpen = true;
+    }
+
     private void SetProviderFolder(MonitoredFolder? folder)
     {
         if (folder is null)

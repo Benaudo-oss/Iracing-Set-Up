@@ -7,6 +7,7 @@ utilise le versionnement sémantique.
 
 ### Ajouté
 
+- Coffre-fort Windows pour les secrets, journaux expurgés, chemins et ZIP durcis, réduction des données sensibles et sauvegarde SQLite.
 - Aperçu et copie sécurisée des setups validés vers iRacing, avec résolution explicite des conflits.
 - Structure initiale de la solution .NET 10 et WinUI 3.
 - Séparation des modules métier, infrastructure, fournisseurs et intégrations.

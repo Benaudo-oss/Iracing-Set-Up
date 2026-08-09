@@ -1,6 +1,7 @@
 using IracingSetupManager.Infrastructure.Database;
 using IracingSetupManager.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
+using IracingSetupManager.Infrastructure.Files;
 
 namespace IracingSetupManager.Infrastructure.Settings;
 
@@ -45,7 +46,7 @@ public sealed class ArchivePathService(
     private async Task<string> SaveAsync(string path, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        var normalizedPath = Path.GetFullPath(path);
+        var normalizedPath = SecurePath.GetFullPath(path);
         Directory.CreateDirectory(normalizedPath);
 
         await using var context = contextFactory.Create();

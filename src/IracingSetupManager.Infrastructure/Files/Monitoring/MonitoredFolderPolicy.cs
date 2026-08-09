@@ -1,5 +1,7 @@
 namespace IracingSetupManager.Infrastructure.Files.Monitoring;
 
+using IracingSetupManager.Infrastructure.Files;
+
 public sealed class MonitoredFolderPolicy(string? documentsPath = null)
 {
     private readonly string _iracingSetupsPath = Normalize(
@@ -35,6 +37,5 @@ public sealed class MonitoredFolderPolicy(string? documentsPath = null)
         candidate.StartsWith(parent + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
 
     private static string Normalize(string path) =>
-        Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        Path.TrimEndingDirectorySeparator(SecurePath.GetFullPath(path));
 }
-

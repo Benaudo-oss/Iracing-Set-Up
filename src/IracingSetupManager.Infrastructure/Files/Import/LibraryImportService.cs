@@ -144,7 +144,7 @@ public sealed class LibraryImportService(
             Sha256 = sha256,
             ArchivePath = archivePath,
             SourceKind = sourceKind,
-            SourcePath = originalSourcePath ?? Path.GetFullPath(setupPath),
+            SourcePath = null,
             IsPrivate = isUnidentified,
             Garage61ExportApproved = false,
             Status = SetupStatus.AVerifier,
@@ -162,4 +162,3 @@ public sealed class LibraryImportService(
         extension.Equals(".sto", StringComparison.OrdinalIgnoreCase) ||
         extension.Equals(".zip", StringComparison.OrdinalIgnoreCase);
 }
-
