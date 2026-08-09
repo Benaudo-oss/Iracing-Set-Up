@@ -7,6 +7,7 @@ namespace IracingSetupManager.Integrations.Updates;
 public sealed class GitHubReleaseUpdateService(HttpClient httpClient, string updateRoot) : IUpdateService
 {
     private static readonly Uri LatestReleaseUri = new("https://api.github.com/repos/Benaudo-oss/Iracing-Set-Up/releases/latest");
+    private static readonly Uri LatestReleasePageUri = new("https://github.com/Benaudo-oss/Iracing-Set-Up/releases/latest");
 
     public async Task<UpdateAvailability> CheckAsync(Version installedVersion, CancellationToken cancellationToken = default)
     {
@@ -16,6 +17,8 @@ public sealed class GitHubReleaseUpdateService(HttpClient httpClient, string upd
         using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             return new(false, installedVersion, null, null, null, null, null);
+        if (response.StatusCode is System.Net.HttpStatusCode.Forbidden or System.Net.HttpStatusCode.TooManyRequests)
+            return await CheckFromPublicReleasePageAsync(installedVersion, cancellationToken);
         response.EnsureSuccessStatusCode();
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
@@ -37,6 +40,37 @@ public sealed class GitHubReleaseUpdateService(HttpClient httpClient, string upd
             throw new InvalidDataException("La release ne contient pas l'installateur et son empreinte SHA-256.");
         return new(isNewer, installedVersion, available, installer, checksum, expectedName,
             root.TryGetProperty("body", out var body) ? body.GetString() : null);
+    }
+
+    private async Task<UpdateAvailability> CheckFromPublicReleasePageAsync(
+        Version installedVersion,
+        CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, LatestReleasePageUri);
+        request.Headers.UserAgent.ParseAdd("IracingSetupManager/0.1");
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var finalUri = response.RequestMessage?.RequestUri;
+        var tag = finalUri?.Segments.LastOrDefault()?.Trim('/').TrimStart('v', 'V');
+        if (finalUri is null || !finalUri.AbsolutePath.Contains("/releases/tag/", StringComparison.OrdinalIgnoreCase) ||
+            !Version.TryParse(tag, out var available))
+            throw new InvalidDataException("La dernière version GitHub n'a pas pu être déterminée.");
+
+        var expectedName = $"IracingSetupManager-{available}-win-x64-setup.exe";
+        var isNewer = available > installedVersion;
+        if (!isNewer)
+            return new(false, installedVersion, available, null, null, expectedName, null);
+
+        var releaseRoot = $"https://github.com/Benaudo-oss/Iracing-Set-Up/releases/download/v{available}/";
+        return new(
+            true,
+            installedVersion,
+            available,
+            new Uri(releaseRoot + expectedName),
+            new Uri(releaseRoot + expectedName + ".sha256"),
+            expectedName,
+            "Mise à jour détectée via la page publique GitHub Releases.");
     }
 
     public async Task<DownloadedUpdate> DownloadAndVerifyAsync(UpdateAvailability update, CancellationToken cancellationToken = default)

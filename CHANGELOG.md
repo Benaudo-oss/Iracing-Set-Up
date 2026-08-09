@@ -28,6 +28,12 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.1.5
+
+- Classement automatique des exemples GO, VRS, HYMO et Grid & Go fournis.
+- Reconnaissance des saisons courtes comme `26S3`, des voitures, circuits et variantes Race, Safe et Wet Race.
+- Méthode de secours publique lorsque l’API GitHub atteint sa limite de requêtes.
+
 # 0.1.1.3
 
 - Ajout d’un bouton pour effacer la recherche et tous les filtres de la bibliothèque.

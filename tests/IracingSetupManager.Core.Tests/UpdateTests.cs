@@ -47,6 +47,34 @@ public sealed class UpdateTests
     }
 
     [Fact]
+    public async Task FallsBackToPublicReleasePageWhenGitHubApiRateLimitIsReached()
+    {
+        var root = CreateRoot();
+        try
+        {
+            var handler = new SimulatedGitHubHandler(request =>
+            {
+                if (request.RequestUri!.Host == "api.github.com")
+                    return new HttpResponseMessage(HttpStatusCode.Forbidden);
+
+                var response = new HttpResponseMessage(HttpStatusCode.OK);
+                response.RequestMessage = new HttpRequestMessage(
+                    HttpMethod.Get,
+                    "https://github.com/Benaudo-oss/Iracing-Set-Up/releases/tag/v0.1.1.3");
+                return response;
+            });
+            var service = new GitHubReleaseUpdateService(new HttpClient(handler), root);
+
+            var availability = await service.CheckAsync(new Version(0, 1, 1, 2));
+
+            Assert.True(availability.IsAvailable);
+            Assert.Equal(new Version(0, 1, 1, 3), availability.AvailableVersion);
+            Assert.EndsWith("IracingSetupManager-0.1.1.3-win-x64-setup.exe", availability.DownloadUri!.AbsoluteUri);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
     public async Task IgnoredVersionIsNotOfferedButLaterVersionIs()
     {
         var root = CreateRoot();
