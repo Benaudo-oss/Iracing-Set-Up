@@ -9,7 +9,10 @@ namespace IracingSetupManager.App.Views;
 
 public sealed partial class IracingCopyPage : Page
 {
+    private List<CopyRow> allRows = [];
     private List<CopyRow> rows = [];
+    private bool filtersReady;
+    private bool previewMode;
 
     public IracingCopyPage()
     {
@@ -28,9 +31,10 @@ public sealed partial class IracingCopyPage : Page
         var setups = (await App.Services.QueryService.GetAllAsync())
             .Where(item => item.Status == SetupStatus.Valide)
             .ToList();
-        rows = setups.Select(CopyRow.FromSetup).ToList();
-        SetupList.ItemsSource = rows;
-        SelectionSummary.Text = $"{rows.Count} setup(s) validé(s) disponible(s)";
+        allRows = setups.Select(CopyRow.FromSetup).ToList();
+        previewMode = false;
+        PopulateFilters();
+        ApplyFilters();
     }
 
     private void OnDetectFolder(object sender, RoutedEventArgs e)
@@ -46,6 +50,24 @@ public sealed partial class IracingCopyPage : Page
     }
 
     private void OnSelectAll(object sender, RoutedEventArgs e) => SetupList.SelectAll();
+
+    private void OnFilterChanged(object sender, object e)
+    {
+        if (filtersReady) ApplyFilters();
+    }
+
+    private void OnClearFilters(object sender, RoutedEventArgs e)
+    {
+        filtersReady = false;
+        SearchBox.Text = string.Empty;
+        ProviderFilter.SelectedIndex = 0;
+        CategoryFilter.SelectedIndex = 0;
+        SeasonFilter.SelectedIndex = 0;
+        CarFilter.SelectedIndex = 0;
+        TrackFilter.SelectedIndex = 0;
+        filtersReady = true;
+        ApplyFilters();
+    }
 
     private async void OnCreatePreview(object sender, RoutedEventArgs e)
     {
@@ -64,25 +86,27 @@ public sealed partial class IracingCopyPage : Page
 
         var ids = selected.Select(item => item.Id).ToArray();
         var plan = await App.Services.IracingCopy.CreatePlanAsync(ids, FolderPathBox.Text);
-        var weeks = new Dictionary<Guid, int>();
-        foreach (var item in plan.Where(item => item.Week is null))
+        var detectedWeeks = plan.Where(item => item.Week is not null).Select(item => item.Week!.Value).Distinct().ToList();
+        if (plan.Any(item => item.Week is null) || detectedWeeks.Count > 1)
         {
-            var week = await AskWeekAsync(item.OriginalFileName);
+            var description = plan.Count == 1
+                ? plan[0].OriginalFileName
+                : $"{plan.Count} setups sélectionnés";
+            var week = await AskWeekAsync(description);
             if (week is null)
             {
-                Show("Aperçu annulé : la semaine est obligatoire pour tous les setups.", InfoBarSeverity.Warning);
+                Show("Aperçu annulé : choisissez une semaine commune pour tous les setups.", InfoBarSeverity.Warning);
                 return;
             }
-            weeks[item.SetupId] = week.Value;
-        }
-        if (weeks.Count > 0)
-        {
+            var weeks = plan.ToDictionary(item => item.SetupId, _ => week.Value);
             plan = await App.Services.IracingCopy.CreatePlanAsync(ids, FolderPathBox.Text, weeks);
         }
-        rows = plan.Select(CopyRow.FromPlan).ToList();
-        SetupList.ItemsSource = rows;
+        var sourceRows = selected.ToDictionary(item => item.Id);
+        allRows = plan.Select(item => CopyRow.FromPlan(item, sourceRows[item.SetupId])).ToList();
+        previewMode = true;
+        PopulateFilters();
+        ApplyFilters();
         SetupList.SelectAll();
-        SelectionSummary.Text = $"Aperçu : {rows.Count} fichier(s), {rows.Count(item => item.HasConflict)} conflit(s)";
         Show("Aperçu prêt. Vérifiez les destinations et résolvez les conflits.", InfoBarSeverity.Informational);
     }
 
@@ -130,6 +154,48 @@ public sealed partial class IracingCopyPage : Page
         ActionInfo.IsOpen = true;
     }
 
+    private void PopulateFilters()
+    {
+        filtersReady = false;
+        FillFilter(ProviderFilter, allRows.Select(item => item.Provider));
+        FillFilter(CategoryFilter, allRows.Select(item => item.Category));
+        FillFilter(SeasonFilter, allRows.Select(item => item.Season));
+        FillFilter(CarFilter, allRows.Select(item => item.Car));
+        FillFilter(TrackFilter, allRows.Select(item => item.Track));
+        filtersReady = true;
+    }
+
+    private static void FillFilter(ComboBox filter, IEnumerable<string> values)
+    {
+        filter.ItemsSource = new[] { "Tous" }.Concat(values
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(value => value, StringComparer.CurrentCultureIgnoreCase))
+            .ToList();
+        filter.SelectedIndex = 0;
+    }
+
+    private void ApplyFilters()
+    {
+        var search = SearchBox.Text.Trim();
+        rows = allRows.Where(item =>
+            MatchesSelection(item.Provider, ProviderFilter) &&
+            MatchesSelection(item.Category, CategoryFilter) &&
+            MatchesSelection(item.Season, SeasonFilter) &&
+            MatchesSelection(item.Car, CarFilter) &&
+            MatchesSelection(item.Track, TrackFilter) &&
+            (search.Length == 0 || new[] { item.OriginalFileName, item.Provider, item.Category, item.Season, item.Car, item.Track }
+                .Any(value => value.Contains(search, StringComparison.CurrentCultureIgnoreCase))))
+            .ToList();
+        SetupList.ItemsSource = rows;
+        SelectionSummary.Text = previewMode
+            ? $"Aperçu : {rows.Count}/{allRows.Count} fichier(s), {rows.Count(item => item.HasConflict)} conflit(s) affiché(s)"
+            : $"{rows.Count}/{allRows.Count} setup(s) validé(s) affiché(s)";
+    }
+
+    private static bool MatchesSelection(string value, ComboBox filter) =>
+        filter.SelectedItem is not string selected || selected == "Tous" || value.Equals(selected, StringComparison.OrdinalIgnoreCase);
+
     private async Task<int?> AskWeekAsync(string fileName)
     {
         int? selectedWeek = null;
@@ -141,8 +207,8 @@ public sealed partial class IracingCopyPage : Page
         weekGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         var content = new StackPanel { Spacing = 12 };
-        content.Children.Add(new TextBlock { Text = $"La semaine est inconnue pour :\n{fileName}", TextWrapping = TextWrapping.Wrap });
-        content.Children.Add(new TextBlock { Text = "Sélectionnez une week comprise entre 1 et 13 :", Opacity = 0.75 });
+        content.Children.Add(new TextBlock { Text = $"Choisissez la semaine commune pour :\n{fileName}", TextWrapping = TextWrapping.Wrap });
+        content.Children.Add(new TextBlock { Text = "Cette Week sera appliquée à tous les setups de cette copie :", Opacity = 0.75 });
         content.Children.Add(weekGrid);
         var dialog = new ContentDialog
         {
@@ -181,14 +247,25 @@ public sealed partial class IracingCopyPage : Page
         public required string OriginalFileName { get; init; }
         public required string Car { get; init; }
         public required string Provider { get; init; }
+        public required string Category { get; init; }
+        public required string Season { get; init; }
+        public required string Track { get; init; }
         public IracingCopyPlanItem? Plan { get; init; }
         public bool HasConflict => Plan?.HasConflict == true;
         public Visibility ConflictVisibility => HasConflict ? Visibility.Visible : Visibility.Collapsed;
         public string CopyDescription => Plan is null ? "Sélectionnable pour l’aperçu" : $"{(HasConflict ? "Conflit — " : string.Empty)}{Plan.DestinationPath}";
         public int ConflictChoiceIndex { get; set; }
 
-        public static CopyRow FromSetup(SetupEntity setup) => new() { Id = setup.Id, OriginalFileName = setup.OriginalFileName, Car = setup.Car, Provider = setup.Provider };
-        public static CopyRow FromPlan(IracingCopyPlanItem plan) => new() { Id = plan.SetupId, OriginalFileName = plan.OriginalFileName, Car = plan.Car, Provider = string.Empty, Plan = plan, ConflictChoiceIndex = 0 };
+        public static CopyRow FromSetup(SetupEntity setup) => new()
+        {
+            Id = setup.Id, OriginalFileName = setup.OriginalFileName, Car = setup.Car, Provider = setup.Provider,
+            Category = setup.Category, Season = setup.Season ?? string.Empty, Track = setup.Track
+        };
+        public static CopyRow FromPlan(IracingCopyPlanItem plan, CopyRow source) => new()
+        {
+            Id = plan.SetupId, OriginalFileName = plan.OriginalFileName, Car = plan.Car, Provider = source.Provider,
+            Category = source.Category, Season = source.Season, Track = source.Track, Plan = plan, ConflictChoiceIndex = 0
+        };
         public IracingCopyPlanItem ToPlan() => Plan! with { ConflictChoice = ConflictChoiceIndex switch { 1 => IracingConflictChoice.Skip, 2 => IracingConflictChoice.KeepBoth, _ => IracingConflictChoice.None } };
     }
 }

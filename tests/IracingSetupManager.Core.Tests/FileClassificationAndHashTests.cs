@@ -14,7 +14,29 @@ public sealed class FileClassificationAndHashTests
         var root = Path.Combine(Path.GetTempPath(), "archive");
         var metadata = new SetupMetadata("HYMO", "GT3", "Porsche 911 GT3 R", "Spa", "Grand Prix", "2026 S3", "Race");
         var result = new ArchivePathBuilder().BuildDirectory(root, metadata);
-        Assert.Equal(Path.Combine(Path.GetFullPath(root), "2026 S3", "Spa", "Porsche 911 GT3 R", "HYMO"), result);
+        Assert.Equal(Path.Combine(Path.GetFullPath(root), "2026_S3", "Spa", "porsche911rgt3", "HYMO"), result);
+    }
+
+    [Theory]
+    [InlineData("2022 S13", "2022_S13")]
+    [InlineData("2027_S5", "2027_S5")]
+    public void ClassificationPreservesSeasonSeparator(string season, string expectedFolder)
+    {
+        var metadata = new SetupMetadata("HYMO", "GT3", "BMW M4 GT3", "Watkins Glen", null, season, "Race");
+
+        var result = new ArchivePathBuilder().BuildDirectory(Path.GetTempPath(), metadata);
+
+        Assert.Contains(Path.DirectorySeparatorChar + expectedFolder + Path.DirectorySeparatorChar, result);
+    }
+
+    [Fact]
+    public void ClassificationUsesTheIracingFolderNameForPorscheCupGen2()
+    {
+        var metadata = new SetupMetadata("VRS", "PCUP", "Porsche 911 GT3 Cup (992) Gen 2", "Watkins Glen", null, "2026 S3", "Race");
+
+        var result = new ArchivePathBuilder().BuildDirectory(Path.GetTempPath(), metadata);
+
+        Assert.Contains(Path.Combine("Watkins Glen", "porsche9922cup", "VRS"), result);
     }
 
     [Fact]
@@ -99,6 +121,25 @@ public sealed class FileClassificationAndHashTests
 
         Assert.Equal(expectedCar, metadata.Car);
         Assert.Equal("PCUP", metadata.Category);
+    }
+
+    [Fact]
+    public void MetadataAnalyzerRecognizesGlenAsWatkinsGlen()
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze("HYMO_GTS_26S3_M4GT3_Glen_R.sto");
+
+        Assert.Equal("Watkins Glen", metadata.Track);
+    }
+
+    [Theory]
+    [InlineData("VRS_26S3_M4GT3_Mexico_R.sto", "Mexique")]
+    [InlineData("HYMO_26S3_M4GT3_StPete_R.sto", "Saint-Pétersbourg")]
+    [InlineData("GO_26S3_992Cup_Adelaide_R.sto", "Adelaide")]
+    public void MetadataAnalyzerRecognizesLocalizedTrackAliases(string fileName, string expectedTrack)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal(expectedTrack, metadata.Track);
     }
 
     [Fact]

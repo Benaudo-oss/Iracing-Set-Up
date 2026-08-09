@@ -8,7 +8,7 @@ namespace IracingSetupManager.Infrastructure.Iracing;
 public sealed class IracingPathLayoutService(ISetupDbContextFactory contextFactory)
 {
     private const string SettingKey = "Iracing.CopyPathLayout";
-    public static IReadOnlyList<string> DefaultLayout { get; } = ["Season", "Provider", "Week"];
+    public static IReadOnlyList<string> DefaultLayout { get; } = ["Season", "Track", "Provider", "Week"];
     public static IReadOnlySet<string> AllowedElements { get; } = new HashSet<string>(DefaultLayout, StringComparer.Ordinal);
 
     public async Task<IReadOnlyList<string>> GetAsync(CancellationToken cancellationToken = default)
@@ -23,7 +23,14 @@ public sealed class IracingPathLayoutService(ISetupDbContextFactory contextFacto
         try
         {
             var layout = JsonSerializer.Deserialize<string[]>(json);
-            return IsValid(layout) ? layout! : DefaultLayout;
+            if (IsValid(layout)) return layout!;
+            if (IsLegacyLayout(layout))
+            {
+                var upgraded = layout!.ToList();
+                upgraded.Insert(upgraded.IndexOf("Season") + 1, "Track");
+                return upgraded;
+            }
+            return DefaultLayout;
         }
         catch (JsonException)
         {
@@ -34,7 +41,7 @@ public sealed class IracingPathLayoutService(ISetupDbContextFactory contextFacto
     public async Task SaveAsync(IReadOnlyCollection<string> layout, CancellationToken cancellationToken = default)
     {
         if (!IsValid(layout))
-            throw new ArgumentException("L’arborescence doit contenir une seule fois Saison, Fournisseur et Week.", nameof(layout));
+            throw new ArgumentException("L’arborescence doit contenir une seule fois Saison, Circuit, Fournisseur et Week.", nameof(layout));
 
         await using var context = contextFactory.Create();
         var setting = await context.ApplicationSettings.FindAsync([SettingKey], cancellationToken);
@@ -51,4 +58,8 @@ public sealed class IracingPathLayoutService(ISetupDbContextFactory contextFacto
 
     private static bool IsValid(IReadOnlyCollection<string>? layout) =>
         layout is not null && layout.Count == AllowedElements.Count && layout.Distinct(StringComparer.Ordinal).Count() == AllowedElements.Count && layout.All(AllowedElements.Contains);
+
+    private static bool IsLegacyLayout(IReadOnlyCollection<string>? layout) =>
+        layout is not null && layout.Count == 3 &&
+        layout.ToHashSet(StringComparer.Ordinal).SetEquals(["Season", "Provider", "Week"]);
 }

@@ -28,6 +28,16 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.5.3
+
+- Utilise les noms réels des dossiers voiture iRacing dans l’archive et lors de la copie vers iRacing.
+- Conserve le format de saison avec séparateur, par exemple `2022_S13`.
+- Ajoute les circuits Glen, Mexique, Saint-Pétersbourg et Adelaide.
+- Permet d’activer ou désactiver la surveillance automatique, tout en conservant l’import manuel.
+- Ajoute les filtres fournisseur, catégorie, saison, voiture et circuit à la copie vers iRacing.
+- Applique une Week commune à tous les setups d’une copie groupée.
+- Rétablit le circuit dans l’arborescence configurable de copie vers iRacing.
+
 # 0.1.4.3
 
 - Importe automatiquement dans SQLite la liste des circuits et configurations trouvés dans `Documents\iRacing\lapfiles`.

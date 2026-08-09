@@ -34,6 +34,7 @@ public sealed class AppServices
         ArchivePaths = new ArchivePathService(ContextFactory, new WinUiFolderPicker());
         FolderPolicy = new MonitoredFolderPolicy();
         MonitoredFolders = new MonitoredFolderSettingsService(ContextFactory, FolderPolicy);
+        AutomaticMonitoring = new AutomaticMonitoringSettingsService(ContextFactory);
         UpdatePreferences = new UpdatePreferenceService(ContextFactory);
         Updates = new GitHubReleaseUpdateService(new HttpClient { Timeout = TimeSpan.FromMinutes(10) }, installerCache);
         UpdateInstaller = new UpdateInstallerLauncher(installerCache);
@@ -71,6 +72,7 @@ public sealed class AppServices
     public ArchivePathService ArchivePaths { get; }
     public MonitoredFolderPolicy FolderPolicy { get; }
     public MonitoredFolderSettingsService MonitoredFolders { get; }
+    public AutomaticMonitoringSettingsService AutomaticMonitoring { get; }
     public ImportMonitoringService Monitoring { get; }
     public UpdatePreferenceService UpdatePreferences { get; }
     public IUpdateService Updates { get; }

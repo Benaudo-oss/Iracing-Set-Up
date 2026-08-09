@@ -26,7 +26,7 @@ public sealed class LocalLibraryTests
         Assert.True(File.Exists(source));
         Assert.NotNull(result.ArchivePath);
         Assert.Equal(Path.GetFileName(source), Path.GetFileName(result.ArchivePath));
-        Assert.Contains(Path.Combine("2026 S3", "Spa", "Porsche 911 GT3 R", "HYMO"), result.ArchivePath);
+        Assert.Contains(Path.Combine("2026_S3", "Spa", "porsche911rgt3", "HYMO"), result.ArchivePath);
     }
 
     [Theory]
@@ -122,7 +122,7 @@ public sealed class LocalLibraryTests
 
         Assert.Equal(1, moved);
         Assert.False(File.Exists(oldPath));
-        Assert.Equal(Path.Combine(environment.ArchivePath, "2026 S3", "Le Mans", "BMW M4 GT3", "VRS", Path.GetFileName(oldPath)), setup.ArchivePath);
+        Assert.Equal(Path.Combine(environment.ArchivePath, "2026_S3", "Le Mans", "bmwm4gt3", "VRS", Path.GetFileName(oldPath)), setup.ArchivePath);
         Assert.True(File.Exists(setup.ArchivePath));
     }
 

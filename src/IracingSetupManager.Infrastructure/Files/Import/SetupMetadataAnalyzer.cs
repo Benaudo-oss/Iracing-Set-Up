@@ -70,12 +70,37 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
             ["PC992.2"] = ("Porsche 911 GT3 Cup (992) Gen 2", "PCUP"),
             ["PCUP"] = ("Porsche 911 GT3 Cup (992) Gen 2", "PCUP")
         };
+
+    public static string? ResolveIracingFolderName(string car, IEnumerable<string> availableFolderNames)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(car);
+        ArgumentNullException.ThrowIfNull(availableFolderNames);
+
+        var folders = availableFolderNames.ToList();
+        var aliases = Cars
+            .Where(item => item.Value.Car.Equals(car, StringComparison.OrdinalIgnoreCase))
+            .Select(item => item.Key)
+            .ToList();
+        foreach (var alias in aliases)
+        {
+            var existing = folders.FirstOrDefault(folder => folder.Equals(alias, StringComparison.OrdinalIgnoreCase));
+            if (existing is not null) return existing;
+        }
+
+        return aliases.FirstOrDefault(alias => alias.All(character => char.IsLetterOrDigit(character)));
+    }
+
     private static readonly IReadOnlyDictionary<string, string> Tracks =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["LeMans"] = "Le Mans",
             ["Fuji"] = "Fuji",
-            ["Monza"] = "Monza"
+            ["Monza"] = "Monza",
+            ["Glen"] = "Watkins Glen",
+            ["WatkinsGlen"] = "Watkins Glen",
+            ["Mexico"] = "Mexique",
+            ["StPete"] = "Saint-Pétersbourg",
+            ["Adelaide"] = "Adelaide"
         };
 
     public SetupMetadata Analyze(string filePath, SetupMetadata? defaults = null)

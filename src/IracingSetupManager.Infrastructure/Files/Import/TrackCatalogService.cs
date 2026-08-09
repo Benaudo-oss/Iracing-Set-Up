@@ -12,12 +12,13 @@ public sealed class TrackCatalogService(ISetupDbContextFactory contextFactory)
     private static readonly IReadOnlyDictionary<string, string> DisplayNames =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            ["algarve"] = "Algarve", ["barcelona"] = "Barcelona", ["bathurst"] = "Bathurst",
+            ["adelaide"] = "Adelaide", ["algarve"] = "Algarve", ["barcelona"] = "Barcelona", ["bathurst"] = "Bathurst",
             ["charlotte"] = "Charlotte", ["daytona"] = "Daytona", ["donington"] = "Donington Park",
             ["fuji"] = "Fuji", ["hockenheim"] = "Hockenheim", ["imola"] = "Imola",
             ["lagunaseca"] = "Laguna Seca", ["lakeland"] = "Lakeland", ["ledenon"] = "Lédenon",
             ["lemans"] = "Le Mans", ["limerock"] = "Lime Rock Park", ["magnycours"] = "Magny-Cours",
             ["miami"] = "Miami", ["misano"] = "Misano", ["monza"] = "Monza",
+            ["mexico"] = "Mexique", ["stpete"] = "Saint-Pétersbourg",
             ["nurburgring"] = "Nürburgring", ["okayama"] = "Okayama", ["oran"] = "Oran Park",
             ["oschersleben"] = "Oschersleben", ["oulton"] = "Oulton Park", ["phoenix"] = "Phoenix",
             ["roadamerica"] = "Road America", ["roadatlanta"] = "Road Atlanta", ["rudskogen"] = "Rudskogen",

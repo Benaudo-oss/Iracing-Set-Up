@@ -49,6 +49,26 @@ public sealed class ImportMonitoringService(
         }
     }
 
+    public async Task ImportNowAsync(CancellationToken cancellationToken = default)
+    {
+        var folders = await settingsService.GetAsync(cancellationToken);
+        foreach (var file in await folderMonitor.ScanAsync(folders, cancellationToken))
+        {
+            try
+            {
+                await ProcessFileAsync(file, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                ImportFailed?.Invoke(this, exception);
+            }
+        }
+    }
+
     public async Task StopAsync()
     {
         if (_worker is null)
@@ -88,41 +108,7 @@ public sealed class ImportMonitoringService(
         {
             try
             {
-                if (!await stableFileAwaiter.WaitAsync(file.FullPath, cancellationToken))
-                {
-                    continue;
-                }
-
-                var archivePath = await getArchivePath(cancellationToken);
-                if (string.IsNullOrWhiteSpace(archivePath))
-                {
-                    continue;
-                }
-
-                var sourceKind = file.SourceKind == ImportFolderKind.Downloads
-                    ? SetupSourceKind.DownloadsFolder
-                    : SetupSourceKind.OfficialProviderApplication;
-                SetupMetadata? defaults = string.IsNullOrWhiteSpace(file.Provider)
-                    ? null
-                    : new SetupMetadata(
-                        file.Provider,
-                        "À identifier",
-                        "À identifier",
-                        "À identifier",
-                        null,
-                        null,
-                        "À identifier");
-
-                var results = await importService.ImportAsync(
-                    file.FullPath,
-                    archivePath,
-                    sourceKind,
-                    defaults,
-                    cancellationToken);
-                foreach (var result in results)
-                {
-                    ImportCompleted?.Invoke(this, result);
-                }
+                await ProcessFileAsync(file, cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -133,6 +119,22 @@ public sealed class ImportMonitoringService(
                 ImportFailed?.Invoke(this, exception);
             }
         }
+    }
+
+    private async Task ProcessFileAsync(DetectedImportFile file, CancellationToken cancellationToken)
+    {
+        if (!await stableFileAwaiter.WaitAsync(file.FullPath, cancellationToken)) return;
+        var archivePath = await getArchivePath(cancellationToken);
+        if (string.IsNullOrWhiteSpace(archivePath)) return;
+
+        var sourceKind = file.SourceKind == ImportFolderKind.Downloads
+            ? SetupSourceKind.DownloadsFolder
+            : SetupSourceKind.OfficialProviderApplication;
+        SetupMetadata? defaults = string.IsNullOrWhiteSpace(file.Provider)
+            ? null
+            : new SetupMetadata(file.Provider, "À identifier", "À identifier", "À identifier", null, null, "À identifier");
+        var results = await importService.ImportAsync(file.FullPath, archivePath, sourceKind, defaults, cancellationToken);
+        foreach (var result in results) ImportCompleted?.Invoke(this, result);
     }
 
     private async Task RunPeriodicScanAsync(CancellationToken cancellationToken)

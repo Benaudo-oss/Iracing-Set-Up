@@ -15,6 +15,7 @@ public sealed partial class SettingsPage : Page
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         ArchivePathBox.Text = await App.Services.ArchivePaths.GetAsync() ?? string.Empty;
+        AutomaticMonitoringToggle.IsOn = await App.Services.AutomaticMonitoring.IsEnabledAsync();
         var folders = await App.Services.MonitoredFolders.GetAsync();
         DownloadsPathBox.Text = folders.FirstOrDefault(item => item.Kind == ImportFolderKind.Downloads)?.Path
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
@@ -77,8 +78,12 @@ public sealed partial class SettingsPage : Page
         AddProviderIfEnabled(folders, GngToggle, GngPathBox, "Grid & Go");
         AddProviderIfEnabled(folders, VrsToggle, VrsPathBox, "VRS");
         await App.Services.MonitoredFolders.SaveAsync(folders);
+        await App.Services.AutomaticMonitoring.SaveAsync(AutomaticMonitoringToggle.IsOn);
         await App.Services.IracingPathLayout.SaveAsync(pathLayout.Select(item => item.Key).ToArray());
-        await App.Services.Monitoring.StartAsync();
+        if (AutomaticMonitoringToggle.IsOn)
+        {
+            await App.Services.Monitoring.StartAsync();
+        }
         SettingsInfo.Severity = InfoBarSeverity.Success;
         SettingsInfo.Message = "Les paramètres ont été enregistrés.";
         SettingsInfo.IsOpen = true;
@@ -107,6 +112,7 @@ public sealed partial class SettingsPage : Page
         pathLayout.AddRange(layout.Select(key => new PathElementRow(key, key switch
         {
             "Season" => "Saison",
+            "Track" => "Circuit",
             "Provider" => "Fournisseur",
             "Week" => "Week",
             _ => key
@@ -121,6 +127,7 @@ public sealed partial class SettingsPage : Page
         var examples = pathLayout.Select(item => item.Key switch
         {
             "Season" => "2026_S3",
+            "Track" => "Le Mans",
             "Provider" => "HYMO",
             "Week" => "Week 07",
             _ => item.Label

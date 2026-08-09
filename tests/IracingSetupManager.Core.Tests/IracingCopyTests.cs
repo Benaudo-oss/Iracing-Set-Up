@@ -15,7 +15,7 @@ public sealed class IracingCopyTests
         var plan = await environment.Service.CreatePlanAsync(environment.Ids, environment.Target, new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
         var item = Assert.Single(plan);
         Assert.Equal(environment.ValidatedId, item.SetupId);
-        Assert.EndsWith(Path.Combine("bmwlmdh", "Garage 61", "2026_S3", "Grid & Go", "Week 07", "race.sto"), item.DestinationPath);
+        Assert.EndsWith(Path.Combine("bmwlmdh", "Garage 61", "2026_S3", "Monza", "Grid & Go", "Week 07", "race.sto"), item.DestinationPath);
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public sealed class IracingCopyTests
     public async Task ConflictMustBeResolvedAndKeepBothNeverOverwrites()
     {
         await using var environment = await TestEnvironment.CreateAsync();
-        var destination = Path.Combine(environment.Target, "bmwlmdh", "Garage 61", "2026_S3", "Grid & Go", "Week 07", "race.sto");
+        var destination = Path.Combine(environment.Target, "bmwlmdh", "Garage 61", "2026_S3", "Monza", "Grid & Go", "Week 07", "race.sto");
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
         await File.WriteAllTextAsync(destination, "existing");
         var plan = await environment.Service.CreatePlanAsync([environment.ValidatedId], environment.Target, new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
@@ -83,14 +83,14 @@ public sealed class IracingCopyTests
     {
         await using var environment = await TestEnvironment.CreateAsync();
         var layout = new IracingPathLayoutService(environment.Factory);
-        await layout.SaveAsync(["Provider", "Week", "Season"]);
+        await layout.SaveAsync(["Provider", "Week", "Season", "Track"]);
 
         var plan = await environment.Service.CreatePlanAsync(
             [environment.ValidatedId],
             environment.Target,
             new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
 
-        Assert.EndsWith(Path.Combine("bmwlmdh", "Garage 61", "Grid & Go", "Week 07", "2026_S3", "race.sto"), plan[0].DestinationPath);
+        Assert.EndsWith(Path.Combine("bmwlmdh", "Garage 61", "Grid & Go", "Week 07", "2026_S3", "Monza", "race.sto"), plan[0].DestinationPath);
     }
 
     [Fact]
@@ -99,6 +99,26 @@ public sealed class IracingCopyTests
         await using var environment = await TestEnvironment.CreateAsync();
         var layout = new IracingPathLayoutService(environment.Factory);
         await Assert.ThrowsAsync<ArgumentException>(() => layout.SaveAsync(["Season", "Season", "Week"]));
+    }
+
+    [Fact]
+    public async Task ExistingLayoutIsAutomaticallyUpgradedWithTrack()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        await using (var context = environment.Factory.Create())
+        {
+            context.ApplicationSettings.Add(new ApplicationSettingEntity
+            {
+                Key = "Iracing.CopyPathLayout",
+                Value = "[\"Season\",\"Provider\",\"Week\"]",
+                UpdatedAtUtc = DateTimeOffset.UtcNow
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var layout = await new IracingPathLayoutService(environment.Factory).GetAsync();
+
+        Assert.Equal(["Season", "Track", "Provider", "Week"], layout);
     }
 
     [Theory]
@@ -118,7 +138,27 @@ public sealed class IracingCopyTests
             environment.Target,
             new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
 
-        Assert.Contains(Path.Combine("Garage 61", expectedFolder, "Grid & Go"), plan[0].DestinationPath);
+        Assert.Contains(Path.Combine("Garage 61", expectedFolder, "Monza", "Grid & Go"), plan[0].DestinationPath);
+    }
+
+    [Fact]
+    public async Task CopyUsesTheActualIracingCarFolderRegardlessOfDetectedAlias()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        const string actualFolder = "acuransxevo22gt3";
+        Directory.CreateDirectory(Path.Combine(environment.Target, actualFolder));
+        await using (var context = environment.Factory.Create())
+        {
+            (await context.Setups.FindAsync(environment.ValidatedId))!.Car = "Acura NSX GT3 Evo 22";
+            await context.SaveChangesAsync();
+        }
+
+        var plan = await environment.Service.CreatePlanAsync(
+            [environment.ValidatedId],
+            environment.Target,
+            new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
+
+        Assert.Contains(Path.Combine(environment.Target, actualFolder, "Garage 61"), plan[0].DestinationPath);
     }
 
     private sealed class TestEnvironment : IAsyncDisposable

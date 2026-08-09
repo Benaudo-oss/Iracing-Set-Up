@@ -27,7 +27,10 @@ public partial class App : Application
             MainWindowInstance = new MainWindow();
             MainWindowInstance.Closed += async (_, _) => await Services.Monitoring.DisposeAsync();
             MainWindowInstance.Activate();
-            await Services.Monitoring.StartAsync();
+            if (await Services.AutomaticMonitoring.IsEnabledAsync())
+            {
+                await Services.Monitoring.StartAsync();
+            }
         }
         catch (Exception exception)
         {

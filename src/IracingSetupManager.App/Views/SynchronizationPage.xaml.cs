@@ -9,8 +9,7 @@ public sealed partial class SynchronizationPage : Page
 
     private async void OnScanNow(object sender, RoutedEventArgs e)
     {
-        await App.Services.Monitoring.StartAsync();
-        await App.Services.Monitoring.ScanNowAsync();
+        await App.Services.Monitoring.ImportNowAsync();
         ActionInfo.Message = "L’analyse des dossiers configurés est en cours.";
         ActionInfo.IsOpen = true;
     }

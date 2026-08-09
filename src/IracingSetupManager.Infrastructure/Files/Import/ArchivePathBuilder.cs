@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace IracingSetupManager.Infrastructure.Files.Import;
 
 public sealed class ArchivePathBuilder
@@ -9,10 +11,20 @@ public sealed class ArchivePathBuilder
 
         return Path.Combine(
             Path.GetFullPath(archiveRoot),
-            SanitizeFolder(metadata.Season ?? "Saison inconnue"),
+            FormatSeasonFolder(metadata.Season),
             SanitizeFolder(metadata.Track),
-            SanitizeFolder(metadata.Car),
+            SetupMetadataAnalyzer.ResolveIracingFolderName(metadata.Car, []) ?? SanitizeFolder(metadata.Car),
             SanitizeFolder(metadata.Provider));
+    }
+
+    private static string FormatSeasonFolder(string? season)
+    {
+        var sanitized = SanitizeFolder(season ?? "Saison inconnue");
+        return Regex.Replace(
+            sanitized,
+            @"^(?<year>\d{4})[ _-]*S(?<season>\d+)$",
+            "${year}_S${season}",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     }
 
     private static string SanitizeFolder(string value)

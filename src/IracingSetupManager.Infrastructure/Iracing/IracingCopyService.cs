@@ -2,6 +2,7 @@ using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using IracingSetupManager.Infrastructure.Files;
+using IracingSetupManager.Infrastructure.Files.Import;
 using System.Text.RegularExpressions;
 
 namespace IracingSetupManager.Infrastructure.Iracing;
@@ -30,14 +31,6 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
     private readonly IracingPathLayoutService pathLayout = pathLayoutService ?? new IracingPathLayoutService(contextFactory);
     private static readonly Regex WeekPattern = new(@"(?:^|[_\- ])W(?<week>0?[1-9]|1[0-3])(?:[_\- .]|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    private static readonly IReadOnlyDictionary<string, string> CarFolders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-    {
-        ["Acura ARX-06"] = "acuraarx06gtp", ["BMW M Hybrid V8"] = "bmwlmdh",
-        ["Cadillac V-Series.R"] = "cadillacvseriesrgtp", ["Ferrari 499P"] = "ferrari499p",
-        ["Porsche 963"] = "porsche963gtp", ["BMW M4 GT3"] = "bmwm4gt3",
-        ["McLaren 720S GT3"] = "mclaren720sgt3", ["Porsche 911 GT3 R (992)"] = "porsche992rgt3",
-        ["Porsche 911 GT3 Cup (992)"] = "porsche992cup", ["Dallara P217"] = "dallarap217"
-    };
     public static string? DetectSetupsFolder()
     {
         var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -53,6 +46,9 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(iracingSetupsFolder);
         var root = SecurePath.GetFullPath(iracingSetupsFolder);
+        var availableCarFolders = Directory.Exists(root)
+            ? Directory.EnumerateDirectories(root).Select(Path.GetFileName).Where(name => !string.IsNullOrWhiteSpace(name)).Cast<string>().ToList()
+            : [];
         var ids = setupIds.Distinct().ToArray();
         var layout = await pathLayout.GetAsync(cancellationToken);
 
@@ -72,12 +68,14 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
                 week = overriddenWeek;
             }
 
-            var carFolder = CarFolders.TryGetValue(setup.Car, out var knownFolder) ? knownFolder : SanitizeSegment(setup.Car);
+            var carFolder = SetupMetadataAnalyzer.ResolveIracingFolderName(setup.Car, availableCarFolders)
+                ?? SanitizeSegment(setup.Car);
             var season = SanitizeSegment(setup.Season ?? "Saison inconnue").Replace(' ', '_');
             var weekFolder = week is null ? "Week inconnue" : $"Week {week:00}";
             var dynamicSegments = layout.Select(element => element switch
             {
                 "Season" => season,
+                "Track" => SanitizeSegment(setup.Track),
                 "Provider" => SanitizeSegment(setup.Provider),
                 "Week" => weekFolder,
                 _ => throw new InvalidOperationException("L’arborescence de copie iRacing est invalide.")
