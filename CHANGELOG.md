@@ -11,4 +11,5 @@ utilise le versionnement sémantique.
 - Séparation des modules métier, infrastructure, fournisseurs et intégrations.
 - Protections Git contre l'ajout de secrets et de données locales.
 - Projet de tests automatisés.
-
+- Schéma SQLite complet pour les setups et les résultats Garage61.
+- Choix persistant du dossier d'archive, demandé uniquement la première fois.

@@ -13,5 +13,6 @@
     </PackageReference>
     <ProjectReference Include="..\..\src\IracingSetupManager.Core\IracingSetupManager.Core.csproj" />
     <ProjectReference Include="..\..\src\IracingSetupManager.Providers\IracingSetupManager.Providers.csproj" />
+    <ProjectReference Include="..\..\src\IracingSetupManager.Infrastructure\IracingSetupManager.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

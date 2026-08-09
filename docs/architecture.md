@@ -21,3 +21,11 @@ Les dépendances pointent vers `Core`. Aucun module fournisseur ne doit dépendr
 d'un autre fournisseur. L'orchestrateur collecte un résultat par fournisseur :
 une panne HYMO ne bloque donc ni GO Setups ni Grid & Go. Les secrets ne transitent jamais dans les modèles métier
 et ne doivent jamais apparaître dans les journaux.
+
+## Base locale
+
+La base SQLite contient une table `Setups` avec les métadonnées du fichier, son
+empreinte SHA-256 unique, son classement, son statut et le résultat Garage61. Les
+index couvrent les recherches par fournisseur, catégorie, statut, voiture, circuit
+et saison. La table `ApplicationSettings` conserve le dossier d'archive : le
+sélecteur est affiché uniquement si aucun chemin n'a encore été enregistré.
