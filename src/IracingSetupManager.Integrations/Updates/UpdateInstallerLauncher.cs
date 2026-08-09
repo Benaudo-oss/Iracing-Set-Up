@@ -26,7 +26,7 @@ public sealed class UpdateInstallerLauncher(string installerCache)
 
     private static Version? ParseVersion(string path)
     {
-        var match = System.Text.RegularExpressions.Regex.Match(Path.GetFileName(path), @"-(\d+\.\d+\.\d+)-win-x64-setup\.exe$");
+        var match = System.Text.RegularExpressions.Regex.Match(Path.GetFileName(path), @"-(\d+\.\d+\.\d+(?:\.\d+)?)-win-x64-setup\.exe$");
         return match.Success && Version.TryParse(match.Groups[1].Value, out var version) ? version : null;
     }
 }

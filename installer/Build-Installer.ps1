@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.1.1',
+    [ValidatePattern('^\d+\.\d+\.\d+(\.\d+)?$')][string]$Version = '0.1.1.1',
     [ValidateSet('win-x64')][string]$Runtime = 'win-x64',
     [string]$CertificateThumbprint
 )
@@ -17,7 +17,7 @@ $project = Join-Path $repo 'src\IracingSetupManager.App\IracingSetupManager.App.
 $iss = Join-Path $PSScriptRoot 'IracingSetupManager.iss'
 
 & $dotnet publish $project --configuration Release --runtime $Runtime --self-contained true --output $publish --no-restore --disable-build-servers --maxcpucount:1 `
-    -p:Version=$Version -p:FileVersion="$Version.0" -p:AssemblyVersion="$Version.0"
+    -p:Version=$Version -p:FileVersion=$Version -p:AssemblyVersion=$Version
 if ($LASTEXITCODE -ne 0) { throw 'La publication Windows a échoué.' }
 
 $signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |

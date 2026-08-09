@@ -9,7 +9,7 @@ des setups iRacing sans modifier les fichiers originaux.
 
 ## État du projet
 
-Le projet est en phase d'initialisation. La version actuelle est `0.1.1` :
+Le projet est en phase d'initialisation. La version actuelle est `0.1.1.1` :
 bibliothèque locale, calcul SHA-256, base SQLite et interface de consultation.
 
 ## Technologies
@@ -98,7 +98,7 @@ dotnet publish src/IracingSetupManager.App/IracingSetupManager.App.csproj `
 
 ### Installateur Windows
 
-La commande `installer/Build-Installer.ps1 -Version 0.1.1` publie l’application
+La commande `installer/Build-Installer.ps1 -Version 0.1.1.1` publie l’application
 autonome, génère l’installateur Inno Setup versionné et son empreinte SHA-256. Le
 même identifiant d’application assure installation, désinstallation et mise à
 niveau. L’installateur ne supprime jamais `%LocalAppData%\IracingSetupManager`,
@@ -107,7 +107,7 @@ SignTool sont disponibles, les exécutables sont signés automatiquement.
 
 ### Publication des mises à jour
 
-Un tag Git `vX.Y.Z` déclenche `.github/workflows/release.yml`. Le workflow teste
+Un tag Git `vX.Y.Z` ou `vX.Y.Z.R` déclenche `.github/workflows/release.yml`. Le workflow teste
 l’application, construit l’installateur et publie automatiquement l’exécutable et
 son fichier SHA-256 dans GitHub Releases. Les secrets facultatifs
 `SIGNING_CERTIFICATE_BASE64` et `SIGNING_CERTIFICATE_PASSWORD` activent la

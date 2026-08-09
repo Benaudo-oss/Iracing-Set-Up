@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "0.1.1"
+  #define AppVersion "0.1.1.1"
 #endif
 #ifndef PublishDir
   #define PublishDir "..\artifacts\publish\win-x64"
@@ -31,8 +31,8 @@ UsePreviousGroup=yes
 DisableProgramGroupPage=yes
 WizardStyle=modern
 SetupLogging=yes
-VersionInfoVersion={#AppVersion}.0
-VersionInfoProductVersion={#AppVersion}.0
+VersionInfoVersion={#AppVersion}
+VersionInfoProductVersion={#AppVersion}
 VersionInfoProductName=iRacing Setup Manager
 SetupIconFile={#PublishDir}\Assets\AppLogo.ico
 UninstallDisplayIcon={app}\IracingSetupManager.App.exe

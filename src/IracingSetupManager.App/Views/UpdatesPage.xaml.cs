@@ -16,7 +16,7 @@ public sealed partial class UpdatesPage : Page
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        InstalledVersionText.Text = installedVersion.ToString(3);
+        InstalledVersionText.Text = installedVersion.ToString();
         rollbackInstaller = App.Services.UpdateInstaller.FindPreviousInstaller(installedVersion);
         RollbackButton.IsEnabled = rollbackInstaller is not null;
         if (rollbackInstaller is not null) RollbackDescription.Text = $"Installateur conservé : {Path.GetFileName(rollbackInstaller)}";
@@ -28,7 +28,7 @@ public sealed partial class UpdatesPage : Page
         try
         {
             availableUpdate = await App.Services.Updates.CheckAsync(installedVersion);
-            AvailableVersionText.Text = availableUpdate.AvailableVersion?.ToString(3) ?? "—";
+            AvailableVersionText.Text = availableUpdate.AvailableVersion?.ToString() ?? "—";
             ReleaseNotesText.Text = string.IsNullOrWhiteSpace(availableUpdate.ReleaseNotes) ? "Aucune note de version." : availableUpdate.ReleaseNotes;
             var shouldOffer = availableUpdate.IsAvailable && availableUpdate.AvailableVersion is not null &&
                               await App.Services.UpdatePreferences.ShouldOfferAsync(availableUpdate.AvailableVersion);

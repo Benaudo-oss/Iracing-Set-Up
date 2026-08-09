@@ -73,6 +73,37 @@ public sealed class DatabaseTests
         Assert.Equal(setup.DownloadedAtUtc, populated.LastDownloadUtc);
     }
 
+    [Fact]
+    public async Task QueriesSortDateTimeOffsetValuesAfterLoadingFromSqlite()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var repository = new SetupRepository(environment.Factory);
+        var older = CreateSetup();
+        older.Status = SetupStatus.AVerifier;
+        older.DownloadedAtUtc = DateTimeOffset.UtcNow.AddDays(-2);
+        var newer = CreateSetup();
+        newer.Status = SetupStatus.AVerifier;
+        newer.Sha256 = new string('b', 64);
+        newer.DownloadedAtUtc = DateTimeOffset.UtcNow.AddDays(-1);
+        await repository.AddAsync(older);
+        await repository.AddAsync(newer);
+
+        var queries = new SetupQueryService(environment.Factory);
+        var toReview = await queries.GetToReviewAsync();
+        Assert.Equal(newer.Id, toReview[0].Id);
+
+        var validation = new SetupValidationService(environment.Factory);
+        await validation.ValidateAsync(older.Id);
+        await validation.RefuseAsync(newer.Id);
+
+        var all = await queries.GetAllAsync();
+        var history = await queries.GetHistoryAsync();
+
+        Assert.Equal(newer.Id, all[0].Id);
+        Assert.Equal(2, history.Count);
+        Assert.True(history[0].ChangedAtUtc >= history[1].ChangedAtUtc);
+    }
+
     private static SetupEntity CreateSetup() => new()
     {
         Id = Guid.NewGuid(),

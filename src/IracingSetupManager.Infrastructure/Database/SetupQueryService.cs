@@ -34,28 +34,25 @@ public sealed class SetupQueryService(ISetupDbContextFactory contextFactory)
         CancellationToken cancellationToken = default)
     {
         await using var context = contextFactory.Create();
-        return await context.Setups.AsNoTracking()
-            .OrderByDescending(item => item.DownloadedAtUtc)
-            .ToListAsync(cancellationToken);
+        var setups = await context.Setups.AsNoTracking().ToListAsync(cancellationToken);
+        return setups.OrderByDescending(item => item.DownloadedAtUtc).ToList();
     }
 
     public async Task<IReadOnlyList<SetupEntity>> GetToReviewAsync(
         CancellationToken cancellationToken = default)
     {
         await using var context = contextFactory.Create();
-        return await context.Setups.AsNoTracking()
+        var setups = await context.Setups.AsNoTracking()
             .Where(item => item.Status == SetupStatus.AVerifier)
-            .OrderByDescending(item => item.DownloadedAtUtc)
             .ToListAsync(cancellationToken);
+        return setups.OrderByDescending(item => item.DownloadedAtUtc).ToList();
     }
 
     public async Task<IReadOnlyList<SetupChangeHistoryEntity>> GetHistoryAsync(
         CancellationToken cancellationToken = default)
     {
         await using var context = contextFactory.Create();
-        return await context.SetupChangeHistory.AsNoTracking()
-            .OrderByDescending(item => item.ChangedAtUtc)
-            .Take(1000)
-            .ToListAsync(cancellationToken);
+        var history = await context.SetupChangeHistory.AsNoTracking().ToListAsync(cancellationToken);
+        return history.OrderByDescending(item => item.ChangedAtUtc).Take(1000).ToList();
     }
 }

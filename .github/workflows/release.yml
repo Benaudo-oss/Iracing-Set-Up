@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag existant au format vX.Y.Z
+        description: Tag existant au format vX.Y.Z ou vX.Y.Z.R
         required: true
         type: string
 
@@ -34,8 +34,8 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          if ($env:RELEASE_TAG -notmatch '^v(\d+)\.(\d+)\.(\d+)$') {
-            throw "Tag invalide : $env:RELEASE_TAG. Format attendu : vX.Y.Z"
+          if ($env:RELEASE_TAG -notmatch '^v(\d+)\.(\d+)\.(\d+)(\.(\d+))?$') {
+            throw "Tag invalide : $env:RELEASE_TAG. Format attendu : vX.Y.Z ou vX.Y.Z.R"
           }
           "number=$($env:RELEASE_TAG.Substring(1))" >> $env:GITHUB_OUTPUT
 

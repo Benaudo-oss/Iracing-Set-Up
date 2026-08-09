@@ -19,9 +19,9 @@ public sealed class UpdateTests
             var package = Encoding.UTF8.GetBytes("simulated installer");
             var hash = Convert.ToHexString(SHA256.HashData(package)).ToLowerInvariant();
             var service = CreateService(root, package, hash);
-            var availability = await service.CheckAsync(new Version(0, 1, 0));
+            var availability = await service.CheckAsync(new Version(0, 1, 1, 0));
             Assert.True(availability.IsAvailable);
-            Assert.Equal(new Version(0, 2, 0), availability.AvailableVersion);
+            Assert.Equal(new Version(0, 1, 1, 1), availability.AvailableVersion);
             Assert.Contains("Nouveautés simulées", availability.ReleaseNotes);
 
             var downloaded = await service.DownloadAndVerifyAsync(availability);
@@ -69,10 +69,10 @@ public sealed class UpdateTests
         try
         {
             File.WriteAllText(Path.Combine(root, "IracingSetupManager-0.1.0-win-x64-setup.exe"), "old");
-            File.WriteAllText(Path.Combine(root, "IracingSetupManager-0.2.0-win-x64-setup.exe"), "previous");
+            File.WriteAllText(Path.Combine(root, "IracingSetupManager-0.2.0.1-win-x64-setup.exe"), "previous");
             File.WriteAllText(Path.Combine(root, "IracingSetupManager-0.3.0-win-x64-setup.exe"), "current");
             var result = new UpdateInstallerLauncher(root).FindPreviousInstaller(new Version(0, 3, 0));
-            Assert.EndsWith("IracingSetupManager-0.2.0-win-x64-setup.exe", result);
+            Assert.EndsWith("IracingSetupManager-0.2.0.1-win-x64-setup.exe", result);
         }
         finally { Directory.Delete(root, true); }
     }
@@ -80,9 +80,9 @@ public sealed class UpdateTests
     private static GitHubReleaseUpdateService CreateService(string root, byte[] package, string hash)
     {
         var json = """
-        {"tag_name":"v0.2.0","body":"Nouveautés simulées","assets":[
-          {"name":"IracingSetupManager-0.2.0-win-x64-setup.exe","browser_download_url":"https://github.com/test/update.exe"},
-          {"name":"IracingSetupManager-0.2.0-win-x64-setup.exe.sha256","browser_download_url":"https://github.com/test/update.sha256"}]}
+        {"tag_name":"v0.1.1.1","body":"Nouveautés simulées","assets":[
+          {"name":"IracingSetupManager-0.1.1.1-win-x64-setup.exe","browser_download_url":"https://github.com/test/update.exe"},
+          {"name":"IracingSetupManager-0.1.1.1-win-x64-setup.exe.sha256","browser_download_url":"https://github.com/test/update.sha256"}]}
         """;
         var handler = new SimulatedGitHubHandler(request => request.RequestUri!.AbsolutePath switch
         {

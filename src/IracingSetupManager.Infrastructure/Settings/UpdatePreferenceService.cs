@@ -15,11 +15,11 @@ public sealed class UpdatePreferenceService(ISetupDbContextFactory contextFactor
         var settings = await context.ApplicationSettings.AsNoTracking()
             .Where(item => item.Key == IgnoredKey || item.Key == DeferredUntilKey)
             .ToDictionaryAsync(item => item.Key, item => item.Value, cancellationToken);
-        if (settings.GetValueOrDefault(IgnoredKey) == version.ToString(3)) return false;
+        if (settings.GetValueOrDefault(IgnoredKey) == version.ToString()) return false;
         return !DateTimeOffset.TryParse(settings.GetValueOrDefault(DeferredUntilKey), out var deferred) || deferred <= DateTimeOffset.UtcNow;
     }
 
-    public Task IgnoreAsync(Version version, CancellationToken cancellationToken = default) => SaveAsync(IgnoredKey, version.ToString(3), cancellationToken);
+    public Task IgnoreAsync(Version version, CancellationToken cancellationToken = default) => SaveAsync(IgnoredKey, version.ToString(), cancellationToken);
     public Task DeferAsync(TimeSpan duration, CancellationToken cancellationToken = default) => SaveAsync(DeferredUntilKey, DateTimeOffset.UtcNow.Add(duration).ToString("O"), cancellationToken);
 
     private async Task SaveAsync(string key, string value, CancellationToken cancellationToken)

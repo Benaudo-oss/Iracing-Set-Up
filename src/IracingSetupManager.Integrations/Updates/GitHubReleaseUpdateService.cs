@@ -23,7 +23,7 @@ public sealed class GitHubReleaseUpdateService(HttpClient httpClient, string upd
         var root = document.RootElement;
         var tag = root.GetProperty("tag_name").GetString()?.TrimStart('v', 'V');
         if (!Version.TryParse(tag, out var available)) throw new InvalidDataException("La version publiée sur GitHub est invalide.");
-        var expectedName = $"IracingSetupManager-{available.ToString(3)}-win-x64-setup.exe";
+        var expectedName = $"IracingSetupManager-{available}-win-x64-setup.exe";
         Uri? installer = null; Uri? checksum = null;
         foreach (var asset in root.GetProperty("assets").EnumerateArray())
         {
