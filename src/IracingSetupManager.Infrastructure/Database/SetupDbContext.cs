@@ -11,6 +11,8 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
 
     public DbSet<SetupChangeHistoryEntity> SetupChangeHistory => Set<SetupChangeHistoryEntity>();
 
+    public DbSet<TrackCatalogEntity> TrackCatalog => Set<TrackCatalogEntity>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var setup = modelBuilder.Entity<SetupEntity>();
@@ -56,5 +58,14 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
         setting.HasKey(item => item.Key);
         setting.Property(item => item.Key).HasMaxLength(128);
         setting.Property(item => item.Value).HasMaxLength(4096).IsRequired();
+
+        var track = modelBuilder.Entity<TrackCatalogEntity>();
+        track.ToTable("TrackCatalog");
+        track.HasKey(item => item.IracingFolderName);
+        track.Property(item => item.IracingFolderName).HasMaxLength(256);
+        track.Property(item => item.TrackName).HasMaxLength(256).IsRequired();
+        track.Property(item => item.Configuration).HasMaxLength(256);
+        track.Property(item => item.NormalizedAlias).HasMaxLength(256).IsRequired();
+        track.HasIndex(item => item.NormalizedAlias);
     }
 }

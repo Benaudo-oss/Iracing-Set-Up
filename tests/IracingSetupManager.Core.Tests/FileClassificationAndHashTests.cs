@@ -87,6 +87,20 @@ public sealed class FileClassificationAndHashTests
         Assert.Equal(category, metadata.Category);
     }
 
+    [Theory]
+    [InlineData("26S1-W02-GnG-PCUP-Spa-Q-safe.sto", "Porsche 911 GT3 Cup (992) Gen 2")]
+    [InlineData("GO 26S1 992.2Cup Adelaide E Q.sto", "Porsche 911 GT3 Cup (992) Gen 2")]
+    [InlineData("GO 26S1 9922Cup Sebring E R.sto", "Porsche 911 GT3 Cup (992) Gen 2")]
+    [InlineData("VRS_26S1MS_PC992.2_Sebring_Q1.sto", "Porsche 911 GT3 Cup (992) Gen 2")]
+    [InlineData("VRS_26S1JF_992Cup_Miami_Q.sto", "Porsche 911 GT3 Cup (992)")]
+    public void MetadataAnalyzerRecognizesPorscheCupProviderAliases(string fileName, string expectedCar)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal(expectedCar, metadata.Car);
+        Assert.Equal("PCUP", metadata.Category);
+    }
+
     [Fact]
     public async Task Sha256MatchesKnownVectorAndChangesWithContent()
     {

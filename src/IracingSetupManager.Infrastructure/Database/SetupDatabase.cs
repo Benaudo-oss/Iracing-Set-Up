@@ -27,6 +27,15 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
                 ON "SetupChangeHistory" ("SetupId", "ChangedAtUtc");
             CREATE INDEX IF NOT EXISTS "IX_SetupChangeHistory_ChangedAtUtc"
                 ON "SetupChangeHistory" ("ChangedAtUtc");
+            CREATE TABLE IF NOT EXISTS "TrackCatalog" (
+                "IracingFolderName" TEXT NOT NULL CONSTRAINT "PK_TrackCatalog" PRIMARY KEY,
+                "TrackName" TEXT NOT NULL,
+                "Configuration" TEXT NULL,
+                "NormalizedAlias" TEXT NOT NULL,
+                "LastSeenAtUtc" TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS "IX_TrackCatalog_NormalizedAlias"
+                ON "TrackCatalog" ("NormalizedAlias");
             """,
             cancellationToken);
     }

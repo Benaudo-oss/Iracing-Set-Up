@@ -21,6 +21,8 @@ public partial class App : Application
         try
         {
             await Services.Database.InitializeAsync();
+            await Services.TrackCatalog.SynchronizeAsync();
+            await Services.MetadataRefresh.RefreshAsync();
             await Services.SensitiveData.PurgeUnneededSourcePathsAsync();
             MainWindowInstance = new MainWindow();
             MainWindowInstance.Closed += async (_, _) => await Services.Monitoring.DisposeAsync();

@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace IracingSetupManager.Infrastructure.Files.Import;
 
-public sealed partial class SetupMetadataAnalyzer
+public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCatalog = null)
 {
     private const string Unknown = "À identifier";
 
@@ -63,7 +63,12 @@ public sealed partial class SetupMetadataAnalyzer
 
             ["porsche911cup"] = ("Porsche 911 GT3 Cup", "PCUP"),
             ["porsche992cup"] = ("Porsche 911 GT3 Cup (992)", "PCUP"),
-            ["porsche9922cup"] = ("Porsche 911 GT3 Cup (992) Gen 2", "PCUP")
+            ["992Cup"] = ("Porsche 911 GT3 Cup (992)", "PCUP"),
+            ["porsche9922cup"] = ("Porsche 911 GT3 Cup (992) Gen 2", "PCUP"),
+            ["992.2Cup"] = ("Porsche 911 GT3 Cup (992) Gen 2", "PCUP"),
+            ["9922Cup"] = ("Porsche 911 GT3 Cup (992) Gen 2", "PCUP"),
+            ["PC992.2"] = ("Porsche 911 GT3 Cup (992) Gen 2", "PCUP"),
+            ["PCUP"] = ("Porsche 911 GT3 Cup (992) Gen 2", "PCUP")
         };
     private static readonly IReadOnlyDictionary<string, string> Tracks =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -79,12 +84,13 @@ public sealed partial class SetupMetadataAnalyzer
         var tokens = Tokenize(filePath);
 
         var provider = FindProvider(tokens) ?? defaults?.Provider ?? Unknown;
-        var carMatch = tokens.Select(token => Cars.GetValueOrDefault(token)).FirstOrDefault(match => match.Car is not null);
+        var carMatch = FindCar(filePath, tokens);
         var category = carMatch.Category ?? FindKnown(tokens, Categories) ?? defaults?.Category ?? Unknown;
         var setupType = FindSetupType(tokens) ?? defaults?.SetupType ?? Unknown;
         var car = carMatch.Car ?? EmptyAsNull(defaults?.Car) ?? Unknown;
+        var catalogTrack = trackCatalog?.Find(filePath);
         var track = tokens.Select(token => Tracks.GetValueOrDefault(token)).FirstOrDefault(value => value is not null)
-            ?? EmptyAsNull(defaults?.Track) ?? Unknown;
+            ?? catalogTrack?.TrackName ?? EmptyAsNull(defaults?.Track) ?? Unknown;
         var seasonMatch = tokens.Select(token => SeasonRegex().Match(token))
             .FirstOrDefault(match => match.Success);
         var season = seasonMatch is not null
@@ -96,7 +102,7 @@ public sealed partial class SetupMetadataAnalyzer
             category,
             car,
             track,
-            defaults?.TrackConfiguration,
+            catalogTrack?.Configuration ?? defaults?.TrackConfiguration,
             season,
             setupType.Equals("Quali", StringComparison.OrdinalIgnoreCase) ? "Qualifying" : setupType);
     }
@@ -105,6 +111,23 @@ public sealed partial class SetupMetadataAnalyzer
         path.Split(
             [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar, '_', '-', '.', ' '],
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static (string? Car, string? Category) FindCar(string filePath, IReadOnlyList<string> tokens)
+    {
+        var normalizedName = NormalizeAlias(Path.GetFileNameWithoutExtension(filePath));
+        var aliasMatch = Cars
+            .Select(item => new { Alias = NormalizeAlias(item.Key), item.Value })
+            .Where(item => item.Alias.Length >= 4 && normalizedName.Contains(item.Alias, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(item => item.Alias.Length)
+            .FirstOrDefault();
+        if (aliasMatch is not null) return aliasMatch.Value;
+
+        var exact = tokens.Select(token => Cars.GetValueOrDefault(token)).FirstOrDefault(match => match.Car is not null);
+        return exact.Car is null ? (null, null) : exact;
+    }
+
+    private static string NormalizeAlias(string value) =>
+        Regex.Replace(value, "[^a-z0-9]", string.Empty, RegexOptions.IgnoreCase).ToLowerInvariant();
 
     private static string? FindProvider(IEnumerable<string> tokens)
     {

@@ -28,6 +28,12 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.4.3
+
+- Importe automatiquement dans SQLite la liste des circuits et configurations trouvés dans `Documents\iRacing\lapfiles`.
+- Utilise ce catalogue pour mieux reconnaître les circuits et actualise les métadonnées des setups déjà enregistrés.
+- Ajoute les variantes Porsche Cup (`PCUP`, `992Cup`, `992.2Cup`) et confirme `NSX` comme Acura NSX GT3 Evo 22.
+
 # 0.1.4.2
 
 - Sélection d'une week inconnue avec treize boutons et confirmation obligatoire.
