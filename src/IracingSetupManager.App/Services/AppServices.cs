@@ -16,6 +16,7 @@ public sealed class AppServices
         ContextFactory = new LocalSetupDbContextFactory(Path.Combine(dataRoot, "setups.db"));
         Database = new SetupDatabase(ContextFactory);
         QueryService = new SetupQueryService(ContextFactory);
+        Validation = new SetupValidationService(ContextFactory);
         ArchivePaths = new ArchivePathService(ContextFactory, new WinUiFolderPicker());
         FolderPolicy = new MonitoredFolderPolicy();
         MonitoredFolders = new MonitoredFolderSettingsService(ContextFactory, FolderPolicy);
@@ -39,9 +40,9 @@ public sealed class AppServices
     public LocalSetupDbContextFactory ContextFactory { get; }
     public SetupDatabase Database { get; }
     public SetupQueryService QueryService { get; }
+    public SetupValidationService Validation { get; }
     public ArchivePathService ArchivePaths { get; }
     public MonitoredFolderPolicy FolderPolicy { get; }
     public MonitoredFolderSettingsService MonitoredFolders { get; }
     public ImportMonitoringService Monitoring { get; }
 }
-

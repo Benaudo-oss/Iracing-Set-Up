@@ -19,3 +19,5 @@ utilise le versionnement sémantique.
 - Détection SHA-256 et conservation des collisions sans écrasement.
 - Interface Windows sombre en français avec navigation, filtres et confirmations.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
+- Validation et refus individuels ou groupés avec confirmation obligatoire.
+- Notes, commentaires et historique détaillé de chaque changement.

@@ -45,5 +45,14 @@ public sealed class SetupQueryService(ISetupDbContextFactory contextFactory)
             .OrderByDescending(item => item.DownloadedAtUtc)
             .ToListAsync(cancellationToken);
     }
-}
 
+    public async Task<IReadOnlyList<SetupChangeHistoryEntity>> GetHistoryAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var context = contextFactory.Create();
+        return await context.SetupChangeHistory.AsNoTracking()
+            .OrderByDescending(item => item.ChangedAtUtc)
+            .Take(1000)
+            .ToListAsync(cancellationToken);
+    }
+}

@@ -9,6 +9,8 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
 
     public DbSet<ApplicationSettingEntity> ApplicationSettings => Set<ApplicationSettingEntity>();
 
+    public DbSet<SetupChangeHistoryEntity> SetupChangeHistory => Set<SetupChangeHistoryEntity>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var setup = modelBuilder.Entity<SetupEntity>();
@@ -36,6 +38,18 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
         setup.HasIndex(item => new { item.Provider, item.Category, item.Status });
         setup.HasIndex(item => new { item.Car, item.Track, item.Season });
         setup.HasIndex(item => new { item.IsPrivate, item.Garage61ExportApproved, item.Status });
+
+        var history = modelBuilder.Entity<SetupChangeHistoryEntity>();
+        history.ToTable("SetupChangeHistory");
+        history.HasKey(item => item.Id);
+        history.Property(item => item.OriginalFileName).HasMaxLength(512).IsRequired();
+        history.Property(item => item.ChangeType).HasMaxLength(64).IsRequired();
+        history.Property(item => item.PreviousStatus).HasConversion<string>().HasMaxLength(64);
+        history.Property(item => item.NewStatus).HasConversion<string>().HasMaxLength(64);
+        history.Property(item => item.PreviousComment).HasMaxLength(4000);
+        history.Property(item => item.NewComment).HasMaxLength(4000);
+        history.HasIndex(item => new { item.SetupId, item.ChangedAtUtc });
+        history.HasIndex(item => item.ChangedAtUtc);
 
         var setting = modelBuilder.Entity<ApplicationSettingEntity>();
         setting.ToTable("ApplicationSettings");

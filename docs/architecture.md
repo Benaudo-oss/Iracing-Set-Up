@@ -51,3 +51,11 @@ La surveillance combine `FileSystemWatcher` avec un balayage au démarrage et à
 demande. Les événements passent dans une file séquentielle ; un fichier doit rester
 stable et lisible plusieurs fois avant import. Les fichiers temporaires sont ignorés
 et seuls `.sto` et `.zip` sont acceptés.
+
+## Validation et historique
+
+Tout nouvel import reçoit le statut `À vérifier`. Les validations et refus peuvent
+être individuels ou groupés ; le service refuse techniquement une action portant
+sur plusieurs setups si la confirmation explicite n'est pas fournie. La note sur 5,
+le commentaire, les anciens et nouveaux statuts sont conservés dans la table
+`SetupChangeHistory` avec la date de chaque changement.
