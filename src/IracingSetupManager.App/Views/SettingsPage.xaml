@@ -24,6 +24,27 @@
                     <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="VRS" /><TextBox x:Name="VrsPathBox" Grid.Column="1" IsReadOnly="True" PlaceholderText="Dossier de l’application VRS" /><ToggleSwitch x:Name="VrsToggle" Grid.Column="2" OnContent="Actif" OffContent="Inactif" /><Button Grid.Column="3" Content="Choisir" Tag="VRS" Click="OnChooseProviderFolder" /></Grid>
                 </StackPanel>
             </Border>
+            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+                <StackPanel Spacing="14">
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="Arborescence de copie vers iRacing" />
+                    <TextBlock Opacity="0.65" Text="Modifiez l’ordre des dossiers variables. Le dossier de la voiture et Garage 61 restent obligatoires pour iRacing." TextWrapping="Wrap" />
+                    <ListView x:Name="PathLayoutList" SelectionMode="Single" MaxWidth="520" HorizontalAlignment="Left">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Width="480" Padding="6" ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Label}" />
+                                    <Button Grid.Column="1" Content="Monter" Tag="{Binding Key}" Click="OnMovePathUp" />
+                                    <Button Grid.Column="2" Content="Descendre" Tag="{Binding Key}" Click="OnMovePathDown" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <TextBlock Text="Aperçu" FontWeight="SemiBold" />
+                    <TextBlock x:Name="PathLayoutPreview" Opacity="0.75" TextWrapping="Wrap" />
+                    <Button HorizontalAlignment="Left" Content="Rétablir l’ordre par défaut" Click="OnResetPathLayout" />
+                </StackPanel>
+            </Border>
             <Border Padding="20" Background="#FF20242B" CornerRadius="10"><StackPanel Spacing="14"><TextBlock FontSize="20" FontWeight="SemiBold" Text="Confidentialité et Garage61" /><ToggleSwitch Header="Bloquer par défaut les setups dont l’origine est inconnue" IsOn="True" /><ToggleSwitch Header="Exiger une confirmation avant toute validation groupée" IsOn="True" IsEnabled="False" /><ToggleSwitch Header="Exiger une confirmation avant tout envoi Garage61" IsOn="True" IsEnabled="False" /></StackPanel></Border>
             <Border Padding="20" Background="#FF20242B" CornerRadius="10">
                 <StackPanel Spacing="12">

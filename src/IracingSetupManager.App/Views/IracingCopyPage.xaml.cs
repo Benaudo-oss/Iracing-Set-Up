@@ -104,7 +104,7 @@ public sealed partial class IracingCopyPage : Page
         {
             XamlRoot = XamlRoot,
             Title = "Confirmer la copie vers iRacing",
-            Content = $"{plan.Count(item => item.ConflictChoice != IracingConflictChoice.Skip)} fichier(s) seront copiés. Les originaux resteront dans l’archive.",
+            Content = $"{plan.Count(item => !item.HasConflict || item.ConflictChoice != IracingConflictChoice.Skip)} fichier(s) seront copiés. Les originaux resteront dans l’archive.",
             PrimaryButtonText = "Copier",
             CloseButtonText = "Annuler",
             DefaultButton = ContentDialogButton.Close
@@ -165,11 +165,12 @@ public sealed partial class IracingCopyPage : Page
         public required string Provider { get; init; }
         public IracingCopyPlanItem? Plan { get; init; }
         public bool HasConflict => Plan?.HasConflict == true;
+        public Visibility ConflictVisibility => HasConflict ? Visibility.Visible : Visibility.Collapsed;
         public string CopyDescription => Plan is null ? "Sélectionnable pour l’aperçu" : $"{(HasConflict ? "Conflit — " : string.Empty)}{Plan.DestinationPath}";
         public int ConflictChoiceIndex { get; set; }
 
         public static CopyRow FromSetup(SetupEntity setup) => new() { Id = setup.Id, OriginalFileName = setup.OriginalFileName, Car = setup.Car, Provider = setup.Provider };
-        public static CopyRow FromPlan(IracingCopyPlanItem plan) => new() { Id = plan.SetupId, OriginalFileName = plan.OriginalFileName, Car = plan.Car, Provider = string.Empty, Plan = plan, ConflictChoiceIndex = plan.HasConflict ? 0 : 1 };
+        public static CopyRow FromPlan(IracingCopyPlanItem plan) => new() { Id = plan.SetupId, OriginalFileName = plan.OriginalFileName, Car = plan.Car, Provider = string.Empty, Plan = plan, ConflictChoiceIndex = 0 };
         public IracingCopyPlanItem ToPlan() => Plan! with { ConflictChoice = ConflictChoiceIndex switch { 1 => IracingConflictChoice.Skip, 2 => IracingConflictChoice.KeepBoth, _ => IracingConflictChoice.None } };
     }
 }

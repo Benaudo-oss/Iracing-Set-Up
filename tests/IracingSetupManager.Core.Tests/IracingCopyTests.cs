@@ -78,6 +78,29 @@ public sealed class IracingCopyTests
         Assert.Contains(Path.Combine("Week 07", "26S3-W07-GnG-Monza-BMWGTP-R-Safe.sto"), plan[0].DestinationPath);
     }
 
+    [Fact]
+    public async Task UserCanChangeDynamicFolderOrder()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var layout = new IracingPathLayoutService(environment.Factory);
+        await layout.SaveAsync(["Provider", "Week", "Season"]);
+
+        var plan = await environment.Service.CreatePlanAsync(
+            [environment.ValidatedId],
+            environment.Target,
+            new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
+
+        Assert.EndsWith(Path.Combine("bmwlmdh", "Garage 61", "Grid & Go", "Week 07", "2026_S3", "race.sto"), plan[0].DestinationPath);
+    }
+
+    [Fact]
+    public async Task DynamicFolderOrderRejectsMissingOrDuplicateElements()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var layout = new IracingPathLayoutService(environment.Factory);
+        await Assert.ThrowsAsync<ArgumentException>(() => layout.SaveAsync(["Season", "Season", "Week"]));
+    }
+
     private sealed class TestEnvironment : IAsyncDisposable
     {
         private readonly string root;

@@ -27,7 +27,8 @@ public sealed class AppServices
         LibraryIntegrity = new SetupLibraryIntegrityService(ContextFactory);
         ArchiveReorganization = new ArchiveReorganizationService(ContextFactory, new ArchivePathBuilder(), new Sha256Calculator());
         Validation = new SetupValidationService(ContextFactory);
-        IracingCopy = new IracingCopyService(ContextFactory);
+        IracingPathLayout = new IracingPathLayoutService(ContextFactory);
+        IracingCopy = new IracingCopyService(ContextFactory, IracingPathLayout);
         ArchivePaths = new ArchivePathService(ContextFactory, new WinUiFolderPicker());
         FolderPolicy = new MonitoredFolderPolicy();
         MonitoredFolders = new MonitoredFolderSettingsService(ContextFactory, FolderPolicy);
@@ -63,6 +64,7 @@ public sealed class AppServices
     public ArchiveReorganizationService ArchiveReorganization { get; }
     public SetupValidationService Validation { get; }
     public IracingCopyService IracingCopy { get; }
+    public IracingPathLayoutService IracingPathLayout { get; }
     public ArchivePathService ArchivePaths { get; }
     public MonitoredFolderPolicy FolderPolicy { get; }
     public MonitoredFolderSettingsService MonitoredFolders { get; }

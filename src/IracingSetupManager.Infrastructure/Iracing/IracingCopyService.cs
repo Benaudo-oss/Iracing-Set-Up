@@ -25,8 +25,9 @@ public sealed record IracingCopyPlanItem(
 
 public sealed record IracingCopyResult(int Copied, int Skipped);
 
-public sealed class IracingCopyService(ISetupDbContextFactory contextFactory)
+public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, IracingPathLayoutService? pathLayoutService = null)
 {
+    private readonly IracingPathLayoutService pathLayout = pathLayoutService ?? new IracingPathLayoutService(contextFactory);
     private static readonly Regex WeekPattern = new(@"(?:^|[_\- ])W(?<week>0?[1-9]|1[0-3])(?:[_\- .]|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly IReadOnlyDictionary<string, string> CarFolders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -53,6 +54,7 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory)
         ArgumentException.ThrowIfNullOrWhiteSpace(iracingSetupsFolder);
         var root = SecurePath.GetFullPath(iracingSetupsFolder);
         var ids = setupIds.Distinct().ToArray();
+        var layout = await pathLayout.GetAsync(cancellationToken);
 
         await using var context = contextFactory.Create();
         var setups = await context.Setups.AsNoTracking()
@@ -73,7 +75,14 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory)
             var carFolder = CarFolders.TryGetValue(setup.Car, out var knownFolder) ? knownFolder : SanitizeSegment(setup.Car);
             var season = SanitizeSegment(setup.Season ?? "Saison inconnue").Replace(' ', '_');
             var weekFolder = week is null ? "Week inconnue" : $"Week {week:00}";
-            var destination = SecurePath.EnsureChildOf(Path.Combine(root, carFolder, "Garage 61", season, SanitizeSegment(setup.Provider), weekFolder, setup.OriginalFileName), root);
+            var dynamicSegments = layout.Select(element => element switch
+            {
+                "Season" => season,
+                "Provider" => SanitizeSegment(setup.Provider),
+                "Week" => weekFolder,
+                _ => throw new InvalidOperationException("L’arborescence de copie iRacing est invalide.")
+            });
+            var destination = SecurePath.EnsureChildOf(Path.Combine([root, carFolder, "Garage 61", .. dynamicSegments, setup.OriginalFileName]), root);
             return new IracingCopyPlanItem(
                 setup.Id,
                 setup.OriginalFileName,

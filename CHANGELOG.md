@@ -28,6 +28,15 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.4.1
+
+- Arborescence de copie vers iRacing personnalisable depuis les paramètres.
+- Ordre modifiable pour Saison, Fournisseur et Week avec aperçu dynamique.
+- Conservation obligatoire des dossiers Voiture et Garage 61.
+- Enregistrement de l'ordre choisi dans la base locale et restauration de l'ordre par défaut.
+- Correction du nombre de fichiers affiché dans la confirmation de copie.
+- Masquage du choix de conflit lorsqu'aucun conflit n'existe.
+
 # 0.1.3.1
 
 - Actualisation automatique des onglets Bibliothèque et À vérifier après chaque nouvel import.

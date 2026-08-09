@@ -1,5 +1,6 @@
 using IracingSetupManager.App.Services;
 using IracingSetupManager.Infrastructure.Files.Monitoring;
+using IracingSetupManager.Infrastructure.Iracing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -7,6 +8,8 @@ namespace IracingSetupManager.App.Views;
 
 public sealed partial class SettingsPage : Page
 {
+    private readonly List<PathElementRow> pathLayout = [];
+
     public SettingsPage() => InitializeComponent();
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -19,6 +22,7 @@ public sealed partial class SettingsPage : Page
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "GO Setups"));
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "Grid & Go"));
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "VRS"));
+        SetPathLayout(await App.Services.IracingPathLayout.GetAsync());
     }
 
     private async void OnChooseArchive(object sender, RoutedEventArgs e)
@@ -73,9 +77,54 @@ public sealed partial class SettingsPage : Page
         AddProviderIfEnabled(folders, GngToggle, GngPathBox, "Grid & Go");
         AddProviderIfEnabled(folders, VrsToggle, VrsPathBox, "VRS");
         await App.Services.MonitoredFolders.SaveAsync(folders);
+        await App.Services.IracingPathLayout.SaveAsync(pathLayout.Select(item => item.Key).ToArray());
         SettingsInfo.Severity = InfoBarSeverity.Success;
         SettingsInfo.Message = "Les paramètres ont été enregistrés.";
         SettingsInfo.IsOpen = true;
+    }
+
+    private void OnMovePathUp(object sender, RoutedEventArgs e) => MovePathElement(sender, -1);
+
+    private void OnMovePathDown(object sender, RoutedEventArgs e) => MovePathElement(sender, 1);
+
+    private void OnResetPathLayout(object sender, RoutedEventArgs e) => SetPathLayout(IracingPathLayoutService.DefaultLayout);
+
+    private void MovePathElement(object sender, int offset)
+    {
+        if (sender is not Button { Tag: string key }) return;
+        var index = pathLayout.FindIndex(item => item.Key == key);
+        var destination = index + offset;
+        if (index < 0 || destination < 0 || destination >= pathLayout.Count) return;
+        (pathLayout[index], pathLayout[destination]) = (pathLayout[destination], pathLayout[index]);
+        RefreshPathLayout();
+        PathLayoutList.SelectedIndex = destination;
+    }
+
+    private void SetPathLayout(IEnumerable<string> layout)
+    {
+        pathLayout.Clear();
+        pathLayout.AddRange(layout.Select(key => new PathElementRow(key, key switch
+        {
+            "Season" => "Saison",
+            "Provider" => "Fournisseur",
+            "Week" => "Week",
+            _ => key
+        })));
+        RefreshPathLayout();
+    }
+
+    private void RefreshPathLayout()
+    {
+        PathLayoutList.ItemsSource = null;
+        PathLayoutList.ItemsSource = pathLayout;
+        var examples = pathLayout.Select(item => item.Key switch
+        {
+            "Season" => "2026_S3",
+            "Provider" => "HYMO",
+            "Week" => "Week 07",
+            _ => item.Label
+        });
+        PathLayoutPreview.Text = $@"…\setups\acuraarx06gtp\Garage 61\{string.Join("\\", examples)}\setup.sto";
     }
 
     private async void OnBackupDatabase(object sender, RoutedEventArgs e)
@@ -130,4 +179,6 @@ public sealed partial class SettingsPage : Page
                 provider));
         }
     }
+
+    private sealed record PathElementRow(string Key, string Label);
 }
