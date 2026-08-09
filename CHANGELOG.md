@@ -32,6 +32,7 @@ utilise le versionnement sémantique.
 
 - Ajout de VRS comme quatrième fournisseur indépendant.
 - Ajout du dossier surveillé VRS et de sa détection dans les noms de fichiers.
+- Alignement des cases de sélection et des colonnes de la bibliothèque.
 
 # 0.1.1.1
 
