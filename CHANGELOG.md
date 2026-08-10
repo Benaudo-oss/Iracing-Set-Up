@@ -28,6 +28,12 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.5.5
+
+- Désactive la surveillance automatique par défaut.
+- Ignore l’ancienne valeur activée implicitement et exige un nouveau choix volontaire de l’utilisateur.
+- Conserve ensuite normalement le choix explicite enregistré dans les paramètres.
+
 # 0.1.5.4
 
 - Ajoute SRS comme fournisseur indépendant, configurable et surveillable séparément.

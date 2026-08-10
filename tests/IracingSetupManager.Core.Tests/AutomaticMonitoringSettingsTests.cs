@@ -7,7 +7,7 @@ namespace IracingSetupManager.Core.Tests;
 public sealed class AutomaticMonitoringSettingsTests
 {
     [Fact]
-    public async Task AutomaticMonitoringIsEnabledByDefaultAndPersistsUserChoice()
+    public async Task AutomaticMonitoringIsDisabledByDefaultAndPersistsUserChoice()
     {
         var root = Path.Combine(Path.GetTempPath(), "AutomaticMonitoringTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -17,11 +17,11 @@ public sealed class AutomaticMonitoringSettingsTests
             await new SetupDatabase(factory).InitializeAsync();
             var settings = new AutomaticMonitoringSettingsService(factory);
 
-            Assert.True(await settings.IsEnabledAsync());
-            await settings.SaveAsync(false);
             Assert.False(await settings.IsEnabledAsync());
             await settings.SaveAsync(true);
             Assert.True(await settings.IsEnabledAsync());
+            await settings.SaveAsync(false);
+            Assert.False(await settings.IsEnabledAsync());
         }
         finally
         {

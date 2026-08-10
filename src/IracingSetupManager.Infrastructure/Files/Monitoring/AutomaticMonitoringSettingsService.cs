@@ -5,13 +5,15 @@ namespace IracingSetupManager.Infrastructure.Files.Monitoring;
 
 public sealed class AutomaticMonitoringSettingsService(ISetupDbContextFactory contextFactory)
 {
-    private const string SettingKey = "AutomaticMonitoringEnabled";
+    // The original key could be saved as enabled by the former opt-out default.
+    // A new key makes the corrected behavior opt-in once, then persists normally.
+    private const string SettingKey = "AutomaticMonitoringEnabledV2";
 
     public async Task<bool> IsEnabledAsync(CancellationToken cancellationToken = default)
     {
         await using var context = contextFactory.Create();
         var setting = await context.ApplicationSettings.FindAsync([SettingKey], cancellationToken);
-        return setting is null || !bool.TryParse(setting.Value, out var enabled) || enabled;
+        return setting is not null && bool.TryParse(setting.Value, out var enabled) && enabled;
     }
 
     public async Task SaveAsync(bool enabled, CancellationToken cancellationToken = default)
