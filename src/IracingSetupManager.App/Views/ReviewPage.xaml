@@ -5,14 +5,23 @@
     Loaded="OnLoaded"
     Unloaded="OnUnloaded">
     <Grid Padding="32" RowSpacing="18">
-        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
         <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="À vérifier" /><TextBlock Opacity="0.65" Text="Contrôlez chaque setup avant validation ou envoi" /></StackPanel>
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
             <Button Content="Tout sélectionner" Click="OnSelectAll" />
             <Button Content="Valider la sélection" Style="{StaticResource AccentButtonStyle}" Click="OnValidateSelection" />
             <Button Content="Refuser la sélection" Click="OnRefuseSelection" />
         </StackPanel>
-        <Border Grid.Row="2" Padding="12" Background="#FF20242B" CornerRadius="10">
+        <Grid Grid.Row="2" ColumnSpacing="12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <TextBox x:Name="SearchBox" PlaceholderText="Rechercher un fichier…" TextChanged="OnSearchChanged" />
+            <ComboBox x:Name="ProviderFilter" Grid.Column="1" HorizontalAlignment="Stretch" PlaceholderText="Fournisseur" SelectionChanged="OnFilterChanged" />
+            <ComboBox x:Name="CategoryFilter" Grid.Column="2" HorizontalAlignment="Stretch" PlaceholderText="Catégorie" SelectionChanged="OnFilterChanged" />
+            <ComboBox x:Name="CarFilter" Grid.Column="3" HorizontalAlignment="Stretch" PlaceholderText="Voiture" SelectionChanged="OnFilterChanged" />
+            <ComboBox x:Name="TrackFilter" Grid.Column="4" HorizontalAlignment="Stretch" PlaceholderText="Circuit" SelectionChanged="OnFilterChanged" />
+            <Button Grid.Column="5" Content="Effacer les filtres" Click="OnClearFilters" />
+        </Grid>
+        <Border Grid.Row="3" Padding="12" Background="#FF20242B" CornerRadius="10">
             <Grid>
                 <ListView x:Name="ReviewList" SelectionMode="Multiple" SelectionChanged="OnSelectionChanged">
                     <ListView.ItemTemplate>
@@ -29,7 +38,7 @@
                 <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8"><FontIcon FontSize="36" Glyph="&#xE9D5;" Opacity="0.45" /><TextBlock Opacity="0.65" Text="Aucun nouveau setup à vérifier" /></StackPanel>
             </Grid>
         </Border>
-        <Border Grid.Row="3" Padding="16" Background="#FF20242B" CornerRadius="10">
+        <Border Grid.Row="4" Padding="16" Background="#FF20242B" CornerRadius="10">
             <Grid ColumnSpacing="12">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="160" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <NumberBox x:Name="RatingBox" Header="Note personnelle / 5" Minimum="1" Maximum="5" SpinButtonPlacementMode="Compact" />
@@ -37,6 +46,6 @@
                 <Button Grid.Column="2" VerticalAlignment="Bottom" Content="Enregistrer" Click="OnSaveNotes" />
             </Grid>
         </Border>
-        <InfoBar x:Name="ReviewInfo" Grid.Row="4" IsOpen="False" IsClosable="True" />
+        <InfoBar x:Name="ReviewInfo" Grid.Row="5" IsOpen="False" IsClosable="True" />
     </Grid>
 </Page>

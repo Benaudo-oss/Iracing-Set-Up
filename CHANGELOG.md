@@ -28,6 +28,12 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.7.17
+
+- Rétablit les filtres de l’onglet « À vérifier ».
+- Ajoute la recherche et les filtres fournisseur, catégorie, voiture et circuit.
+- Conserve les filtres pendant l’ajout incrémental des nouvelles lignes.
+
 # 0.1.7.5
 
 - Actualise les tableaux ligne par ligne sans réinitialiser la page, les filtres ou le défilement.

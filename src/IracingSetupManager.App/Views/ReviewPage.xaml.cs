@@ -9,13 +9,22 @@ namespace IracingSetupManager.App.Views;
 
 public sealed partial class ReviewPage : Page
 {
-    private readonly ObservableCollection<SetupEntity> _setups = [];
+    private readonly List<SetupEntity> _setups = [];
+    private readonly ObservableCollection<SetupEntity> _visibleSetups = [];
+    private readonly ObservableCollection<string> _providers = [];
+    private readonly ObservableCollection<string> _categories = [];
+    private readonly ObservableCollection<string> _cars = [];
+    private readonly ObservableCollection<string> _tracks = [];
     private bool _isListeningForImports;
 
     public ReviewPage()
     {
         InitializeComponent();
-        ReviewList.ItemsSource = _setups;
+        ReviewList.ItemsSource = _visibleSetups;
+        ProviderFilter.ItemsSource = _providers;
+        CategoryFilter.ItemsSource = _categories;
+        CarFilter.ItemsSource = _cars;
+        TrackFilter.ItemsSource = _tracks;
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -125,7 +134,12 @@ public sealed partial class ReviewPage : Page
     private async Task ReloadAsync()
     {
         _setups.Clear();
-        foreach (var setup in await App.Services.QueryService.GetToReviewAsync()) _setups.Add(setup);
+        _setups.AddRange(await App.Services.QueryService.GetToReviewAsync());
+        ResetOptions(_providers, Distinct(item => item.Provider));
+        ResetOptions(_categories, Distinct(item => item.Category));
+        ResetOptions(_cars, Distinct(item => item.Car));
+        ResetOptions(_tracks, Distinct(item => item.Track));
+        ApplyFilters();
         UpdateEmptyState();
         RatingBox.Value = double.NaN;
         CommentBox.Text = string.Empty;
@@ -136,6 +150,17 @@ public sealed partial class ReviewPage : Page
         var existing = _setups.FirstOrDefault(item => item.Id == setup.Id);
         if (existing is not null) _setups[_setups.IndexOf(existing)] = setup;
         else _setups.Insert(0, setup);
+
+        AddOption(_providers, setup.Provider);
+        AddOption(_categories, setup.Category);
+        AddOption(_cars, setup.Car);
+        AddOption(_tracks, setup.Track);
+
+        var visible = _visibleSetups.FirstOrDefault(item => item.Id == setup.Id);
+        var matches = MatchesCurrentFilters(setup);
+        if (visible is not null && matches) _visibleSetups[_visibleSetups.IndexOf(visible)] = setup;
+        else if (visible is not null) _visibleSetups.Remove(visible);
+        else if (matches) _visibleSetups.Insert(0, setup);
         UpdateEmptyState();
     }
 
@@ -143,11 +168,69 @@ public sealed partial class ReviewPage : Page
     {
         var setup = _setups.FirstOrDefault(item => item.Id == id);
         if (setup is not null) _setups.Remove(setup);
+        var visible = _visibleSetups.FirstOrDefault(item => item.Id == id);
+        if (visible is not null) _visibleSetups.Remove(visible);
         UpdateEmptyState();
     }
 
     private void UpdateEmptyState() =>
-        EmptyState.Visibility = _setups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        EmptyState.Visibility = _visibleSetups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    private void OnSearchChanged(object sender, TextChangedEventArgs e) => ApplyFilters();
+    private void OnFilterChanged(object sender, SelectionChangedEventArgs e) => ApplyFilters();
+
+    private void OnClearFilters(object sender, RoutedEventArgs e)
+    {
+        SearchBox.Text = string.Empty;
+        ProviderFilter.SelectedItem = null;
+        CategoryFilter.SelectedItem = null;
+        CarFilter.SelectedItem = null;
+        TrackFilter.SelectedItem = null;
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        _visibleSetups.Clear();
+        foreach (var setup in _setups.Where(MatchesCurrentFilters)) _visibleSetups.Add(setup);
+        UpdateEmptyState();
+    }
+
+    private bool MatchesCurrentFilters(SetupEntity setup)
+    {
+        var search = SearchBox.Text.Trim();
+        return (string.IsNullOrWhiteSpace(search) ||
+                Contains(setup.OriginalFileName, search) || Contains(setup.Provider, search) ||
+                Contains(setup.Category, search) || Contains(setup.Car, search) || Contains(setup.Track, search)) &&
+               Matches(setup.Provider, ProviderFilter.SelectedItem) &&
+               Matches(setup.Category, CategoryFilter.SelectedItem) &&
+               Matches(setup.Car, CarFilter.SelectedItem) &&
+               Matches(setup.Track, TrackFilter.SelectedItem);
+    }
+
+    private IReadOnlyList<string> Distinct(Func<SetupEntity, string?> selector) =>
+        _setups.Select(selector).Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value!)
+            .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase).ToList();
+
+    private static void ResetOptions(ObservableCollection<string> target, IEnumerable<string> values)
+    {
+        target.Clear();
+        foreach (var value in values) target.Add(value);
+    }
+
+    private static void AddOption(ObservableCollection<string> target, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || target.Any(item => item.Equals(value, StringComparison.OrdinalIgnoreCase))) return;
+        var index = 0;
+        while (index < target.Count && StringComparer.CurrentCultureIgnoreCase.Compare(target[index], value) < 0) index++;
+        target.Insert(index, value);
+    }
+
+    private static bool Matches(string? value, object? selection) =>
+        selection is not string selected || string.Equals(value, selected, StringComparison.OrdinalIgnoreCase);
+
+    private static bool Contains(string? value, string search) =>
+        value?.Contains(search, StringComparison.CurrentCultureIgnoreCase) == true;
 
     private static bool TryGetSetupId(object sender, out Guid setupId)
     {
