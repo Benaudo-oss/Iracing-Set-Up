@@ -160,6 +160,18 @@ public sealed class FileClassificationAndHashTests
     }
 
     [Theory]
+    [InlineData("VRS_26S3_M4GT3_RBRing_R.sto")]
+    [InlineData("VRS_26S3_M4GT3_RBR_R.sto")]
+    [InlineData("HYMO_26S3_M4GT3_RedBullRing_R.sto")]
+    [InlineData("GO_26S3_720SGT3_Spielberg_R.sto")]
+    [InlineData("VRS_26S3_M4GT3_A1Ring_R.sto")]
+    [InlineData("VRS26S3M4GT3RBRingR.sto")]
+    public void MetadataAnalyzerRecognizesRedBullRingVariations(string fileName)
+    {
+        Assert.Equal("Red Bull Ring", new SetupMetadataAnalyzer().Analyze(fileName).Track);
+    }
+
+    [Theory]
     [InlineData("VRS_26S3_M4GT3_Donington_NTL_R.sto")]
     [InlineData("VRS_26S3_M4GT3_Donnington_NTL_R.sto")]
     [InlineData("VRS26S3M4GT3DonningtonNTLR.sto")]

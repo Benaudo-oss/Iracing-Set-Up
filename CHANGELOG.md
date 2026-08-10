@@ -28,6 +28,11 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.7.18
+
+- Reconnaît `RBR` comme abréviation exacte du Red Bull Ring.
+- Conserve également les variantes `RBRing`, `RedBullRing`, `Spielberg` et `A1Ring`.
+
 # 0.1.7.17
 
 - Rétablit les filtres de l’onglet « À vérifier ».
