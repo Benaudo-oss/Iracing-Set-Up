@@ -23,6 +23,7 @@ public sealed partial class SettingsPage : Page
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "GO Setups"));
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "Grid & Go"));
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "VRS"));
+        SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "SRS"));
         SetPathLayout(await App.Services.IracingPathLayout.GetAsync());
     }
 
@@ -77,6 +78,7 @@ public sealed partial class SettingsPage : Page
         AddProviderIfEnabled(folders, GoToggle, GoPathBox, "GO Setups");
         AddProviderIfEnabled(folders, GngToggle, GngPathBox, "Grid & Go");
         AddProviderIfEnabled(folders, VrsToggle, VrsPathBox, "VRS");
+        AddProviderIfEnabled(folders, SrsToggle, SrsPathBox, "SRS");
         await App.Services.MonitoredFolders.SaveAsync(folders);
         await App.Services.AutomaticMonitoring.SaveAsync(AutomaticMonitoringToggle.IsOn);
         await App.Services.IracingPathLayout.SaveAsync(pathLayout.Select(item => item.Key).ToArray());
@@ -167,6 +169,7 @@ public sealed partial class SettingsPage : Page
             "GO Setups" => (GoPathBox, GoToggle),
             "Grid & Go" => (GngPathBox, GngToggle),
             "VRS" => (VrsPathBox, VrsToggle),
+            "SRS" => (SrsPathBox, SrsToggle),
             _ => throw new InvalidOperationException("Fournisseur inconnu.")
         };
         textBox.Text = folder.Path;

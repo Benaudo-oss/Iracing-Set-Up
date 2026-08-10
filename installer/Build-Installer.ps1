@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidatePattern('^\d+\.\d+\.\d+(\.\d+)?$')][string]$Version = '0.1.5.3',
+    [ValidatePattern('^\d+\.\d+\.\d+(\.\d+)?$')][string]$Version = '0.1.5.4',
     [ValidateSet('win-x64')][string]$Runtime = 'win-x64',
     [string]$CertificateThumbprint
 )
@@ -19,6 +19,24 @@ $iss = Join-Path $PSScriptRoot 'IracingSetupManager.iss'
 & $dotnet publish $project --configuration Release --runtime $Runtime --self-contained true --output $publish --no-restore --disable-build-servers --maxcpucount:1 `
     -p:Version=$Version -p:FileVersion=$Version -p:AssemblyVersion=$Version
 if ($LASTEXITCODE -ne 0) { throw 'La publication Windows a échoué.' }
+
+# WinUI publie ses fichiers MUI dans un dossier par langue. L’interface de
+# l’application étant uniquement française, ne conserver que fr-FR.
+$languageFolders = Get-ChildItem -LiteralPath $publish -Directory | Where-Object {
+    if ($_.Name -eq 'fr-FR') { return $false }
+    $files = @(Get-ChildItem -LiteralPath $_.FullName -File -Recurse)
+    $files.Count -gt 0 -and @($files | Where-Object { $_.Extension -ne '.mui' }).Count -eq 0
+}
+foreach ($folder in $languageFolders) {
+    Remove-Item -LiteralPath $folder.FullName -Recurse -Force
+}
+$remainingLanguageFolders = Get-ChildItem -LiteralPath $publish -Directory | Where-Object {
+    $files = @(Get-ChildItem -LiteralPath $_.FullName -File -Recurse)
+    $files.Count -gt 0 -and @($files | Where-Object { $_.Extension -ne '.mui' }).Count -eq 0
+}
+if (@($remainingLanguageFolders).Count -ne 1 -or $remainingLanguageFolders[0].Name -ne 'fr-FR') {
+    throw 'Le nettoyage des ressources linguistiques a échoué.'
+}
 
 $signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
     Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } | Sort-Object FullName -Descending | Select-Object -First 1

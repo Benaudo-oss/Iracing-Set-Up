@@ -76,6 +76,8 @@ public sealed class FileClassificationAndHashTests
     [InlineData("HYMO_IMSA_26S3_ARX06_Fuji_WR.sto", "HYMO", "Acura ARX-06", "GTP", "Fuji", "Wet Race")]
     [InlineData("HYMO_IMSA_26S3_NSX_Fuji_WR.sto", "HYMO", "Acura NSX GT3 Evo 22", "GT3", "Fuji", "Wet Race")]
     [InlineData("26S3-W07-GnG-Monza-BMWGTP-R-Safe.sto", "Grid & Go", "BMW M Hybrid V8", "GTP", "Monza", "Race Safe")]
+    [InlineData("SRS_26S3_M8_Mosport_R.sto", "SRS", "BMW M8 GTE", "GTE", "Canadian Tire Motorsport Park", "Race")]
+    [InlineData("SRS_26S3_Caddy_Mosport_R.sto", "SRS", "Cadillac V-Series.R", "GTP", "Canadian Tire Motorsport Park", "Race")]
     public void MetadataAnalyzerUnderstandsKnownProviderNamingConventions(
         string fileName,
         string provider,
@@ -98,6 +100,7 @@ public sealed class FileClassificationAndHashTests
     [InlineData(@"C:\Provider\bmwm4gt3\setup.sto", "BMW M4 GT3", "GT3")]
     [InlineData(@"C:\Provider\porsche718gt4\setup.sto", "Porsche 718 Cayman GT4 Clubsport", "GT4")]
     [InlineData(@"C:\Provider\bmwm8gte\setup.sto", "BMW M8 GTE", "GTE")]
+    [InlineData("VRS_26S3_M8_LeMans_R.sto", "BMW M8 GTE", "GTE")]
     [InlineData(@"C:\Provider\dallarap217\setup.sto", "Dallara P217", "LMP2")]
     [InlineData(@"C:\Provider\ferrari499p\setup.sto", "Ferrari 499P", "GTP")]
     [InlineData(@"C:\Provider\porsche9922cup\setup.sto", "Porsche 911 GT3 Cup (992) Gen 2", "PCUP")]

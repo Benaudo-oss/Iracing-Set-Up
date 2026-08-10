@@ -5,5 +5,6 @@ public enum ProviderId
     Hymo,
     GoSetups,
     GridAndGo,
-    Vrs
+    Vrs,
+    Srs
 }

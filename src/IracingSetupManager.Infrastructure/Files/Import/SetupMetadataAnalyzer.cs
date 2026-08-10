@@ -44,6 +44,7 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
             ["porsche718gt4"] = ("Porsche 718 Cayman GT4 Clubsport", "GT4"),
 
             ["bmwm8gte"] = ("BMW M8 GTE", "GTE"),
+            ["M8"] = ("BMW M8 GTE", "GTE"),
             ["c8rvettegte"] = ("Chevrolet Corvette C8.R GTE", "GTE"),
             ["ferrari488gte"] = ("Ferrari 488 GTE", "GTE"),
             ["fordgt2017"] = ("Ford GT GTE", "GTE"),
@@ -55,6 +56,7 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
             ["acuraarx06gtp"] = ("Acura ARX-06", "GTP"),
             ["bmwlmdh"] = ("BMW M Hybrid V8", "GTP"),
             ["cadillacvseriesrgtp"] = ("Cadillac V-Series.R", "GTP"),
+            ["Caddy"] = ("Cadillac V-Series.R", "GTP"),
             ["ferrari499p"] = ("Ferrari 499P", "GTP"),
             ["nissangtpzxt"] = ("Nissan GTP ZX-T", "GTP"),
             ["porsche963gtp"] = ("Porsche 963", "GTP"),
@@ -100,7 +102,8 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
             ["WatkinsGlen"] = "Watkins Glen",
             ["Mexico"] = "Mexique",
             ["StPete"] = "Saint-Pétersbourg",
-            ["Adelaide"] = "Adelaide"
+            ["Adelaide"] = "Adelaide",
+            ["Mosport"] = "Canadian Tire Motorsport Park"
         };
 
     public SetupMetadata Analyze(string filePath, SetupMetadata? defaults = null)
@@ -179,6 +182,11 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
                 token.Contains("VIRTUALRACINGSCHOOL", StringComparison.OrdinalIgnoreCase))
             {
                 return "VRS";
+            }
+
+            if (token.Equals("SRS", StringComparison.OrdinalIgnoreCase))
+            {
+                return "SRS";
             }
         }
 

@@ -28,6 +28,14 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.5.4
+
+- Ajoute SRS comme fournisseur indépendant, configurable et surveillable séparément.
+- Ajoute les alias `M8` pour BMW M8 GTE et `Caddy` pour Cadillac V-Series.R.
+- Reconnaît Mosport comme Canadian Tire Motorsport Park.
+- Mémorise les fournisseurs et catégories cochés dans la page Synchronisation.
+- Ne conserve que les ressources françaises dans l’installateur Windows.
+
 # 0.1.5.3
 
 - Utilise les noms réels des dossiers voiture iRacing dans l’archive et lors de la copie vers iRacing.

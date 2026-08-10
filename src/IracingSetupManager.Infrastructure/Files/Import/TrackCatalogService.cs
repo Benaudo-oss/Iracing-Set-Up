@@ -19,6 +19,7 @@ public sealed class TrackCatalogService(ISetupDbContextFactory contextFactory)
             ["lemans"] = "Le Mans", ["limerock"] = "Lime Rock Park", ["magnycours"] = "Magny-Cours",
             ["miami"] = "Miami", ["misano"] = "Misano", ["monza"] = "Monza",
             ["mexico"] = "Mexique", ["stpete"] = "Saint-Pétersbourg",
+            ["mosport"] = "Canadian Tire Motorsport Park",
             ["nurburgring"] = "Nürburgring", ["okayama"] = "Okayama", ["oran"] = "Oran Park",
             ["oschersleben"] = "Oschersleben", ["oulton"] = "Oulton Park", ["phoenix"] = "Phoenix",
             ["roadamerica"] = "Road America", ["roadatlanta"] = "Road Atlanta", ["rudskogen"] = "Rudskogen",

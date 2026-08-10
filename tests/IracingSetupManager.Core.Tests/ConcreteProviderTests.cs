@@ -3,13 +3,14 @@ using IracingSetupManager.Providers.GoSetups;
 using IracingSetupManager.Providers.GridAndGo;
 using IracingSetupManager.Providers.Hymo;
 using IracingSetupManager.Providers.Vrs;
+using IracingSetupManager.Providers.Srs;
 using Xunit;
 
 namespace IracingSetupManager.Core.Tests;
 
 public sealed class ConcreteProviderTests
 {
-    public static TheoryData<ProviderId> Providers => new() { ProviderId.Hymo, ProviderId.GoSetups, ProviderId.GridAndGo, ProviderId.Vrs };
+    public static TheoryData<ProviderId> Providers => new() { ProviderId.Hymo, ProviderId.GoSetups, ProviderId.GridAndGo, ProviderId.Vrs, ProviderId.Srs };
 
     [Theory]
     [MemberData(nameof(Providers))]
@@ -21,7 +22,8 @@ public sealed class ConcreteProviderTests
             ProviderId.Hymo => new HymoSetupProvider(client),
             ProviderId.GoSetups => new GoSetupProvider(client),
             ProviderId.GridAndGo => new GridAndGoSetupProvider(client),
-            _ => new VrsSetupProvider(client)
+            ProviderId.Vrs => new VrsSetupProvider(client),
+            _ => new SrsSetupProvider(client)
         };
         var request = new ProviderSyncRequest(new HashSet<string> { "GT3", "GTP" }, @"C:\Archive");
         var result = await provider.SynchronizeAsync(request);

@@ -36,6 +36,7 @@ public sealed class AppServices
         MonitoredFolders = new MonitoredFolderSettingsService(ContextFactory, FolderPolicy);
         AutomaticMonitoring = new AutomaticMonitoringSettingsService(ContextFactory);
         UpdatePreferences = new UpdatePreferenceService(ContextFactory);
+        SynchronizationSelection = new SynchronizationSelectionSettingsService(ContextFactory);
         Updates = new GitHubReleaseUpdateService(new HttpClient { Timeout = TimeSpan.FromMinutes(10) }, installerCache);
         UpdateInstaller = new UpdateInstallerLauncher(installerCache);
 
@@ -75,6 +76,7 @@ public sealed class AppServices
     public AutomaticMonitoringSettingsService AutomaticMonitoring { get; }
     public ImportMonitoringService Monitoring { get; }
     public UpdatePreferenceService UpdatePreferences { get; }
+    public SynchronizationSelectionSettingsService SynchronizationSelection { get; }
     public IUpdateService Updates { get; }
     public UpdateInstallerLauncher UpdateInstaller { get; }
 }

@@ -1,7 +1,9 @@
 <Page
     x:Class="IracingSetupManager.App.Views.SynchronizationPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Loaded="OnLoaded"
+    Unloaded="OnUnloaded">
     <ScrollViewer>
         <StackPanel Padding="32" Spacing="20">
             <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Synchronisation" /><TextBlock Opacity="0.65" Text="Choisissez les sources et catégories à importer" /></StackPanel>
@@ -11,10 +13,11 @@
                 <Border Padding="20" Background="#FF20242B" CornerRadius="10">
                     <StackPanel Spacing="14">
                         <TextBlock FontSize="20" FontWeight="SemiBold" Text="Fournisseurs" />
-                        <CheckBox Content="HYMO" IsChecked="True" />
-                        <CheckBox Content="GO Setups" IsChecked="True" />
-                        <CheckBox Content="Grid &amp; Go" IsChecked="True" />
-                        <CheckBox Content="VRS" IsChecked="True" />
+                        <CheckBox x:Name="HymoProvider" Content="HYMO" />
+                        <CheckBox x:Name="GoProvider" Content="GO Setups" />
+                        <CheckBox x:Name="GngProvider" Content="Grid &amp; Go" />
+                        <CheckBox x:Name="VrsProvider" Content="VRS" />
+                        <CheckBox x:Name="SrsProvider" Content="SRS" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="1" Padding="20" Background="#FF20242B" CornerRadius="10">
@@ -23,8 +26,8 @@
                         <Grid ColumnSpacing="16" RowSpacing="8">
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                             <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
-                            <CheckBox Content="GT3" IsChecked="True" /><CheckBox Grid.Column="1" Content="GT4" IsChecked="True" /><CheckBox Grid.Column="2" Content="GTE" IsChecked="True" />
-                            <CheckBox Grid.Row="1" Content="LMP2" IsChecked="True" /><CheckBox Grid.Row="1" Grid.Column="1" Content="GTP" IsChecked="True" /><CheckBox Grid.Row="1" Grid.Column="2" Content="PCUP" IsChecked="True" />
+                            <CheckBox x:Name="Gt3Category" Content="GT3" /><CheckBox x:Name="Gt4Category" Grid.Column="1" Content="GT4" /><CheckBox x:Name="GteCategory" Grid.Column="2" Content="GTE" />
+                            <CheckBox x:Name="Lmp2Category" Grid.Row="1" Content="LMP2" /><CheckBox x:Name="GtpCategory" Grid.Row="1" Grid.Column="1" Content="GTP" /><CheckBox x:Name="PcupCategory" Grid.Row="1" Grid.Column="2" Content="PCUP" />
                         </Grid>
                     </StackPanel>
                 </Border>
