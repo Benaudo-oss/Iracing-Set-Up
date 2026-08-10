@@ -147,6 +147,10 @@ public sealed class FileClassificationAndHashTests
 
     [Theory]
     [InlineData("VRS_26S3_M4GT3_RoAmerica_R.sto", "Road America")]
+    [InlineData("VRS_26S3_M4GT3_roadam_R.sto", "Road America")]
+    [InlineData("VRS_26S3_M4GT3_bathrust_R.sto", "Mount Panorama Circuit")]
+    [InlineData("VRS_26S3_M4GT3_magny_R.sto", "Circuit de Nevers Magny-Cours")]
+    [InlineData("VRS_26S3_M4GT3_watkins_R.sto", "Watkins Glen")]
     [InlineData("HYMO_26S3_M4GT3_RoAtlanta_R.sto", "Road Atlanta")]
     [InlineData("GO_26S3_720SGT3_Detroit_R.sto", "Detroit Belle Isle")]
     [InlineData("VRS_26S3_M4GT3_Thruxton_R.sto", "Thruxton Circuit")]
