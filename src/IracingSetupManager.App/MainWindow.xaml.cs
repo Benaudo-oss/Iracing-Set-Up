@@ -45,6 +45,7 @@ public sealed partial class MainWindow : Window
             "review" => typeof(ReviewPage),
             "history" => typeof(HistoryPage),
             "updates" => typeof(UpdatesPage),
+            "about" => typeof(AboutPage),
             _ => typeof(DashboardPage)
         });
     }

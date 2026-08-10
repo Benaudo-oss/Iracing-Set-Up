@@ -31,6 +31,34 @@ public sealed class IracingCopyTests
     }
 
     [Fact]
+    public async Task SuccessfulCopyIsRecordedAndCanBeCopiedAgain()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var firstPlan = await environment.Service.CreatePlanAsync(
+            [environment.ValidatedId], environment.Target,
+            new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
+
+        await environment.Service.ExecuteAsync(firstPlan, true);
+
+        await using (var context = environment.Factory.Create())
+        {
+            var setup = (await context.Setups.FindAsync(environment.ValidatedId))!;
+            Assert.NotNull(setup.LastCopiedToIracingAtUtc);
+            Assert.Equal(1, setup.IracingCopyCount);
+        }
+
+        var secondPlan = await environment.Service.CreatePlanAsync(
+            [environment.ValidatedId], environment.Target,
+            new Dictionary<Guid, int> { [environment.ValidatedId] = 8 });
+        await environment.Service.ExecuteAsync(secondPlan, true);
+
+        await using var verification = environment.Factory.Create();
+        var recopiedSetup = (await verification.Setups.FindAsync(environment.ValidatedId))!;
+        Assert.Equal(2, recopiedSetup.IracingCopyCount);
+        Assert.True(File.Exists(secondPlan[0].DestinationPath));
+    }
+
+    [Fact]
     public async Task ConflictMustBeResolvedAndKeepBothNeverOverwrites()
     {
         await using var environment = await TestEnvironment.CreateAsync();
@@ -159,6 +187,45 @@ public sealed class IracingCopyTests
             new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
 
         Assert.Contains(Path.Combine(environment.Target, actualFolder, "Garage 61"), plan[0].DestinationPath);
+    }
+
+    [Fact]
+    public async Task SetupWithUnknownCarIsExcludedFromCopyPreview()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        await using (var context = environment.Factory.Create())
+        {
+            (await context.Setups.FindAsync(environment.ValidatedId))!.Car = "À identifier";
+            await context.SaveChangesAsync();
+        }
+
+        var plan = await environment.Service.CreatePlanAsync(
+            [environment.ValidatedId],
+            environment.Target,
+            new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
+
+        Assert.Empty(plan);
+    }
+
+    [Fact]
+    public async Task CopyIsBlockedIfCarBecomesUnknownAfterPreview()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var plan = await environment.Service.CreatePlanAsync(
+            [environment.ValidatedId],
+            environment.Target,
+            new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
+        await using (var context = environment.Factory.Create())
+        {
+            (await context.Setups.FindAsync(environment.ValidatedId))!.Car = "À identifier";
+            await context.SaveChangesAsync();
+        }
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            environment.Service.ExecuteAsync(plan, true));
+
+        Assert.Contains("identifiée", exception.Message);
+        Assert.False(File.Exists(plan[0].DestinationPath));
     }
 
     private sealed class TestEnvironment : IAsyncDisposable

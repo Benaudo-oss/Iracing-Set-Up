@@ -20,14 +20,15 @@
             <TextBlock x:Name="SelectionSummary" VerticalAlignment="Center" Opacity="0.7" />
         </StackPanel>
         <Grid Grid.Row="3" ColumnSpacing="8">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <TextBox x:Name="SearchBox" PlaceholderText="Rechercher un fichier, une voiture ou un circuit…" TextChanged="OnFilterChanged" />
             <ComboBox x:Name="ProviderFilter" Grid.Column="1" PlaceholderText="Fournisseur" SelectionChanged="OnFilterChanged" />
             <ComboBox x:Name="CategoryFilter" Grid.Column="2" PlaceholderText="Catégorie" SelectionChanged="OnFilterChanged" />
             <ComboBox x:Name="SeasonFilter" Grid.Column="3" PlaceholderText="Saison" SelectionChanged="OnFilterChanged" />
             <ComboBox x:Name="CarFilter" Grid.Column="4" PlaceholderText="Voiture" SelectionChanged="OnFilterChanged" />
             <ComboBox x:Name="TrackFilter" Grid.Column="5" PlaceholderText="Circuit" SelectionChanged="OnFilterChanged" />
-            <Button Grid.Column="6" Content="Effacer les filtres" Click="OnClearFilters" />
+            <ComboBox x:Name="CopyStatusFilter" Grid.Column="6" PlaceholderText="État de copie" SelectionChanged="OnFilterChanged" />
+            <Button Grid.Column="7" Content="Effacer les filtres" Click="OnClearFilters" />
         </Grid>
         <ListView x:Name="SetupList" Grid.Row="4" SelectionMode="Multiple">
             <ListView.ItemTemplate>

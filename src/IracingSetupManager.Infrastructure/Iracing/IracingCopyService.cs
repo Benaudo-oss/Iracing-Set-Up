@@ -53,11 +53,13 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
         var layout = await pathLayout.GetAsync(cancellationToken);
 
         await using var context = contextFactory.Create();
-        var setups = await context.Setups.AsNoTracking()
+        var setups = (await context.Setups.AsNoTracking()
             .Where(item => ids.Contains(item.Id) && item.Status == SetupStatus.Valide)
+            .ToListAsync(cancellationToken))
+            .Where(item => IsIdentifiedCar(item.Car))
             .OrderBy(item => item.Car)
             .ThenBy(item => item.OriginalFileName)
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return setups.Select(setup =>
         {
@@ -115,18 +117,23 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
         var planIds = plan.Select(item => item.SetupId).Distinct().ToArray();
         await using (var context = contextFactory.Create())
         {
-            var validatedIds = await context.Setups.AsNoTracking()
+            var validatedSetups = await context.Setups.AsNoTracking()
                 .Where(item => planIds.Contains(item.Id) && item.Status == SetupStatus.Valide)
-                .Select(item => item.Id)
+                .Select(item => new { item.Id, item.Car })
                 .ToListAsync(cancellationToken);
-            if (validatedIds.Count != planIds.Length)
+            if (validatedSetups.Count != planIds.Length)
             {
                 throw new InvalidOperationException("La copie contient un setup qui n’est plus validé.");
+            }
+            if (validatedSetups.Any(item => !IsIdentifiedCar(item.Car)))
+            {
+                throw new InvalidOperationException("La voiture doit être identifiée avant la copie vers iRacing.");
             }
         }
 
         var copied = 0;
         var skipped = 0;
+        var copiedIds = new List<Guid>();
         foreach (var item in plan)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -147,6 +154,22 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             File.Copy(item.SourcePath, destination, overwrite: false);
             copied++;
+            copiedIds.Add(item.SetupId);
+        }
+
+        if (copiedIds.Count > 0)
+        {
+            await using var context = contextFactory.Create();
+            var copiedSetups = await context.Setups
+                .Where(item => copiedIds.Contains(item.Id))
+                .ToListAsync(cancellationToken);
+            var copiedAt = DateTimeOffset.UtcNow;
+            foreach (var setup in copiedSetups)
+            {
+                setup.LastCopiedToIracingAtUtc = copiedAt;
+                setup.IracingCopyCount++;
+            }
+            await context.SaveChangesAsync(cancellationToken);
         }
 
         return new IracingCopyResult(copied, skipped);
@@ -178,6 +201,11 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
         return string.IsNullOrWhiteSpace(result) ? "Voiture à identifier" : result;
     }
 
+
+    private static bool IsIdentifiedCar(string? car) =>
+        !string.IsNullOrWhiteSpace(car) &&
+        !car.Equals("À identifier", StringComparison.OrdinalIgnoreCase) &&
+        !car.Equals("Voiture à identifier", StringComparison.OrdinalIgnoreCase);
 
     private static int? ReadWeek(string fileName)
     {

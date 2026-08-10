@@ -58,6 +58,10 @@ public sealed class SetupEntity
 
     public DateTimeOffset? SentToGarage61AtUtc { get; set; }
 
+    public DateTimeOffset? LastCopiedToIracingAtUtc { get; set; }
+
+    public int IracingCopyCount { get; set; }
+
     public bool? Garage61Succeeded { get; set; }
 
     public string? Garage61Result { get; set; }

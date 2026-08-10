@@ -65,6 +65,7 @@ public sealed partial class IracingCopyPage : Page
         SeasonFilter.SelectedIndex = 0;
         CarFilter.SelectedIndex = 0;
         TrackFilter.SelectedIndex = 0;
+        CopyStatusFilter.SelectedIndex = 0;
         filtersReady = true;
         ApplyFilters();
     }
@@ -139,6 +140,7 @@ public sealed partial class IracingCopyPage : Page
         try
         {
             var result = await App.Services.IracingCopy.ExecuteAsync(plan, confirmed: true);
+            await LoadValidatedAsync();
             Show($"Copie terminée : {result.Copied} copié(s), {result.Skipped} ignoré(s).", InfoBarSeverity.Success);
         }
         catch (Exception exception)
@@ -162,6 +164,8 @@ public sealed partial class IracingCopyPage : Page
         FillFilter(SeasonFilter, allRows.Select(item => item.Season));
         FillFilter(CarFilter, allRows.Select(item => item.Car));
         FillFilter(TrackFilter, allRows.Select(item => item.Track));
+        CopyStatusFilter.ItemsSource = new[] { "À copier", "Déjà copiés", "Tous" };
+        CopyStatusFilter.SelectedIndex = previewMode ? 2 : 0;
         filtersReady = true;
     }
 
@@ -184,6 +188,7 @@ public sealed partial class IracingCopyPage : Page
             MatchesSelection(item.Season, SeasonFilter) &&
             MatchesSelection(item.Car, CarFilter) &&
             MatchesSelection(item.Track, TrackFilter) &&
+            MatchesCopyStatus(item) &&
             (search.Length == 0 || new[] { item.OriginalFileName, item.Provider, item.Category, item.Season, item.Car, item.Track }
                 .Any(value => value.Contains(search, StringComparison.CurrentCultureIgnoreCase))))
             .ToList();
@@ -195,6 +200,14 @@ public sealed partial class IracingCopyPage : Page
 
     private static bool MatchesSelection(string value, ComboBox filter) =>
         filter.SelectedItem is not string selected || selected == "Tous" || value.Equals(selected, StringComparison.OrdinalIgnoreCase);
+
+    private bool MatchesCopyStatus(CopyRow row) =>
+        previewMode || CopyStatusFilter.SelectedItem switch
+        {
+            "À copier" => !row.IsCopied,
+            "Déjà copiés" => row.IsCopied,
+            _ => true
+        };
 
     private async Task<int?> AskWeekAsync(string fileName)
     {
@@ -250,21 +263,31 @@ public sealed partial class IracingCopyPage : Page
         public required string Category { get; init; }
         public required string Season { get; init; }
         public required string Track { get; init; }
+        public DateTimeOffset? LastCopiedAtUtc { get; init; }
+        public int CopyCount { get; init; }
         public IracingCopyPlanItem? Plan { get; init; }
+        public bool IsCopied => LastCopiedAtUtc is not null || CopyCount > 0;
         public bool HasConflict => Plan?.HasConflict == true;
         public Visibility ConflictVisibility => HasConflict ? Visibility.Visible : Visibility.Collapsed;
-        public string CopyDescription => Plan is null ? "Sélectionnable pour l’aperçu" : $"{(HasConflict ? "Conflit — " : string.Empty)}{Plan.DestinationPath}";
+        public string CopyDescription => Plan is not null
+            ? $"{(HasConflict ? "Conflit — " : string.Empty)}{Plan.DestinationPath}"
+            : IsCopied
+                ? $"Déjà copié ({CopyCount} fois)"
+                : "Sélectionnable pour l’aperçu";
         public int ConflictChoiceIndex { get; set; }
 
         public static CopyRow FromSetup(SetupEntity setup) => new()
         {
             Id = setup.Id, OriginalFileName = setup.OriginalFileName, Car = setup.Car, Provider = setup.Provider,
-            Category = setup.Category, Season = setup.Season ?? string.Empty, Track = setup.Track
+            Category = setup.Category, Season = setup.Season ?? string.Empty, Track = setup.Track,
+            LastCopiedAtUtc = setup.LastCopiedToIracingAtUtc, CopyCount = setup.IracingCopyCount
         };
         public static CopyRow FromPlan(IracingCopyPlanItem plan, CopyRow source) => new()
         {
             Id = plan.SetupId, OriginalFileName = plan.OriginalFileName, Car = plan.Car, Provider = source.Provider,
-            Category = source.Category, Season = source.Season, Track = source.Track, Plan = plan, ConflictChoiceIndex = 0
+            Category = source.Category, Season = source.Season, Track = source.Track,
+            LastCopiedAtUtc = source.LastCopiedAtUtc, CopyCount = source.CopyCount,
+            Plan = plan, ConflictChoiceIndex = 0
         };
         public IracingCopyPlanItem ToPlan() => Plan! with { ConflictChoice = ConflictChoiceIndex switch { 1 => IracingConflictChoice.Skip, 2 => IracingConflictChoice.KeepBoth, _ => IracingConflictChoice.None } };
     }

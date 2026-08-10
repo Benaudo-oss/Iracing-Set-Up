@@ -1,5 +1,6 @@
 namespace IracingSetupManager.Infrastructure.Database;
 
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 
 public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
@@ -8,6 +9,8 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
     {
         await using var context = contextFactory.Create();
         await context.Database.EnsureCreatedAsync(cancellationToken);
+        await EnsureSetupColumnAsync(context, "LastCopiedToIracingAtUtc", "TEXT NULL", cancellationToken);
+        await EnsureSetupColumnAsync(context, "IracingCopyCount", "INTEGER NOT NULL DEFAULT 0", cancellationToken);
         await context.Database.ExecuteSqlRawAsync(
             """
             CREATE TABLE IF NOT EXISTS "SetupChangeHistory" (
@@ -38,5 +41,41 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
                 ON "TrackCatalog" ("NormalizedAlias");
             """,
             cancellationToken);
+    }
+
+    private static async Task EnsureSetupColumnAsync(
+        SetupDbContext context,
+        string columnName,
+        string definition,
+        CancellationToken cancellationToken)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldClose = connection.State != ConnectionState.Open;
+        if (shouldClose) await connection.OpenAsync(cancellationToken);
+        try
+        {
+            await using var inspect = connection.CreateCommand();
+            inspect.CommandText = "PRAGMA table_info(\"Setups\");";
+            await using var reader = await inspect.ExecuteReaderAsync(cancellationToken);
+            var exists = false;
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                if (reader.GetString(1).Equals(columnName, StringComparison.OrdinalIgnoreCase))
+                {
+                    exists = true;
+                    break;
+                }
+            }
+            await reader.DisposeAsync();
+            if (exists) return;
+
+            await using var alter = connection.CreateCommand();
+            alter.CommandText = $"ALTER TABLE \"Setups\" ADD COLUMN \"{columnName}\" {definition};";
+            await alter.ExecuteNonQueryAsync(cancellationToken);
+        }
+        finally
+        {
+            if (shouldClose) await connection.CloseAsync();
+        }
     }
 }

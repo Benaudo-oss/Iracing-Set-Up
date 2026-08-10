@@ -1,0 +1,56 @@
+<Page
+    x:Class="IracingSetupManager.App.Views.AboutPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer>
+        <StackPanel MaxWidth="1100" Padding="32" HorizontalAlignment="Left" Spacing="20">
+            <StackPanel Spacing="4">
+                <TextBlock FontSize="32" FontWeight="SemiBold" Text="À propos / Mentions légales" />
+                <TextBlock Opacity="0.65" Text="Informations légales, propriété intellectuelle et utilisation de l’application" />
+            </StackPanel>
+
+            <Border Padding="24" Background="#FF20242B" CornerRadius="10">
+                <StackPanel Spacing="16">
+                    <TextBlock FontSize="22" FontWeight="SemiBold" Text="© Copyright et propriété intellectuelle" />
+
+                    <TextBlock FontSize="20" FontWeight="Bold" Text="iRacing Setup Manager" />
+                    <TextBlock FontWeight="SemiBold" Text="© 2026 BENAUDO. Tous droits réservés." />
+
+                    <TextBlock TextWrapping="Wrap">
+                        Cette application ainsi que son code source, son interface, son fonctionnement et ses éléments graphiques originaux sont protégés par le droit d’auteur.
+                    </TextBlock>
+
+                    <TextBlock FontWeight="Bold" TextWrapping="Wrap">
+                        Toute copie, reproduction, modification, redistribution, revente ou mise à disposition de l’application, en totalité ou en partie, est interdite sans l’autorisation écrite préalable de son auteur.
+                    </TextBlock>
+
+                    <TextBlock TextWrapping="Wrap">
+                        Il est également interdit de désassembler, décompiler ou tenter d’extraire le code source de l’application, sauf dans les cas expressément autorisés par la législation applicable.
+                    </TextBlock>
+
+                    <TextBlock TextWrapping="Wrap">
+                        iRacing Setup Manager est un projet indépendant et n’est ni affilié, ni sponsorisé, ni approuvé par iRacing.com Motorsport Simulations, HYMO Setups, GO Setups, Grid &amp; Go ou Garage61.
+                    </TextBlock>
+
+                    <TextBlock TextWrapping="Wrap">
+                        Les marques, logos, noms commerciaux et contenus appartenant à des tiers restent la propriété exclusive de leurs détenteurs respectifs.
+                    </TextBlock>
+
+                    <TextBlock TextWrapping="Wrap">
+                        L’application est uniquement destinée à faciliter la récupération autorisée, l’organisation et la gestion des setups auxquels l’utilisateur possède déjà un accès légitime. Elle ne permet pas de contourner un abonnement, une authentification ou une protection mise en place par un fournisseur.
+                    </TextBlock>
+
+                    <TextBlock FontWeight="Bold" TextWrapping="Wrap">
+                        Garage61 est utilisé comme solution de stockage final et ne constitue pas un fournisseur de setups.
+                    </TextBlock>
+
+                    <Border Margin="0,8,0,0" Padding="16" Background="#FF171A1F" CornerRadius="8">
+                        <TextBlock HorizontalAlignment="Center" FontWeight="Bold" TextAlignment="Center" TextWrapping="Wrap">
+                            © 2026 BENAUDO • Tous droits réservés • Toute reproduction ou redistribution non autorisée est interdite.
+                        </TextBlock>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
