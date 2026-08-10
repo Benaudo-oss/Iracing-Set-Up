@@ -28,6 +28,13 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.7.5
+
+- Actualise les tableaux ligne par ligne sans réinitialiser la page, les filtres ou le défilement.
+- Étend le catalogue des circuits et accepte les abréviations, noms collés et fautes limitées.
+- Reconnaît Donington National via `NTL`, ainsi que les variantes `Donington` et `Donnington`.
+- Distingue les Corvette Z06 GT3.R, C8.R GTE, C6.R et C7 Daytona Prototype.
+
 # 0.1.6.5
 
 - Applique réellement les fournisseurs et catégories sélectionnés à la synchronisation.

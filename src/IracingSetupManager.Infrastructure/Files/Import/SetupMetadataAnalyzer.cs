@@ -20,6 +20,10 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
             ["bmwm4gt3"] = ("BMW M4 GT3", "GT3"),
             ["bmwz4gt3"] = ("BMW Z4 GT3", "GT3"),
             ["chevyvettez06rgt3"] = ("Chevrolet Corvette Z06 GT3.R", "GT3"),
+            ["corvettez06gt3"] = ("Chevrolet Corvette Z06 GT3.R", "GT3"),
+            ["corvettez06rgt3"] = ("Chevrolet Corvette Z06 GT3.R", "GT3"),
+            ["z06gt3"] = ("Chevrolet Corvette Z06 GT3.R", "GT3"),
+            ["z06rgt3"] = ("Chevrolet Corvette Z06 GT3.R", "GT3"),
             ["ferrari296gt3"] = ("Ferrari 296 GT3", "GT3"),
             ["ferrari488gt3"] = ("Ferrari 488 GT3", "GT3"),
             ["ferrarievogt3"] = ("Ferrari 488 GT3 Evo", "GT3"),
@@ -46,6 +50,14 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
             ["bmwm8gte"] = ("BMW M8 GTE", "GTE"),
             ["M8"] = ("BMW M8 GTE", "GTE"),
             ["c8rvettegte"] = ("Chevrolet Corvette C8.R GTE", "GTE"),
+            ["corvettec8r"] = ("Chevrolet Corvette C8.R GTE", "GTE"),
+            ["corvettec8rgte"] = ("Chevrolet Corvette C8.R GTE", "GTE"),
+            ["c8rgte"] = ("Chevrolet Corvette C8.R GTE", "GTE"),
+            ["c8r"] = ("Chevrolet Corvette C8.R GTE", "GTE"),
+            ["c6r"] = ("Chevrolet Corvette C6.R", "GT1"),
+            ["corvettec6r"] = ("Chevrolet Corvette C6.R", "GT1"),
+            ["c7vettedp"] = ("Chevrolet Corvette C7 Daytona Prototype", "DP"),
+            ["corvettec7dp"] = ("Chevrolet Corvette C7 Daytona Prototype", "DP"),
             ["ferrari488gte"] = ("Ferrari 488 GTE", "GTE"),
             ["fordgt2017"] = ("Ford GT GTE", "GTE"),
             ["porsche991rsr"] = ("Porsche 911 RSR", "GTE"),
@@ -98,6 +110,102 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
             ["LeMans"] = "Le Mans",
             ["Fuji"] = "Fuji",
             ["Monza"] = "Monza",
+            ["RoAmerica"] = "Road America",
+            ["RdAmerica"] = "Road America",
+            ["RAmerica"] = "Road America",
+            ["RoadAmerica"] = "Road America",
+            ["RoAtlanta"] = "Road Atlanta",
+            ["RdAtlanta"] = "Road Atlanta",
+            ["RAtlanta"] = "Road Atlanta",
+            ["RoadAtlanta"] = "Road Atlanta",
+            ["Detroit"] = "Detroit Belle Isle",
+            ["BelleIsle"] = "Detroit Belle Isle",
+            ["Donington"] = "Donington Park",
+            ["Donnington"] = "Donington Park",
+            ["DoningtonNTL"] = "Donington Park",
+            ["DonningtonNTL"] = "Donington Park",
+            ["Thruxton"] = "Thruxton Circuit",
+            ["Zandvoort"] = "Zandvoort",
+            ["Suzuka"] = "Suzuka",
+            ["Nurburgring"] = "Nürburgring",
+            ["Nuerburgring"] = "Nürburgring",
+            ["Nurb"] = "Nürburgring",
+            ["Nuerb"] = "Nürburgring",
+            ["NurbCombined"] = "Nürburgring Combined",
+            ["NuerbCombined"] = "Nürburgring Combined",
+            ["NurbConbined"] = "Nürburgring Combined",
+            ["NuerbConbined"] = "Nürburgring Combined",
+            ["Nordschleife"] = "Nürburgring Nordschleife",
+            ["Nords"] = "Nürburgring Nordschleife",
+            ["COTA"] = "Circuit of the Americas",
+            ["CircuitOfTheAmericas"] = "Circuit of the Americas",
+            ["Interlagos"] = "Interlagos",
+            ["Montreal"] = "Circuit Gilles-Villeneuve",
+            ["GillesVilleneuve"] = "Circuit Gilles-Villeneuve",
+            ["LongBeach"] = "Long Beach",
+            ["BrandsHatch"] = "Brands Hatch",
+            ["PhillipIsland"] = "Phillip Island",
+            ["MidOhio"] = "Mid-Ohio",
+            ["Sonoma"] = "Sonoma Raceway",
+            ["Indianapolis"] = "Indianapolis",
+            ["Indy"] = "Indianapolis",
+            ["Hungaroring"] = "Hungaroring",
+            ["Jerez"] = "Jerez",
+            ["Aragon"] = "MotorLand Aragón",
+            ["Mugello"] = "Mugello",
+            ["Portimao"] = "Algarve International Circuit",
+            ["Algarve"] = "Algarve International Circuit",
+            ["Zolder"] = "Zolder",
+            ["Knockhill"] = "Knockhill",
+            ["Navarra"] = "Navarra",
+            ["Sachsenring"] = "Sachsenring",
+            ["WillowSprings"] = "Willow Springs",
+            ["Winton"] = "Winton",
+            ["Sandown"] = "Sandown",
+            ["Barber"] = "Barber Motorsports Park",
+            ["Barcelona"] = "Circuit de Barcelona-Catalunya",
+            ["Catalunya"] = "Circuit de Barcelona-Catalunya",
+            ["Catalonia"] = "Circuit de Barcelona-Catalunya",
+            ["Bathurst"] = "Mount Panorama Circuit",
+            ["MountPanorama"] = "Mount Panorama Circuit",
+            ["MtPanorama"] = "Mount Panorama Circuit",
+            ["Cadwell"] = "Cadwell Park",
+            ["CadwellPark"] = "Cadwell Park",
+            ["Chicago"] = "Chicago Street Course",
+            ["ChicagoStreet"] = "Chicago Street Course",
+            ["Daytona"] = "Daytona International Speedway",
+            ["Hockenheim"] = "Hockenheimring",
+            ["Hockenheimring"] = "Hockenheimring",
+            ["Imola"] = "Autodromo Internazionale Enzo e Dino Ferrari",
+            ["LagunaSeca"] = "WeatherTech Raceway Laguna Seca",
+            ["Laguna"] = "WeatherTech Raceway Laguna Seca",
+            ["Ledenon"] = "Circuit de Lédenon",
+            ["Ledénon"] = "Circuit de Lédenon",
+            ["LimeRock"] = "Lime Rock Park",
+            ["MagnyCours"] = "Circuit de Nevers Magny-Cours",
+            ["Miami"] = "Miami International Autodrome",
+            ["Misano"] = "Misano World Circuit Marco Simoncelli",
+            ["Motegi"] = "Mobility Resort Motegi",
+            ["TwinRing"] = "Mobility Resort Motegi",
+            ["Okayama"] = "Okayama International Circuit",
+            ["Oran"] = "Oran Park Raceway",
+            ["OranPark"] = "Oran Park Raceway",
+            ["Oschersleben"] = "Motorsport Arena Oschersleben",
+            ["Oulton"] = "Oulton Park Circuit",
+            ["OultonPark"] = "Oulton Park Circuit",
+            ["Rudskogen"] = "Rudskogen Motorsenter",
+            ["Sebring"] = "Sebring International Raceway",
+            ["Silverstone"] = "Silverstone Circuit",
+            ["Snetterton"] = "Snetterton Circuit",
+            ["Spa"] = "Spa-Francorchamps",
+            ["SpaFrancorchamps"] = "Spa-Francorchamps",
+            ["SummitPoint"] = "Summit Point Motorsports Park",
+            ["Summit"] = "Summit Point Motorsports Park",
+            ["Tsukuba"] = "Tsukuba Circuit",
+            ["VIR"] = "Virginia International Raceway",
+            ["Virginia"] = "Virginia International Raceway",
+            ["Willow"] = "Willow Springs",
+            ["Zhejiang"] = "Zhejiang International Circuit",
             ["Glen"] = "Watkins Glen",
             ["WatkinsGlen"] = "Watkins Glen",
             ["Mexico"] = "Mexique",
@@ -117,7 +225,7 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
         var setupType = FindSetupType(tokens) ?? defaults?.SetupType ?? Unknown;
         var car = carMatch.Car ?? EmptyAsNull(defaults?.Car) ?? Unknown;
         var catalogTrack = trackCatalog?.Find(filePath);
-        var track = tokens.Select(token => Tracks.GetValueOrDefault(token)).FirstOrDefault(value => value is not null)
+        var track = FindTrack(filePath, tokens)
             ?? catalogTrack?.TrackName ?? EmptyAsNull(defaults?.Track) ?? Unknown;
         var seasonMatch = tokens.Select(token => SeasonRegex().Match(token))
             .FirstOrDefault(match => match.Success);
@@ -125,12 +233,15 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
             ? $"{NormalizeYear(seasonMatch.Groups["year"].Value)} S{seasonMatch.Groups["season"].Value}"
             : defaults?.Season;
 
+        var trackConfiguration = FindTrackConfiguration(filePath, tokens, track)
+            ?? catalogTrack?.Configuration ?? defaults?.TrackConfiguration;
+
         return new SetupMetadata(
             provider,
             category,
             car,
             track,
-            catalogTrack?.Configuration ?? defaults?.TrackConfiguration,
+            trackConfiguration,
             season,
             setupType.Equals("Quali", StringComparison.OrdinalIgnoreCase) ? "Qualifying" : setupType);
     }
@@ -152,6 +263,85 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
 
         var exact = tokens.Select(token => Cars.GetValueOrDefault(token)).FirstOrDefault(match => match.Car is not null);
         return exact.Car is null ? (null, null) : exact;
+    }
+
+    private static string? FindTrack(string filePath, IReadOnlyList<string> tokens)
+    {
+        var exact = tokens.Select(token => Tracks.GetValueOrDefault(token)).FirstOrDefault(value => value is not null);
+        if (exact is not null) return exact;
+
+        var normalizedName = NormalizeAlias(Path.GetFileNameWithoutExtension(filePath));
+        var embedded = Tracks
+            .Select(item => new { Alias = NormalizeAlias(item.Key), item.Value })
+            .Where(item => item.Alias.Length >= 4 && normalizedName.Contains(item.Alias, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(item => item.Alias.Length)
+            .Select(item => item.Value)
+            .FirstOrDefault();
+        if (embedded is not null) return embedded;
+
+        return tokens
+            .Select(token => new { Token = NormalizeAlias(token), Match = FindClosestTrackAlias(token) })
+            .Where(item => item.Match is not null)
+            .OrderByDescending(item => item.Token.Length)
+            .Select(item => item.Match)
+            .FirstOrDefault();
+    }
+
+    private static string? FindClosestTrackAlias(string token)
+    {
+        var normalizedToken = NormalizeAlias(token);
+        if (normalizedToken.Length < 6) return null;
+
+        return Tracks
+            .Select(item => new
+            {
+                Alias = NormalizeAlias(item.Key),
+                item.Value,
+                Distance = EditDistance(normalizedToken, NormalizeAlias(item.Key))
+            })
+            .Where(item => item.Alias.Length >= 6 &&
+                           item.Distance <= (Math.Max(item.Alias.Length, normalizedToken.Length) >= 10 ? 2 : 1))
+            .OrderBy(item => item.Distance)
+            .ThenByDescending(item => item.Alias.Length)
+            .Select(item => item.Value)
+            .FirstOrDefault();
+    }
+
+    private static int EditDistance(string left, string right)
+    {
+        var previous = Enumerable.Range(0, right.Length + 1).ToArray();
+        for (var i = 1; i <= left.Length; i++)
+        {
+            var current = new int[right.Length + 1];
+            current[0] = i;
+            for (var j = 1; j <= right.Length; j++)
+            {
+                var substitution = previous[j - 1] + (left[i - 1] == right[j - 1] ? 0 : 1);
+                current[j] = Math.Min(Math.Min(current[j - 1] + 1, previous[j] + 1), substitution);
+            }
+            previous = current;
+        }
+        return previous[right.Length];
+    }
+
+    private static string? FindTrackConfiguration(
+        string filePath,
+        IReadOnlyList<string> tokens,
+        string track)
+    {
+        if (!track.Equals("Donington Park", StringComparison.OrdinalIgnoreCase)) return null;
+
+        var normalizedName = NormalizeAlias(Path.GetFileNameWithoutExtension(filePath));
+        if (tokens.Any(token => token.Equals("NTL", StringComparison.OrdinalIgnoreCase) ||
+                                token.Equals("National", StringComparison.OrdinalIgnoreCase)) ||
+            normalizedName.Contains("doningtonntl", StringComparison.OrdinalIgnoreCase) ||
+            normalizedName.Contains("donningtonntl", StringComparison.OrdinalIgnoreCase))
+        {
+            return "National";
+        }
+
+        if (tokens.Any(token => token.Equals("GP", StringComparison.OrdinalIgnoreCase))) return "GP";
+        return null;
     }
 
     private static string NormalizeAlias(string value) =>

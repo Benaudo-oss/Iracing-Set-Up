@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Database.Entities;
 using IracingSetupManager.Infrastructure.Files.Import;
 using Microsoft.UI.Xaml;
@@ -7,9 +9,14 @@ namespace IracingSetupManager.App.Views;
 
 public sealed partial class ReviewPage : Page
 {
+    private readonly ObservableCollection<SetupEntity> _setups = [];
     private bool _isListeningForImports;
 
-    public ReviewPage() => InitializeComponent();
+    public ReviewPage()
+    {
+        InitializeComponent();
+        ReviewList.ItemsSource = _setups;
+    }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -33,9 +40,12 @@ public sealed partial class ReviewPage : Page
 
     private void OnImportCompleted(object? sender, SetupImportResult result)
     {
+        if (result.Outcome != SetupImportOutcome.Imported || string.IsNullOrWhiteSpace(result.Sha256)) return;
         DispatcherQueue.TryEnqueue(async () =>
         {
-            if (IsLoaded) await ReloadAsync();
+            if (!IsLoaded) return;
+            var setup = await App.Services.QueryService.GetBySha256Async(result.Sha256);
+            if (setup is not null && setup.Status == SetupStatus.AVerifier) AddOrUpdateSetup(setup);
         });
     }
 
@@ -43,29 +53,22 @@ public sealed partial class ReviewPage : Page
 
     private async void OnValidateOne(object sender, RoutedEventArgs e)
     {
-        if (TryGetSetupId(sender, out var setupId))
-        {
-            await App.Services.Validation.ValidateAsync(setupId);
-            ShowSuccess("Le setup a été validé.");
-            await ReloadAsync();
-        }
+        if (!TryGetSetupId(sender, out var setupId)) return;
+        await App.Services.Validation.ValidateAsync(setupId);
+        ShowSuccess("Le setup a été validé.");
+        RemoveSetup(setupId);
     }
 
     private async void OnRefuseOne(object sender, RoutedEventArgs e)
     {
-        if (TryGetSetupId(sender, out var setupId))
-        {
-            await App.Services.Validation.RefuseAsync(setupId);
-            ShowSuccess("Le setup a été refusé.");
-            await ReloadAsync();
-        }
+        if (!TryGetSetupId(sender, out var setupId)) return;
+        await App.Services.Validation.RefuseAsync(setupId);
+        ShowSuccess("Le setup a été refusé.");
+        RemoveSetup(setupId);
     }
 
-    private async void OnValidateSelection(object sender, RoutedEventArgs e) =>
-        await RunGroupedActionAsync(validate: true);
-
-    private async void OnRefuseSelection(object sender, RoutedEventArgs e) =>
-        await RunGroupedActionAsync(validate: false);
+    private async void OnValidateSelection(object sender, RoutedEventArgs e) => await RunGroupedActionAsync(true);
+    private async void OnRefuseSelection(object sender, RoutedEventArgs e) => await RunGroupedActionAsync(false);
 
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -86,8 +89,9 @@ public sealed partial class ReviewPage : Page
 
         var rating = double.IsNaN(RatingBox.Value) ? null : (int?)RatingBox.Value;
         await App.Services.Validation.UpdateNotesAsync(setup.Id, rating, CommentBox.Text);
+        setup.PersonalRating = rating;
+        setup.Comment = CommentBox.Text;
         ShowSuccess("La note et le commentaire ont été enregistrés.");
-        await ReloadAsync();
     }
 
     private async Task RunGroupedActionAsync(bool validate)
@@ -103,39 +107,47 @@ public sealed partial class ReviewPage : Page
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
-            Title = $"Confirmer l’action groupée",
+            Title = "Confirmer l’action groupée",
             Content = $"Voulez-vous {verb} {ids.Count} setup(s) ? Cette action sera enregistrée dans l’historique.",
             PrimaryButtonText = validate ? "Valider" : "Refuser",
             CloseButtonText = "Annuler",
             DefaultButton = ContentDialogButton.Close
         };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
 
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
-        {
-            return;
-        }
-
-        if (validate)
-        {
-            await App.Services.Validation.ValidateManyAsync(ids, confirmed: true);
-        }
-        else
-        {
-            await App.Services.Validation.RefuseManyAsync(ids, confirmed: true);
-        }
+        if (validate) await App.Services.Validation.ValidateManyAsync(ids, true);
+        else await App.Services.Validation.RefuseManyAsync(ids, true);
 
         ShowSuccess($"{ids.Count} setup(s) ont été traités.");
-        await ReloadAsync();
+        foreach (var id in ids) RemoveSetup(id);
     }
 
     private async Task ReloadAsync()
     {
-        var setups = await App.Services.QueryService.GetToReviewAsync();
-        ReviewList.ItemsSource = setups;
-        EmptyState.Visibility = setups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        _setups.Clear();
+        foreach (var setup in await App.Services.QueryService.GetToReviewAsync()) _setups.Add(setup);
+        UpdateEmptyState();
         RatingBox.Value = double.NaN;
         CommentBox.Text = string.Empty;
     }
+
+    private void AddOrUpdateSetup(SetupEntity setup)
+    {
+        var existing = _setups.FirstOrDefault(item => item.Id == setup.Id);
+        if (existing is not null) _setups[_setups.IndexOf(existing)] = setup;
+        else _setups.Insert(0, setup);
+        UpdateEmptyState();
+    }
+
+    private void RemoveSetup(Guid id)
+    {
+        var setup = _setups.FirstOrDefault(item => item.Id == id);
+        if (setup is not null) _setups.Remove(setup);
+        UpdateEmptyState();
+    }
+
+    private void UpdateEmptyState() =>
+        EmptyState.Visibility = _setups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
     private static bool TryGetSetupId(object sender, out Guid setupId)
     {

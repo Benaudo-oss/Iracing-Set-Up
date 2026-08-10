@@ -14,6 +14,16 @@ public sealed record DashboardStatistics(
 
 public sealed class SetupQueryService(ISetupDbContextFactory contextFactory)
 {
+    public async Task<SetupEntity?> GetBySha256Async(
+        string sha256,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sha256);
+        await using var context = contextFactory.Create();
+        return await context.Setups.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Sha256 == sha256, cancellationToken);
+    }
+
     public async Task<DashboardStatistics> GetDashboardStatisticsAsync(
         CancellationToken cancellationToken = default)
     {

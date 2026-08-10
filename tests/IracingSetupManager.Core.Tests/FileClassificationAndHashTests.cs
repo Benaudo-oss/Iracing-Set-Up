@@ -145,6 +145,72 @@ public sealed class FileClassificationAndHashTests
         Assert.Equal(expectedTrack, metadata.Track);
     }
 
+    [Theory]
+    [InlineData("VRS_26S3_M4GT3_RoAmerica_R.sto", "Road America")]
+    [InlineData("HYMO_26S3_M4GT3_RoAtlanta_R.sto", "Road Atlanta")]
+    [InlineData("GO_26S3_720SGT3_Detroit_R.sto", "Detroit Belle Isle")]
+    [InlineData("VRS_26S3_M4GT3_Thruxton_R.sto", "Thruxton Circuit")]
+    [InlineData("VRS_26S3_M4GT3_nuerbconbined_R.sto", "Nürburgring Combined")]
+    [InlineData("HYMO_26S3_M4GT3_Zandvoort_R.sto", "Zandvoort")]
+    [InlineData("GO_26S3_720SGT3_Suzuka_R.sto", "Suzuka")]
+    [InlineData("VRS26S3M4GT3RoAmericaR.sto", "Road America")]
+    public void MetadataAnalyzerRecognizesCommonTrackVariations(string fileName, string expectedTrack)
+    {
+        Assert.Equal(expectedTrack, new SetupMetadataAnalyzer().Analyze(fileName).Track);
+    }
+
+    [Theory]
+    [InlineData("VRS_26S3_M4GT3_Donington_NTL_R.sto")]
+    [InlineData("VRS_26S3_M4GT3_Donnington_NTL_R.sto")]
+    [InlineData("VRS26S3M4GT3DonningtonNTLR.sto")]
+    public void MetadataAnalyzerRecognizesDoningtonNationalVariations(string fileName)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal("Donington Park", metadata.Track);
+        Assert.Equal("National", metadata.TrackConfiguration);
+    }
+
+    [Theory]
+    [InlineData("VRS_26S3_M4GT3_Barcelone_R.sto", "Circuit de Barcelona-Catalunya")]
+    [InlineData("VRS_26S3_M4GT3_LagunaSeca_R.sto", "WeatherTech Raceway Laguna Seca")]
+    [InlineData("HYMO_26S3_M4GT3_PhillipIslad_R.sto", "Phillip Island")]
+    [InlineData("GO_26S3_720SGT3_Silverston_R.sto", "Silverstone Circuit")]
+    [InlineData("VRS_26S3_M4GT3_Oscherslebe_R.sto", "Motorsport Arena Oschersleben")]
+    [InlineData("HYMO_26S3_M4GT3_MagnyCour_R.sto", "Circuit de Nevers Magny-Cours")]
+    public void MetadataAnalyzerToleratesLimitedTrackMisspellings(string fileName, string expectedTrack)
+    {
+        Assert.Equal(expectedTrack, new SetupMetadataAnalyzer().Analyze(fileName).Track);
+    }
+
+    [Fact]
+    public void MetadataAnalyzerDoesNotFuzzyMatchUnknownShortWords()
+    {
+        Assert.Equal("À identifier", new SetupMetadataAnalyzer().Analyze("VRS_26S3_M4GT3_Spi_R.sto").Track);
+    }
+
+    [Theory]
+    [InlineData("VRS_26S3_Z06GT3_RoAmerica_R.sto", "Chevrolet Corvette Z06 GT3.R", "GT3")]
+    [InlineData("HYMO_26S3_C8R_LeMans_R.sto", "Chevrolet Corvette C8.R GTE", "GTE")]
+    [InlineData("setup_corvettec6r.sto", "Chevrolet Corvette C6.R", "GT1")]
+    [InlineData("setup_c7vettedp.sto", "Chevrolet Corvette C7 Daytona Prototype", "DP")]
+    public void MetadataAnalyzerDistinguishesCorvetteModels(string fileName, string expectedCar, string expectedCategory)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal(expectedCar, metadata.Car);
+        Assert.Equal(expectedCategory, metadata.Category);
+    }
+
+    [Fact]
+    public void MetadataAnalyzerDoesNotGuessAnAmbiguousCorvetteName()
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze("VRS_26S3_Corvette_LeMans_R.sto");
+
+        Assert.Equal("À identifier", metadata.Car);
+        Assert.Equal("À identifier", metadata.Category);
+    }
+
     [Fact]
     public async Task Sha256MatchesKnownVectorAndChangesWithContent()
     {
