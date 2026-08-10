@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Files.Import;
+using IracingSetupManager.Infrastructure.Settings;
 
 namespace IracingSetupManager.Infrastructure.Files.Monitoring;
 
@@ -9,7 +10,8 @@ public sealed class ImportMonitoringService(
     MonitoredFolderSettingsService settingsService,
     StableFileAwaiter stableFileAwaiter,
     LibraryImportService importService,
-    Func<CancellationToken, Task<string?>> getArchivePath) : IAsyncDisposable
+    Func<CancellationToken, Task<string?>> getArchivePath,
+    SynchronizationSelectionSettingsService selectionSettings) : IAsyncDisposable
 {
     private readonly Channel<DetectedImportFile> _queue = Channel.CreateUnbounded<DetectedImportFile>(
         new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
@@ -133,7 +135,14 @@ public sealed class ImportMonitoringService(
         SetupMetadata? defaults = string.IsNullOrWhiteSpace(file.Provider)
             ? null
             : new SetupMetadata(file.Provider, "À identifier", "À identifier", "À identifier", null, null, "À identifier");
-        var results = await importService.ImportAsync(file.FullPath, archivePath, sourceKind, defaults, cancellationToken);
+        var selection = await selectionSettings.GetAsync(cancellationToken);
+        var results = await importService.ImportAsync(
+            file.FullPath,
+            archivePath,
+            sourceKind,
+            defaults,
+            cancellationToken,
+            metadata => SynchronizationImportPolicy.Allows(selection, metadata));
         foreach (var result in results) ImportCompleted?.Invoke(this, result);
     }
 

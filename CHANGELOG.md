@@ -28,6 +28,12 @@ utilise le versionnement sémantique.
 - Surveillance persistante avec attente de fin de téléchargement et balayage de reprise.
 - Validation et refus individuels ou groupés avec confirmation obligatoire.
 - Notes, commentaires et historique détaillé de chaque changement.
+# 0.1.6.5
+
+- Applique réellement les fournisseurs et catégories sélectionnés à la synchronisation.
+- Enregistre la sélection avant un import manuel ou le démarrage de la surveillance.
+- Filtre chaque setup contenu dans les archives ZIP et RAR avant son archivage.
+
 # 0.1.5.5
 
 - Désactive la surveillance automatique par défaut.

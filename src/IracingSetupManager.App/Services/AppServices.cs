@@ -54,7 +54,8 @@ public sealed class AppServices
             MonitoredFolders,
             new StableFileAwaiter(),
             importer,
-            ArchivePaths.GetAsync);
+            ArchivePaths.GetAsync,
+            SynchronizationSelection);
     }
 
     public LocalSetupDbContextFactory ContextFactory { get; }

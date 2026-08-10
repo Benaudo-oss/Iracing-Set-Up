@@ -4,6 +4,7 @@ public enum SetupImportOutcome
 {
     Imported,
     Duplicate,
+    Filtered,
     Unsupported
 }
 
@@ -12,4 +13,3 @@ public sealed record SetupImportResult(
     SetupImportOutcome Outcome,
     string? ArchivePath = null,
     string? Sha256 = null);
-

@@ -24,6 +24,8 @@ public sealed partial class SynchronizationPage : Page
 
     private async void OnScanNow(object sender, RoutedEventArgs e)
     {
+        sessionSelection = ReadSelection();
+        await App.Services.SynchronizationSelection.SaveAsync(sessionSelection);
         await App.Services.Monitoring.ImportNowAsync();
         ActionInfo.Message = "L’analyse des dossiers configurés est en cours.";
         ActionInfo.IsOpen = true;
@@ -31,6 +33,8 @@ public sealed partial class SynchronizationPage : Page
 
     private async void OnStartMonitoring(object sender, RoutedEventArgs e)
     {
+        sessionSelection = ReadSelection();
+        await App.Services.SynchronizationSelection.SaveAsync(sessionSelection);
         var archive = await App.Services.ArchivePaths.GetAsync();
         if (string.IsNullOrWhiteSpace(archive))
         {

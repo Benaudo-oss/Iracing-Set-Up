@@ -191,6 +191,53 @@ public sealed class LocalLibraryTests
     }
 
     [Fact]
+    public async Task DoesNotArchiveASetupRejectedBySynchronizationFilter()
+    {
+        await using var environment = await LibraryTestEnvironment.CreateAsync();
+        var setupPath = Path.Combine(environment.SourcePath, "HYMO_26S3_ARX06_Fuji_R.sto");
+        await File.WriteAllTextAsync(setupPath, "gtp-setup");
+
+        var result = Assert.Single(await environment.Service.ImportAsync(
+            setupPath,
+            environment.ArchivePath,
+            SetupSourceKind.DownloadsFolder,
+            cancellationToken: default,
+            metadataFilter: metadata => metadata.Category == "GT3"));
+
+        Assert.Equal(SetupImportOutcome.Filtered, result.Outcome);
+        Assert.Empty(Directory.EnumerateFiles(environment.ArchivePath, "*.sto", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public async Task AppliesSynchronizationFilterToEverySetupInsideZip()
+    {
+        await using var environment = await LibraryTestEnvironment.CreateAsync();
+        var zipPath = Path.Combine(environment.SourcePath, "setups.zip");
+        using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+        {
+            await using (var gt3 = new StreamWriter(archive.CreateEntry("VRS_M4GT3_R.sto").Open()))
+            {
+                await gt3.WriteAsync("gt3-setup");
+            }
+            await using (var gtp = new StreamWriter(archive.CreateEntry("HYMO_ARX06_R.sto").Open()))
+            {
+                await gtp.WriteAsync("gtp-setup");
+            }
+        }
+
+        var results = await environment.Service.ImportAsync(
+            zipPath,
+            environment.ArchivePath,
+            SetupSourceKind.DownloadsFolder,
+            cancellationToken: default,
+            metadataFilter: metadata => metadata.Category == "GT3");
+
+        Assert.Contains(results, result => result.Outcome == SetupImportOutcome.Imported);
+        Assert.Contains(results, result => result.Outcome == SetupImportOutcome.Filtered);
+        Assert.Single(Directory.EnumerateFiles(environment.ArchivePath, "*.sto", SearchOption.AllDirectories));
+    }
+
+    [Fact]
     public async Task RejectsZipWithDuplicateDestinationNamesBeforeWriting()
     {
         await using var environment = await LibraryTestEnvironment.CreateAsync();

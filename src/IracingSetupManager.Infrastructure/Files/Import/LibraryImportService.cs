@@ -18,7 +18,8 @@ public sealed class LibraryImportService(
         string archiveRoot,
         SetupSourceKind sourceKind,
         SetupMetadata? metadataDefaults = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Func<SetupMetadata, bool>? metadataFilter = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         var extension = Path.GetExtension(sourcePath);
@@ -30,7 +31,8 @@ public sealed class LibraryImportService(
                 archiveRoot,
                 sourceKind,
                 metadataDefaults,
-                cancellationToken)];
+                cancellationToken,
+                metadataFilter: metadataFilter)];
         }
 
         if (!extension.Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
@@ -61,7 +63,8 @@ public sealed class LibraryImportService(
                     sourceKind,
                     metadataDefaults,
                     cancellationToken,
-                    originalSourcePath: sourcePath));
+                    originalSourcePath: sourcePath,
+                    metadataFilter: metadataFilter));
             }
 
             return results.Count == 0
@@ -108,8 +111,15 @@ public sealed class LibraryImportService(
         SetupSourceKind sourceKind,
         SetupMetadata? metadataDefaults,
         CancellationToken cancellationToken,
-        string? originalSourcePath = null)
+        string? originalSourcePath = null,
+        Func<SetupMetadata, bool>? metadataFilter = null)
     {
+        var metadata = metadataAnalyzer.Analyze(setupPath, metadataDefaults);
+        if (metadataFilter is not null && !metadataFilter(metadata))
+        {
+            return new SetupImportResult(originalSourcePath ?? setupPath, SetupImportOutcome.Filtered);
+        }
+
         var sha256 = await sha256Calculator.CalculateAsync(setupPath, cancellationToken);
         var existing = await repository.FindBySha256Async(sha256, cancellationToken);
         if (existing is not null)
@@ -133,7 +143,6 @@ public sealed class LibraryImportService(
                 sha256);
         }
 
-        var metadata = metadataAnalyzer.Analyze(setupPath, metadataDefaults);
         var destinationDirectory = archivePathBuilder.BuildDirectory(archiveRoot, metadata);
         var archivePath = await archiveFileManager.CopyWithoutOverwriteAsync(
             setupPath,
