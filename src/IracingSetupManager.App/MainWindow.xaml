@@ -38,6 +38,9 @@
             <NavigationViewItem Content="Copie vers iRacing" Tag="iracing-copy">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem Content="Copie vers iRacing Team" Tag="iracing-team-copy">
+                <NavigationViewItem.Icon><FontIcon Glyph="&#xE902;" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
             <NavigationViewItem Content="À vérifier" Tag="review">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D5;" /></NavigationViewItem.Icon>
             </NavigationViewItem>

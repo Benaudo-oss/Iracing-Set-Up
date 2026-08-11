@@ -4,6 +4,7 @@ using IracingSetupManager.Core.Setups;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Navigation;
 
 namespace IracingSetupManager.App.Views;
 
@@ -13,6 +14,8 @@ public sealed partial class IracingCopyPage : Page
     private List<CopyRow> rows = [];
     private bool filtersReady;
     private bool previewMode;
+    private bool isTeam;
+    private string? teamName;
 
     public IracingCopyPage()
     {
@@ -20,9 +23,31 @@ public sealed partial class IracingCopyPage : Page
         Loaded += OnLoaded;
     }
 
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+        isTeam = e.Parameter as string == "team";
+    }
+
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        FolderPathBox.Text = IracingCopyService.DetectSetupsFolder() ?? string.Empty;
+        if (isTeam)
+        {
+            PageTitle.Text = "Copie vers iRacing Team";
+            teamName = await App.Services.IracingTeam.GetNameAsync();
+            PageSubtitle.Text = string.IsNullOrWhiteSpace(teamName)
+                ? "Définissez d’abord le nom de la Team dans les paramètres."
+                : $"Team Garage61 : {teamName} — dossier Garage 61 - {teamName}.";
+            FolderPathBox.Text = IracingCopyService.DetectSetupsFolder() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(teamName))
+            {
+                Show("Indiquez d’abord le nom de la Team dans les paramètres.", InfoBarSeverity.Warning);
+            }
+        }
+        else
+        {
+            FolderPathBox.Text = IracingCopyService.DetectSetupsFolder() ?? string.Empty;
+        }
         await LoadValidatedAsync();
     }
 
@@ -31,7 +56,7 @@ public sealed partial class IracingCopyPage : Page
         var setups = (await App.Services.QueryService.GetAllAsync())
             .Where(item => item.Status == SetupStatus.Valide)
             .ToList();
-        allRows = setups.Select(CopyRow.FromSetup).ToList();
+        allRows = setups.Select(setup => CopyRow.FromSetup(setup, isTeam)).ToList();
         previewMode = false;
         PopulateFilters();
         ApplyFilters();
@@ -74,7 +99,13 @@ public sealed partial class IracingCopyPage : Page
     {
         if (string.IsNullOrWhiteSpace(FolderPathBox.Text))
         {
-            Show("Sélectionnez d’abord le dossier des setups iRacing.", InfoBarSeverity.Warning);
+            Show("Sélectionnez d’abord le dossier officiel des setups iRacing.", InfoBarSeverity.Warning);
+            return;
+        }
+
+        if (isTeam && string.IsNullOrWhiteSpace(teamName))
+        {
+            Show("Indiquez d’abord le nom de la Team dans les paramètres.", InfoBarSeverity.Warning);
             return;
         }
 
@@ -86,7 +117,10 @@ public sealed partial class IracingCopyPage : Page
         }
 
         var ids = selected.Select(item => item.Id).ToArray();
-        var plan = await App.Services.IracingCopy.CreatePlanAsync(ids, FolderPathBox.Text);
+        var plan = await App.Services.IracingCopy.CreatePlanAsync(
+            ids,
+            FolderPathBox.Text,
+            teamName: isTeam ? teamName : null);
         var detectedWeeks = plan.Where(item => item.Week is not null).Select(item => item.Week!.Value).Distinct().ToList();
         if (plan.Any(item => item.Week is null) || detectedWeeks.Count > 1)
         {
@@ -100,7 +134,11 @@ public sealed partial class IracingCopyPage : Page
                 return;
             }
             var weeks = plan.ToDictionary(item => item.SetupId, _ => week.Value);
-            plan = await App.Services.IracingCopy.CreatePlanAsync(ids, FolderPathBox.Text, weeks);
+            plan = await App.Services.IracingCopy.CreatePlanAsync(
+                ids,
+                FolderPathBox.Text,
+                weeks,
+                teamName: isTeam ? teamName : null);
         }
         var sourceRows = selected.ToDictionary(item => item.Id);
         allRows = plan.Select(item => CopyRow.FromPlan(item, sourceRows[item.SetupId])).ToList();
@@ -129,7 +167,7 @@ public sealed partial class IracingCopyPage : Page
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
-            Title = "Confirmer la copie vers iRacing",
+            Title = isTeam ? "Confirmer la copie vers iRacing Team" : "Confirmer la copie vers iRacing",
             Content = $"{plan.Count(item => !item.HasConflict || item.ConflictChoice != IracingConflictChoice.Skip)} fichier(s) seront copiés. Les originaux resteront dans l’archive.",
             PrimaryButtonText = "Copier",
             CloseButtonText = "Annuler",
@@ -139,7 +177,10 @@ public sealed partial class IracingCopyPage : Page
 
         try
         {
-            var result = await App.Services.IracingCopy.ExecuteAsync(plan, confirmed: true);
+            var result = await App.Services.IracingCopy.ExecuteAsync(
+                plan,
+                confirmed: true,
+                target: isTeam ? IracingCopyTarget.Team : IracingCopyTarget.Personal);
             await LoadValidatedAsync();
             Show($"Copie terminée : {result.Copied} copié(s), {result.Skipped} ignoré(s).", InfoBarSeverity.Success);
         }
@@ -276,11 +317,12 @@ public sealed partial class IracingCopyPage : Page
                 : "Sélectionnable pour l’aperçu";
         public int ConflictChoiceIndex { get; set; }
 
-        public static CopyRow FromSetup(SetupEntity setup) => new()
+        public static CopyRow FromSetup(SetupEntity setup, bool team) => new()
         {
             Id = setup.Id, OriginalFileName = setup.OriginalFileName, Car = setup.Car, Provider = setup.Provider,
             Category = setup.Category, Season = setup.Season ?? string.Empty, Track = setup.Track,
-            LastCopiedAtUtc = setup.LastCopiedToIracingAtUtc, CopyCount = setup.IracingCopyCount
+            LastCopiedAtUtc = team ? setup.LastCopiedToIracingTeamAtUtc : setup.LastCopiedToIracingAtUtc,
+            CopyCount = team ? setup.IracingTeamCopyCount : setup.IracingCopyCount
         };
         public static CopyRow FromPlan(IracingCopyPlanItem plan, CopyRow source) => new()
         {

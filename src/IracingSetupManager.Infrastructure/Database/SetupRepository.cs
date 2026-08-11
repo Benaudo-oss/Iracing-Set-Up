@@ -21,6 +21,23 @@ public sealed class SetupRepository(ISetupDbContextFactory contextFactory) : ISe
         await context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task AddHistoryAsync(
+        Guid setupId,
+        string originalFileName,
+        string changeType,
+        CancellationToken cancellationToken = default)
+    {
+        await using var context = contextFactory.Create();
+        context.SetupChangeHistory.Add(new SetupChangeHistoryEntity
+        {
+            SetupId = setupId,
+            OriginalFileName = originalFileName,
+            ChangeType = changeType,
+            ChangedAtUtc = DateTimeOffset.UtcNow
+        });
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<SetupEntity?> FindBySha256Async(
         string sha256,
         CancellationToken cancellationToken = default)

@@ -11,6 +11,8 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
         await context.Database.EnsureCreatedAsync(cancellationToken);
         await EnsureSetupColumnAsync(context, "LastCopiedToIracingAtUtc", "TEXT NULL", cancellationToken);
         await EnsureSetupColumnAsync(context, "IracingCopyCount", "INTEGER NOT NULL DEFAULT 0", cancellationToken);
+        await EnsureSetupColumnAsync(context, "LastCopiedToIracingTeamAtUtc", "TEXT NULL", cancellationToken);
+        await EnsureSetupColumnAsync(context, "IracingTeamCopyCount", "INTEGER NOT NULL DEFAULT 0", cancellationToken);
         await context.Database.ExecuteSqlRawAsync(
             """
             CREATE TABLE IF NOT EXISTS "SetupChangeHistory" (

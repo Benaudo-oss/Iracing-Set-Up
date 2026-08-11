@@ -9,6 +9,7 @@ public sealed record DashboardStatistics(
     int ToReview,
     int Validated,
     int SentToGarage61,
+    int CopiedToIracingTeam,
     int ProviderCount,
     DateTimeOffset? LastDownloadUtc);
 
@@ -37,6 +38,9 @@ public sealed class SetupQueryService(ISetupDbContextFactory contextFactory)
             await context.Setups.CountAsync(item => item.Status == SetupStatus.AVerifier, cancellationToken),
             await context.Setups.CountAsync(item => item.Status == SetupStatus.Valide, cancellationToken),
             await context.Setups.CountAsync(item => item.Status == SetupStatus.EnvoyeVersGarage61, cancellationToken),
+            await context.Setups.CountAsync(
+                item => item.Status != SetupStatus.FichierManquant && item.LastCopiedToIracingTeamAtUtc != null,
+                cancellationToken),
             await context.Setups.Where(item => item.Status != SetupStatus.FichierManquant).Select(item => item.Provider).Distinct().CountAsync(cancellationToken),
             downloadDates.Count == 0 ? null : downloadDates.Max());
     }
@@ -65,5 +69,14 @@ public sealed class SetupQueryService(ISetupDbContextFactory contextFactory)
         await using var context = contextFactory.Create();
         var history = await context.SetupChangeHistory.AsNoTracking().ToListAsync(cancellationToken);
         return history.OrderByDescending(item => item.ChangedAtUtc).Take(1000).ToList();
+    }
+
+    public async Task<int> ClearHistoryAsync(CancellationToken cancellationToken = default)
+    {
+        await using var context = contextFactory.Create();
+        var history = await context.SetupChangeHistory.ToListAsync(cancellationToken);
+        context.SetupChangeHistory.RemoveRange(history);
+        await context.SaveChangesAsync(cancellationToken);
+        return history.Count;
     }
 }

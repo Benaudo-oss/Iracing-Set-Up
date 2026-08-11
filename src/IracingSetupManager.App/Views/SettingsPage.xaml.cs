@@ -3,6 +3,8 @@ using IracingSetupManager.Infrastructure.Files.Monitoring;
 using IracingSetupManager.Infrastructure.Iracing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Windows.System;
 
 namespace IracingSetupManager.App.Views;
 
@@ -15,6 +17,7 @@ public sealed partial class SettingsPage : Page
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         ArchivePathBox.Text = await App.Services.ArchivePaths.GetAsync() ?? string.Empty;
+        IracingTeamNameBox.Text = await App.Services.IracingTeam.GetNameAsync() ?? string.Empty;
         AutomaticMonitoringToggle.IsOn = await App.Services.AutomaticMonitoring.IsEnabledAsync();
         var folders = await App.Services.MonitoredFolders.GetAsync();
         DownloadsPathBox.Text = folders.FirstOrDefault(item => item.Kind == ImportFolderKind.Downloads)?.Path
@@ -36,6 +39,32 @@ public sealed partial class SettingsPage : Page
         {
             ArchivePathBox.Text = await App.Services.ArchivePaths.ChangeAsync(path);
         }
+    }
+
+    private async void OnSaveTeamName(object sender, RoutedEventArgs e) => await SaveTeamNameAsync();
+
+    private async void OnTeamNameKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key != VirtualKey.Enter) return;
+        e.Handled = true;
+        await SaveTeamNameAsync();
+    }
+
+    private async Task SaveTeamNameAsync()
+    {
+        try
+        {
+            await App.Services.IracingTeam.SaveNameAsync(IracingTeamNameBox.Text);
+            IracingTeamNameBox.Text = (await App.Services.IracingTeam.GetNameAsync()) ?? string.Empty;
+            SettingsInfo.Severity = InfoBarSeverity.Success;
+            SettingsInfo.Message = $"Team Garage61 enregistrée : {IracingTeamNameBox.Text}";
+        }
+        catch (Exception exception)
+        {
+            SettingsInfo.Severity = InfoBarSeverity.Error;
+            SettingsInfo.Message = exception.Message;
+        }
+        SettingsInfo.IsOpen = true;
     }
 
     private async void OnChooseProviderFolder(object sender, RoutedEventArgs e)
@@ -86,6 +115,10 @@ public sealed partial class SettingsPage : Page
         await App.Services.MonitoredFolders.SaveAsync(folders);
         await App.Services.AutomaticMonitoring.SaveAsync(AutomaticMonitoringToggle.IsOn);
         await App.Services.IracingPathLayout.SaveAsync(pathLayout.Select(item => item.Key).ToArray());
+        if (!string.IsNullOrWhiteSpace(IracingTeamNameBox.Text))
+        {
+            await App.Services.IracingTeam.SaveNameAsync(IracingTeamNameBox.Text);
+        }
         if (AutomaticMonitoringToggle.IsOn)
         {
             await App.Services.Monitoring.StartAsync();

@@ -36,6 +36,7 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
         setup.Property(item => item.Garage61SetupId).HasMaxLength(256);
         setup.Property(item => item.Garage61SetupUrl).HasMaxLength(2048);
         setup.Property(item => item.IracingCopyCount).HasDefaultValue(0);
+        setup.Property(item => item.IracingTeamCopyCount).HasDefaultValue(0);
         setup.HasIndex(item => item.Sha256).IsUnique();
         setup.HasIndex(item => item.OriginalFileName);
         setup.HasIndex(item => new { item.Provider, item.Category, item.Status });

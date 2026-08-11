@@ -151,7 +151,7 @@ public sealed class LibraryImportService(
         var fileInfo = new FileInfo(setupPath);
         var isUnidentified = metadata.Provider.Equals("À identifier", StringComparison.OrdinalIgnoreCase);
 
-        await repository.AddAsync(new SetupEntity
+        var importedSetup = new SetupEntity
         {
             Id = Guid.NewGuid(),
             OriginalFileName = fileInfo.Name,
@@ -171,7 +171,13 @@ public sealed class LibraryImportService(
             Garage61ExportApproved = false,
             Status = SetupStatus.AVerifier,
             DownloadedAtUtc = new DateTimeOffset(fileInfo.LastWriteTimeUtc, TimeSpan.Zero)
-        }, cancellationToken);
+        };
+        await repository.AddAsync(importedSetup, cancellationToken);
+        await repository.AddHistoryAsync(
+            importedSetup.Id,
+            importedSetup.OriginalFileName,
+            "Import",
+            cancellationToken);
 
         return new SetupImportResult(
             originalSourcePath ?? setupPath,
@@ -214,6 +220,11 @@ public sealed class LibraryImportService(
         existing.Status = SetupStatus.AVerifier;
         existing.DownloadedAtUtc = new DateTimeOffset(fileInfo.LastWriteTimeUtc, TimeSpan.Zero);
         await repository.UpdateAsync(existing, cancellationToken);
+        await repository.AddHistoryAsync(
+            existing.Id,
+            existing.OriginalFileName,
+            "Réimportation",
+            cancellationToken);
 
         return new SetupImportResult(
             originalSourcePath ?? setupPath,

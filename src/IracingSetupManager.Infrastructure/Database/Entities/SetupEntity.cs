@@ -62,6 +62,10 @@ public sealed class SetupEntity
 
     public int IracingCopyCount { get; set; }
 
+    public DateTimeOffset? LastCopiedToIracingTeamAtUtc { get; set; }
+
+    public int IracingTeamCopyCount { get; set; }
+
     public bool? Garage61Succeeded { get; set; }
 
     public string? Garage61Result { get; set; }

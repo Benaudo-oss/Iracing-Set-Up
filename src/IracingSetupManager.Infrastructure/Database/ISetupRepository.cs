@@ -8,5 +8,11 @@ public interface ISetupRepository
 
     Task UpdateAsync(SetupEntity setup, CancellationToken cancellationToken = default);
 
+    Task AddHistoryAsync(
+        Guid setupId,
+        string originalFileName,
+        string changeType,
+        CancellationToken cancellationToken = default);
+
     Task<SetupEntity?> FindBySha256Async(string sha256, CancellationToken cancellationToken = default);
 }

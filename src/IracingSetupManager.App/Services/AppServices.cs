@@ -37,6 +37,7 @@ public sealed class AppServices
         AutomaticMonitoring = new AutomaticMonitoringSettingsService(ContextFactory);
         UpdatePreferences = new UpdatePreferenceService(ContextFactory);
         SynchronizationSelection = new SynchronizationSelectionSettingsService(ContextFactory);
+        IracingTeam = new IracingTeamSettingsService(ContextFactory);
         Updates = new GitHubReleaseUpdateService(new HttpClient { Timeout = TimeSpan.FromMinutes(10) }, installerCache);
         UpdateInstaller = new UpdateInstallerLauncher(installerCache);
 
@@ -78,6 +79,7 @@ public sealed class AppServices
     public ImportMonitoringService Monitoring { get; }
     public UpdatePreferenceService UpdatePreferences { get; }
     public SynchronizationSelectionSettingsService SynchronizationSelection { get; }
+    public IracingTeamSettingsService IracingTeam { get; }
     public IUpdateService Updates { get; }
     public UpdateInstallerLauncher UpdateInstaller { get; }
 }

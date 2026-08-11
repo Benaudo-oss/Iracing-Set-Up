@@ -18,6 +18,25 @@ public sealed partial class HistoryPage : Page
 
     private void OnSearchChanged(object sender, TextChangedEventArgs e) => ApplySearch();
 
+    private async void OnClearHistoryClick(object sender, RoutedEventArgs e)
+    {
+        var confirmation = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Effacer l’historique ?",
+            Content = "Seul l’historique enregistré par l’application sera supprimé. Vos setups et vos fichiers seront conservés.",
+            PrimaryButtonText = "Effacer",
+            CloseButtonText = "Annuler",
+            DefaultButton = ContentDialogButton.Close
+        };
+
+        if (await confirmation.ShowAsync() != ContentDialogResult.Primary) return;
+
+        await App.Services.QueryService.ClearHistoryAsync();
+        _history = [];
+        ApplySearch();
+    }
+
     private void ApplySearch()
     {
         var search = HistorySearch.Text.Trim();
@@ -29,4 +48,3 @@ public sealed partial class HistoryPage : Page
         EmptyState.Visibility = filtered.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 }
-

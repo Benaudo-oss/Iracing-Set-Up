@@ -5,6 +5,13 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 0.2.7.23
+
+- Ajoute la copie vers iRacing Team avec un nom de Team Garage61 persistant et un historique indépendant.
+- Ajoute au tableau de bord les copies Team et les sept fournisseurs réellement disponibles.
+- Affiche les dix dernières activités en boucle et enregistre les imports et copies iRacing/Team.
+- Ajoute un bouton sécurisé pour effacer uniquement l’historique de l’application.
+
 ### Ajouté
 
 - Correction du démarrage WinUI, du tableau de bord SQLite et ajout d’un journal de diagnostic expurgé.

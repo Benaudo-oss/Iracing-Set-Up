@@ -1,5 +1,6 @@
 using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Database;
+using IracingSetupManager.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 using IracingSetupManager.Infrastructure.Files;
 using IracingSetupManager.Infrastructure.Files.Import;
@@ -12,6 +13,12 @@ public enum IracingConflictChoice
     None,
     Skip,
     KeepBoth
+}
+
+public enum IracingCopyTarget
+{
+    Personal,
+    Team
 }
 
 public sealed record IracingCopyPlanItem(
@@ -42,6 +49,7 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
         IReadOnlyCollection<Guid> setupIds,
         string iracingSetupsFolder,
         IReadOnlyDictionary<Guid, int>? weekOverrides = null,
+        string? teamName = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(iracingSetupsFolder);
@@ -82,7 +90,12 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
                 "Week" => weekFolder,
                 _ => throw new InvalidOperationException("L’arborescence de copie iRacing est invalide.")
             });
-            var destination = SecurePath.EnsureChildOf(Path.Combine([root, carFolder, "Garage 61", .. dynamicSegments, setup.OriginalFileName]), root);
+            var fixedSegments = string.IsNullOrWhiteSpace(teamName)
+                ? new[] { root, carFolder, "Garage 61" }
+                : new[] { root, carFolder, $"Garage 61 - {SanitizeSegment(teamName)}" };
+            var destination = SecurePath.EnsureChildOf(
+                Path.Combine([.. fixedSegments, .. dynamicSegments, setup.OriginalFileName]),
+                root);
             return new IracingCopyPlanItem(
                 setup.Id,
                 setup.OriginalFileName,
@@ -97,6 +110,7 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
     public async Task<IracingCopyResult> ExecuteAsync(
         IReadOnlyCollection<IracingCopyPlanItem> plan,
         bool confirmed,
+        IracingCopyTarget target = IracingCopyTarget.Personal,
         CancellationToken cancellationToken = default)
     {
         if (!confirmed)
@@ -166,8 +180,26 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
             var copiedAt = DateTimeOffset.UtcNow;
             foreach (var setup in copiedSetups)
             {
-                setup.LastCopiedToIracingAtUtc = copiedAt;
-                setup.IracingCopyCount++;
+                if (target == IracingCopyTarget.Team)
+                {
+                    setup.LastCopiedToIracingTeamAtUtc = copiedAt;
+                    setup.IracingTeamCopyCount++;
+                }
+                else
+                {
+                    setup.LastCopiedToIracingAtUtc = copiedAt;
+                    setup.IracingCopyCount++;
+                }
+
+                context.SetupChangeHistory.Add(new SetupChangeHistoryEntity
+                {
+                    SetupId = setup.Id,
+                    OriginalFileName = setup.OriginalFileName,
+                    ChangeType = target == IracingCopyTarget.Team
+                        ? "Copie vers iRacing Team"
+                        : "Copie vers iRacing",
+                    ChangedAtUtc = copiedAt
+                });
             }
             await context.SaveChangesAsync(cancellationToken);
         }

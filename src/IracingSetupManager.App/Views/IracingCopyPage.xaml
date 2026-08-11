@@ -5,14 +5,14 @@
     <Grid Padding="32" RowSpacing="16">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
         <StackPanel Spacing="4">
-            <TextBlock FontSize="32" FontWeight="SemiBold" Text="Copie vers iRacing" />
-            <TextBlock Opacity="0.65" Text="Prévisualisez chaque destination avant de copier les setups validés." />
+            <TextBlock x:Name="PageTitle" FontSize="32" FontWeight="SemiBold" Text="Copie vers iRacing" />
+            <TextBlock x:Name="PageSubtitle" Opacity="0.65" Text="Prévisualisez chaque destination avant de copier les setups validés." />
         </StackPanel>
         <Grid Grid.Row="1" ColumnSpacing="10">
             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <TextBox x:Name="FolderPathBox" Header="Dossier officiel des setups iRacing" IsReadOnly="True" PlaceholderText="Documents\iRacing\setups" />
-            <Button Grid.Column="1" VerticalAlignment="Bottom" Content="Détecter" Click="OnDetectFolder" />
-            <Button Grid.Column="2" VerticalAlignment="Bottom" Content="Sélectionner" Click="OnPickFolder" />
+            <Button x:Name="DetectFolderButton" Grid.Column="1" VerticalAlignment="Bottom" Content="Détecter" Click="OnDetectFolder" />
+            <Button x:Name="PickFolderButton" Grid.Column="2" VerticalAlignment="Bottom" Content="Sélectionner" Click="OnPickFolder" />
         </Grid>
         <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10">
             <Button Content="Tout sélectionner" Click="OnSelectAll" />

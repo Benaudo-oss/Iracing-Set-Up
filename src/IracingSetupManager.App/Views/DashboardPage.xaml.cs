@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using IracingSetupManager.Infrastructure.Settings;
 
 namespace IracingSetupManager.App.Views;
 
@@ -15,7 +16,13 @@ public sealed partial class DashboardPage : Page
         ReviewText.Text = statistics.ToReview.ToString();
         ValidatedText.Text = statistics.Validated.ToString();
         Garage61Text.Text = statistics.SentToGarage61.ToString();
-        ProvidersText.Text = $"{statistics.ProviderCount} / 5";
+        IracingTeamText.Text = statistics.CopiedToIracingTeam.ToString();
+        ProvidersText.Text = $"{statistics.ProviderCount} / {SynchronizationSelectionSettingsService.Default.Providers.Count}";
         LastSyncText.Text = statistics.LastDownloadUtc?.ToLocalTime().ToString("g") ?? "Jamais";
+
+        var recentActivity = (await App.Services.QueryService.GetHistoryAsync()).Take(10).ToList();
+        RecentActivityList.ItemsSource = recentActivity;
+        RecentActivityList.Visibility = recentActivity.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        NoRecentActivityText.Visibility = recentActivity.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 }

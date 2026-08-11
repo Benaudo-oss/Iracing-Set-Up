@@ -8,6 +8,7 @@ namespace IracingSetupManager.App;
 
 public sealed partial class MainWindow : Window
 {
+    private object? currentNavigationParameter;
     public MainWindow()
     {
         InitializeComponent();
@@ -37,24 +38,27 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        Navigate(tag switch
+        var pageType = tag switch
         {
             "library" => typeof(LibraryPage),
             "synchronization" => typeof(SynchronizationPage),
             "iracing-copy" => typeof(IracingCopyPage),
+            "iracing-team-copy" => typeof(IracingCopyPage),
             "review" => typeof(ReviewPage),
             "history" => typeof(HistoryPage),
             "updates" => typeof(UpdatesPage),
             "about" => typeof(AboutPage),
             _ => typeof(DashboardPage)
-        });
+        };
+        Navigate(pageType, tag == "iracing-team-copy" ? "team" : null);
     }
 
-    private void Navigate(Type pageType)
+    private void Navigate(Type pageType, object? parameter = null)
     {
-        if (ContentFrame.CurrentSourcePageType != pageType)
+        if (ContentFrame.CurrentSourcePageType != pageType || !Equals(currentNavigationParameter, parameter))
         {
-            ContentFrame.Navigate(pageType);
+            currentNavigationParameter = parameter;
+            ContentFrame.Navigate(pageType, parameter);
         }
     }
 }

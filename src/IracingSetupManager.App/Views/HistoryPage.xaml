@@ -5,7 +5,11 @@
     Loaded="OnLoaded">
     <Grid Padding="32" RowSpacing="18">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /></Grid.RowDefinitions>
-        <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Historique et erreurs" /><TextBlock Opacity="0.65" Text="Validations, refus, notes et commentaires" /></StackPanel>
+        <Grid ColumnSpacing="16">
+            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Historique et erreurs" /><TextBlock Opacity="0.65" Text="Validations, refus, notes et commentaires" /></StackPanel>
+            <Button Grid.Column="1" VerticalAlignment="Center" Content="Effacer l’historique de l’application" Click="OnClearHistoryClick" />
+        </Grid>
         <TextBox x:Name="HistorySearch" Grid.Row="1" PlaceholderText="Rechercher un fichier ou une action…" TextChanged="OnSearchChanged" />
         <Border Grid.Row="2" Padding="12" Background="#FF20242B" CornerRadius="10">
             <Grid>
@@ -17,4 +21,3 @@
         </Border>
     </Grid>
 </Page>
-

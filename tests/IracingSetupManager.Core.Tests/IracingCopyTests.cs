@@ -59,6 +59,30 @@ public sealed class IracingCopyTests
     }
 
     [Fact]
+    public async Task TeamCopyUsesExactGarage61TeamFolderAndSeparateHistory()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var plan = await environment.Service.CreatePlanAsync(
+            [environment.ValidatedId],
+            environment.Target,
+            new Dictionary<Guid, int> { [environment.ValidatedId] = 7 },
+            teamName: "BENAUDO Racing");
+
+        Assert.EndsWith(
+            Path.Combine("bmwlmdh", "Garage 61 - BENAUDO Racing", "2026_S3", "Monza", "Grid & Go", "Week 07", "race.sto"),
+            plan[0].DestinationPath);
+
+        await environment.Service.ExecuteAsync(plan, true, IracingCopyTarget.Team);
+
+        await using var context = environment.Factory.Create();
+        var setup = (await context.Setups.FindAsync(environment.ValidatedId))!;
+        Assert.Equal(0, setup.IracingCopyCount);
+        Assert.Null(setup.LastCopiedToIracingAtUtc);
+        Assert.Equal(1, setup.IracingTeamCopyCount);
+        Assert.NotNull(setup.LastCopiedToIracingTeamAtUtc);
+    }
+
+    [Fact]
     public async Task ConflictMustBeResolvedAndKeepBothNeverOverwrites()
     {
         await using var environment = await TestEnvironment.CreateAsync();

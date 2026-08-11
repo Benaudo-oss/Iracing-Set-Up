@@ -68,9 +68,11 @@ public sealed class DatabaseTests
         Assert.Null(empty.LastDownloadUtc);
 
         var setup = CreateSetup();
+        setup.LastCopiedToIracingTeamAtUtc = DateTimeOffset.UtcNow;
         await new SetupRepository(environment.Factory).AddAsync(setup);
         var populated = await queries.GetDashboardStatisticsAsync();
         Assert.Equal(1, populated.Total);
+        Assert.Equal(1, populated.CopiedToIracingTeam);
         Assert.Equal(setup.DownloadedAtUtc, populated.LastDownloadUtc);
     }
 
@@ -103,6 +105,21 @@ public sealed class DatabaseTests
         Assert.Equal(newer.Id, all[0].Id);
         Assert.Equal(2, history.Count);
         Assert.True(history[0].ChangedAtUtc >= history[1].ChangedAtUtc);
+    }
+
+    [Fact]
+    public async Task ClearingApplicationHistoryKeepsSetups()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var setup = CreateSetup();
+        setup.Status = SetupStatus.AVerifier;
+        await new SetupRepository(environment.Factory).AddAsync(setup);
+        await new SetupValidationService(environment.Factory).ValidateAsync(setup.Id);
+
+        var queries = new SetupQueryService(environment.Factory);
+        Assert.Equal(1, await queries.ClearHistoryAsync());
+        Assert.Empty(await queries.GetHistoryAsync());
+        Assert.Single(await queries.GetAllAsync());
     }
 
     [Fact]
