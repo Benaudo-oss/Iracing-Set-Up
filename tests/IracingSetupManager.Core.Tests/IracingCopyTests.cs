@@ -69,7 +69,7 @@ public sealed class IracingCopyTests
             teamName: "BENAUDO Racing");
 
         Assert.EndsWith(
-            Path.Combine("bmwlmdh", "Garage 61 - BENAUDO Racing", "2026_S3", "Monza", "GNG", "Week 07", "race.sto"),
+            Path.Combine("bmwlmdh", "Garage 61 - BENAUDO Racing", "2026_S3", "Monza", "GNG", "week_7", "race.sto"),
             plan[0].DestinationPath);
 
         await environment.Service.ExecuteAsync(plan, true, IracingCopyTarget.Team);
@@ -80,6 +80,23 @@ public sealed class IracingCopyTests
         Assert.Null(setup.LastCopiedToIracingAtUtc);
         Assert.Equal(1, setup.IracingTeamCopyCount);
         Assert.NotNull(setup.LastCopiedToIracingTeamAtUtc);
+    }
+
+    [Theory]
+    [InlineData(1, "week_1")]
+    [InlineData(5, "week_5")]
+    [InlineData(9, "week_9")]
+    [InlineData(12, "week_12")]
+    public async Task TeamCopyUsesGarage61WeekFolderFormat(int week, string expectedFolder)
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var plan = await environment.Service.CreatePlanAsync(
+            [environment.ValidatedId],
+            environment.Target,
+            new Dictionary<Guid, int> { [environment.ValidatedId] = week },
+            teamName: "BENAUDO Racing");
+
+        Assert.Contains(Path.Combine("GNG", expectedFolder, "race.sto"), plan[0].DestinationPath);
     }
 
     [Fact]

@@ -82,7 +82,9 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
             var carFolder = SetupMetadataAnalyzer.ResolveIracingFolderName(setup.Car, availableCarFolders)
                 ?? SanitizeSegment(setup.Car);
             var season = SanitizeSegment(setup.Season ?? "Saison inconnue").Replace(' ', '_');
-            var weekFolder = week is null ? "Week inconnue" : $"Week {week:00}";
+            var weekFolder = week is null
+                ? (isTeamCopy ? "week_inconnue" : "Week inconnue")
+                : (isTeamCopy ? $"week_{week}" : $"Week {week:00}");
             var dynamicSegments = layout.Select(element => element switch
             {
                 "Season" => season,

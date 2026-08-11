@@ -5,6 +5,10 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 0.2.7.26
+
+- Utilise le format `week_X` pour les dossiers de semaine de la copie iRacing Team.
+
 # 0.2.7.25
 
 - Normalise les dossiers fournisseurs de la copie iRacing Team avec les codes GNG, GO, HYMO, SRS, VRS et CDA.
