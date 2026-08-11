@@ -69,7 +69,7 @@ public sealed class IracingCopyTests
             teamName: "BENAUDO Racing");
 
         Assert.EndsWith(
-            Path.Combine("bmwlmdh", "Garage 61 - BENAUDO Racing", "2026_S3", "Monza", "Grid & Go", "Week 07", "race.sto"),
+            Path.Combine("bmwlmdh", "Garage 61 - BENAUDO Racing", "2026_S3", "Monza", "GNG", "Week 07", "race.sto"),
             plan[0].DestinationPath);
 
         await environment.Service.ExecuteAsync(plan, true, IracingCopyTarget.Team);

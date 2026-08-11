@@ -71,6 +71,7 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
 
         return setups.Select(setup =>
         {
+            var isTeamCopy = !string.IsNullOrWhiteSpace(teamName);
             var week = ReadWeek(setup.OriginalFileName);
             if (weekOverrides?.TryGetValue(setup.Id, out var overriddenWeek) == true)
             {
@@ -86,13 +87,15 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
             {
                 "Season" => season,
                 "Track" => SanitizeSegment(setup.Track),
-                "Provider" => SanitizeSegment(setup.Provider),
+                "Provider" => isTeamCopy
+                    ? GetTeamProviderFolder(setup.Provider)
+                    : SanitizeSegment(setup.Provider),
                 "Week" => weekFolder,
                 _ => throw new InvalidOperationException("L’arborescence de copie iRacing est invalide.")
             });
-            var fixedSegments = string.IsNullOrWhiteSpace(teamName)
+            var fixedSegments = !isTeamCopy
                 ? new[] { root, carFolder, "Garage 61" }
-                : new[] { root, carFolder, $"Garage 61 - {SanitizeSegment(teamName)}" };
+                : new[] { root, carFolder, $"Garage 61 - {SanitizeSegment(teamName!)}" };
             var destination = SecurePath.EnsureChildOf(
                 Path.Combine([.. fixedSegments, .. dynamicSegments, setup.OriginalFileName]),
                 root);
@@ -221,6 +224,17 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
             }
         }
     }
+
+    private static string GetTeamProviderFolder(string provider) => provider switch
+    {
+        "Grid & Go" => "GNG",
+        "GO Setups" => "GO",
+        "HYMO" => "HYMO",
+        "SRS" => "SRS",
+        "VRS" => "VRS",
+        "Coach Dave Academy (CDA)" => "CDA",
+        _ => SanitizeSegment(provider)
+    };
 
     private static string SanitizeSegment(string value)
     {

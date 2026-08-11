@@ -5,6 +5,10 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 0.2.7.25
+
+- Normalise les dossiers fournisseurs de la copie iRacing Team avec les codes GNG, GO, HYMO, SRS, VRS et CDA.
+
 # 0.2.7.24
 
 - Reconnaît `ARX` comme alias de l’Acura ARX-06 GTP.
