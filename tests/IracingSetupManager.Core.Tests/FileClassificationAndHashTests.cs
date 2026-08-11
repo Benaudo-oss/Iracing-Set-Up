@@ -78,6 +78,8 @@ public sealed class FileClassificationAndHashTests
     [InlineData("26S3-W07-GnG-Monza-BMWGTP-R-Safe.sto", "Grid & Go", "BMW M Hybrid V8", "GTP", "Monza", "Race Safe")]
     [InlineData("SRS_26S3_M8_Mosport_R.sto", "SRS", "BMW M8 GTE", "GTE", "Canadian Tire Motorsport Park", "Race")]
     [InlineData("SRS_26S3_Caddy_Mosport_R.sto", "SRS", "Cadillac V-Series.R", "GTP", "Canadian Tire Motorsport Park", "Race")]
+    [InlineData("P1Doks_26S3_M4GT3_LeMans_R.sto", "P1Doks", "BMW M4 GT3", "GT3", "Le Mans", "Race")]
+    [InlineData("CDA_26S3_M4GT3_LeMans_R.sto", "Coach Dave Academy (CDA)", "BMW M4 GT3", "GT3", "Le Mans", "Race")]
     public void MetadataAnalyzerUnderstandsKnownProviderNamingConventions(
         string fileName,
         string provider,

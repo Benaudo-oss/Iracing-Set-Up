@@ -4,13 +4,19 @@ using IracingSetupManager.Providers.GridAndGo;
 using IracingSetupManager.Providers.Hymo;
 using IracingSetupManager.Providers.Vrs;
 using IracingSetupManager.Providers.Srs;
+using IracingSetupManager.Providers.P1Doks;
+using IracingSetupManager.Providers.CoachDaveAcademy;
 using Xunit;
 
 namespace IracingSetupManager.Core.Tests;
 
 public sealed class ConcreteProviderTests
 {
-    public static TheoryData<ProviderId> Providers => new() { ProviderId.Hymo, ProviderId.GoSetups, ProviderId.GridAndGo, ProviderId.Vrs, ProviderId.Srs };
+    public static TheoryData<ProviderId> Providers => new()
+    {
+        ProviderId.Hymo, ProviderId.GoSetups, ProviderId.GridAndGo, ProviderId.Vrs,
+        ProviderId.Srs, ProviderId.P1Doks, ProviderId.CoachDaveAcademy
+    };
 
     [Theory]
     [MemberData(nameof(Providers))]
@@ -23,7 +29,9 @@ public sealed class ConcreteProviderTests
             ProviderId.GoSetups => new GoSetupProvider(client),
             ProviderId.GridAndGo => new GridAndGoSetupProvider(client),
             ProviderId.Vrs => new VrsSetupProvider(client),
-            _ => new SrsSetupProvider(client)
+            ProviderId.Srs => new SrsSetupProvider(client),
+            ProviderId.P1Doks => new P1DoksSetupProvider(client),
+            _ => new CoachDaveAcademySetupProvider(client)
         };
         var request = new ProviderSyncRequest(new HashSet<string> { "GT3", "GTP" }, @"C:\Archive");
         var result = await provider.SynchronizeAsync(request);

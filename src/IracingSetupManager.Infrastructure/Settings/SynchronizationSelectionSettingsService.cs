@@ -10,7 +10,7 @@ public sealed class SynchronizationSelectionSettingsService(ISetupDbContextFacto
 {
     private const string SettingKey = "SynchronizationSelection";
     public static SynchronizationSelection Default { get; } = new(
-        ["HYMO", "GO Setups", "Grid & Go", "VRS", "SRS"],
+        ["HYMO", "GO Setups", "Grid & Go", "VRS", "SRS", "P1Doks", "Coach Dave Academy (CDA)"],
         ["GT3", "GT4", "GTE", "LMP2", "GTP", "PCUP"]);
 
     public async Task<SynchronizationSelection> GetAsync(CancellationToken cancellationToken = default)

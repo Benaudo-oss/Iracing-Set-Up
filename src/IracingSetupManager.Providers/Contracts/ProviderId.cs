@@ -6,5 +6,7 @@ public enum ProviderId
     GoSetups,
     GridAndGo,
     Vrs,
-    Srs
+    Srs,
+    P1Doks,
+    CoachDaveAcademy
 }

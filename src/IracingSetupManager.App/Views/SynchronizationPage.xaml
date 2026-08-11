@@ -18,6 +18,8 @@
                         <CheckBox x:Name="GngProvider" Content="Grid &amp; Go" />
                         <CheckBox x:Name="VrsProvider" Content="VRS" />
                         <CheckBox x:Name="SrsProvider" Content="SRS" />
+                        <CheckBox x:Name="P1DoksProvider" Content="P1Doks" />
+                        <CheckBox x:Name="CdaProvider" Content="Coach Dave Academy (CDA)" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="1" Padding="20" Background="#FF20242B" CornerRadius="10">

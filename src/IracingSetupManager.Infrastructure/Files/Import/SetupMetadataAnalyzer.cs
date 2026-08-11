@@ -387,6 +387,17 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
             {
                 return "SRS";
             }
+
+            if (token.Contains("P1DOKS", StringComparison.OrdinalIgnoreCase))
+            {
+                return "P1Doks";
+            }
+
+            if (token.Equals("CDA", StringComparison.OrdinalIgnoreCase) ||
+                token.Contains("COACHDAVEACADEMY", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Coach Dave Academy (CDA)";
+            }
         }
 
         return null;

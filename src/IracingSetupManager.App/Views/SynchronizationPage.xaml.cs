@@ -53,7 +53,8 @@ public sealed partial class SynchronizationPage : Page
     private SynchronizationSelection ReadSelection() => new(
         SelectedValues(
             (HymoProvider, "HYMO"), (GoProvider, "GO Setups"), (GngProvider, "Grid & Go"),
-            (VrsProvider, "VRS"), (SrsProvider, "SRS")),
+            (VrsProvider, "VRS"), (SrsProvider, "SRS"), (P1DoksProvider, "P1Doks"),
+            (CdaProvider, "Coach Dave Academy (CDA)")),
         SelectedValues(
             (Gt3Category, "GT3"), (Gt4Category, "GT4"), (GteCategory, "GTE"),
             (Lmp2Category, "LMP2"), (GtpCategory, "GTP"), (PcupCategory, "PCUP")));
@@ -61,7 +62,8 @@ public sealed partial class SynchronizationPage : Page
     private void ApplySelection(SynchronizationSelection selection)
     {
         SetChecked(selection.Providers, (HymoProvider, "HYMO"), (GoProvider, "GO Setups"),
-            (GngProvider, "Grid & Go"), (VrsProvider, "VRS"), (SrsProvider, "SRS"));
+            (GngProvider, "Grid & Go"), (VrsProvider, "VRS"), (SrsProvider, "SRS"),
+            (P1DoksProvider, "P1Doks"), (CdaProvider, "Coach Dave Academy (CDA)"));
         SetChecked(selection.Categories, (Gt3Category, "GT3"), (Gt4Category, "GT4"),
             (GteCategory, "GTE"), (Lmp2Category, "LMP2"), (GtpCategory, "GTP"), (PcupCategory, "PCUP"));
     }

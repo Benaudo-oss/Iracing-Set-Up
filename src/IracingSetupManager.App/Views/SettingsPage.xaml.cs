@@ -24,6 +24,8 @@ public sealed partial class SettingsPage : Page
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "Grid & Go"));
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "VRS"));
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "SRS"));
+        SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "P1Doks"));
+        SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "Coach Dave Academy (CDA)"));
         SetPathLayout(await App.Services.IracingPathLayout.GetAsync());
     }
 
@@ -79,6 +81,8 @@ public sealed partial class SettingsPage : Page
         AddProviderIfEnabled(folders, GngToggle, GngPathBox, "Grid & Go");
         AddProviderIfEnabled(folders, VrsToggle, VrsPathBox, "VRS");
         AddProviderIfEnabled(folders, SrsToggle, SrsPathBox, "SRS");
+        AddProviderIfEnabled(folders, P1DoksToggle, P1DoksPathBox, "P1Doks");
+        AddProviderIfEnabled(folders, CdaToggle, CdaPathBox, "Coach Dave Academy (CDA)");
         await App.Services.MonitoredFolders.SaveAsync(folders);
         await App.Services.AutomaticMonitoring.SaveAsync(AutomaticMonitoringToggle.IsOn);
         await App.Services.IracingPathLayout.SaveAsync(pathLayout.Select(item => item.Key).ToArray());
@@ -170,6 +174,8 @@ public sealed partial class SettingsPage : Page
             "Grid & Go" => (GngPathBox, GngToggle),
             "VRS" => (VrsPathBox, VrsToggle),
             "SRS" => (SrsPathBox, SrsToggle),
+            "P1Doks" => (P1DoksPathBox, P1DoksToggle),
+            "Coach Dave Academy (CDA)" => (CdaPathBox, CdaToggle),
             _ => throw new InvalidOperationException("Fournisseur inconnu.")
         };
         textBox.Text = folder.Path;
