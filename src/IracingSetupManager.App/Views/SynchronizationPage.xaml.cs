@@ -57,7 +57,7 @@ public sealed partial class SynchronizationPage : Page
             (CdaProvider, "Coach Dave Academy (CDA)")),
         SelectedValues(
             (Gt3Category, "GT3"), (Gt4Category, "GT4"), (GteCategory, "GTE"),
-            (Lmp2Category, "LMP2"), (GtpCategory, "GTP"), (PcupCategory, "PCUP")));
+            (Lmp2Category, "LMP2"), (Lmp3Category, "LMP3"), (GtpCategory, "GTP"), (PcupCategory, "PCUP")));
 
     private void ApplySelection(SynchronizationSelection selection)
     {
@@ -65,7 +65,8 @@ public sealed partial class SynchronizationPage : Page
             (GngProvider, "Grid & Go"), (VrsProvider, "VRS"), (SrsProvider, "SRS"),
             (P1DoksProvider, "P1Doks"), (CdaProvider, "Coach Dave Academy (CDA)"));
         SetChecked(selection.Categories, (Gt3Category, "GT3"), (Gt4Category, "GT4"),
-            (GteCategory, "GTE"), (Lmp2Category, "LMP2"), (GtpCategory, "GTP"), (PcupCategory, "PCUP"));
+            (GteCategory, "GTE"), (Lmp2Category, "LMP2"), (Lmp3Category, "LMP3"),
+            (GtpCategory, "GTP"), (PcupCategory, "PCUP"));
     }
 
     private static IReadOnlyList<string> SelectedValues(params (CheckBox Box, string Value)[] items) =>

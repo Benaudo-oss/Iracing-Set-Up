@@ -8,6 +8,54 @@ namespace IracingSetupManager.Core.Tests;
 
 public sealed class FileClassificationAndHashTests
 {
+    public static TheoryData<string, string, string> OfficialIracingCarFolders => new()
+    {
+        { "GT3", "Acura NSX GT3 EVO 22", "acuransxevo22gt3" },
+        { "GT3", "Aston Martin Vantage GT3 EVO", "amvantageevogt3" },
+        { "GT3", "Audi R8 LMS EVO II GT3", "audir8lmsevo2gt3" },
+        { "GT3", "BMW M4 GT3", "bmwm4gt3" },
+        { "GT3", "Chevrolet Corvette Z06 GT3.R", "chevyvettez06rgt3" },
+        { "GT3", "Ferrari 296 GT3", "ferrari296gt3" },
+        { "GT3", "Ford Mustang GT3", "fordmustanggt3" },
+        { "GT3", "Lamborghini Huracán GT3 EVO", "lamborghinievogt3" },
+        { "GT3", "McLaren 720S GT3 EVO", "mclaren720sgt3" },
+        { "GT3", "Mercedes-AMG GT3 2020", "mercedesamgevogt3" },
+        { "GT3", "Porsche 911 GT3 R (992)", "porsche992rgt3" },
+        { "GT4", "Aston Martin Vantage GT4", "amvantagegt4" },
+        { "GT4", "BMW M4 G82 GT4", "bmwm4evogt4" },
+        { "GT4", "Ford Mustang GT4", "fordmustanggt4" },
+        { "GT4", "McLaren 570S GT4", "mclaren570sgt4" },
+        { "GT4", "Mercedes-AMG GT4", "mercedesamggt4" },
+        { "GT4", "Porsche 718 Cayman GT4 Clubsport MR", "porsche718gt4" },
+        { "GTE", "BMW M8 GTE", "bmwm8gte" },
+        { "GTE", "Chevrolet Corvette C8.R GTE", "c8rvettegte" },
+        { "GTE", "Ferrari 488 GTE", "ferrari488gte" },
+        { "GTE", "Ford GTE", "fordgt2017" },
+        { "GTE", "Porsche 911 RSR", "porsche991rsr" },
+        { "GTP", "Acura ARX-06 GTP", "acuraarx06gtp" },
+        { "GTP", "BMW M Hybrid V8", "bmwlmdh" },
+        { "GTP", "Cadillac V-Series.R GTP", "cadillacvseriesgtp" },
+        { "GTP", "Porsche 963 GTP", "porsche963gtp" },
+        { "GTP", "Ferrari 499P", "ferrari499p" },
+        { "LMP2", "Dallara P217", "dallarap217" },
+        { "LMP3", "Ligier JS P320", "ligierjsp320" },
+        { "PCUP", "Porsche 911 Cup (992.2)", "porsche9922cup" }
+    };
+
+    [Theory]
+    [MemberData(nameof(OfficialIracingCarFolders))]
+    public void OfficialCarReferenceDrivesDetectionAndIracingFolder(
+        string category,
+        string car,
+        string folder)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(Path.Combine("Provider", folder, "setup.sto"));
+
+        Assert.Equal(car, metadata.Car);
+        Assert.Equal(category, metadata.Category);
+        Assert.Equal(folder, SetupMetadataAnalyzer.ResolveIracingFolderName(car, []));
+    }
+
     [Fact]
     public void ClassificationUsesSeasonTrackCarAndProvider()
     {
@@ -32,7 +80,7 @@ public sealed class FileClassificationAndHashTests
     [Fact]
     public void ClassificationUsesTheIracingFolderNameForPorscheCupGen2()
     {
-        var metadata = new SetupMetadata("VRS", "PCUP", "Porsche 911 GT3 Cup (992) Gen 2", "Watkins Glen", null, "2026 S3", "Race");
+        var metadata = new SetupMetadata("VRS", "PCUP", "Porsche 911 Cup (992.2)", "Watkins Glen", null, "2026 S3", "Race");
 
         var result = new ArchivePathBuilder().BuildDirectory(Path.GetTempPath(), metadata);
 
@@ -71,13 +119,13 @@ public sealed class FileClassificationAndHashTests
     }
 
     [Theory]
-    [InlineData("GO_26S3_GTS_720SGT3_LeMans_R_Safe.sto", "GO Setups", "McLaren 720S GT3", "GT3", "Le Mans", "Race Safe")]
+    [InlineData("GO_26S3_GTS_720SGT3_LeMans_R_Safe.sto", "GO Setups", "McLaren 720S GT3 EVO", "GT3", "Le Mans", "Race Safe")]
     [InlineData("VRS_26S3PG_M4GT3_LeMans_R1_V2.sto", "VRS", "BMW M4 GT3", "GT3", "Le Mans", "Race V2")]
-    [InlineData("HYMO_IMSA_26S3_ARX06_Fuji_WR.sto", "HYMO", "Acura ARX-06", "GTP", "Fuji", "Wet Race")]
-    [InlineData("HYMO_IMSA_26S3_NSX_Fuji_WR.sto", "HYMO", "Acura NSX GT3 Evo 22", "GT3", "Fuji", "Wet Race")]
+    [InlineData("HYMO_IMSA_26S3_ARX06_Fuji_WR.sto", "HYMO", "Acura ARX-06 GTP", "GTP", "Fuji", "Wet Race")]
+    [InlineData("HYMO_IMSA_26S3_NSX_Fuji_WR.sto", "HYMO", "Acura NSX GT3 EVO 22", "GT3", "Fuji", "Wet Race")]
     [InlineData("26S3-W07-GnG-Monza-BMWGTP-R-Safe.sto", "Grid & Go", "BMW M Hybrid V8", "GTP", "Monza", "Race Safe")]
     [InlineData("SRS_26S3_M8_Mosport_R.sto", "SRS", "BMW M8 GTE", "GTE", "Canadian Tire Motorsport Park", "Race")]
-    [InlineData("SRS_26S3_Caddy_Mosport_R.sto", "SRS", "Cadillac V-Series.R", "GTP", "Canadian Tire Motorsport Park", "Race")]
+    [InlineData("SRS_26S3_Caddy_Mosport_R.sto", "SRS", "Cadillac V-Series.R GTP", "GTP", "Canadian Tire Motorsport Park", "Race")]
     [InlineData("P1Doks_26S3_M4GT3_LeMans_R.sto", "P1Doks", "BMW M4 GT3", "GT3", "Le Mans", "Race")]
     [InlineData("CDA_26S3_M4GT3_LeMans_R.sto", "Coach Dave Academy (CDA)", "BMW M4 GT3", "GT3", "Le Mans", "Race")]
     public void MetadataAnalyzerUnderstandsKnownProviderNamingConventions(
@@ -100,12 +148,13 @@ public sealed class FileClassificationAndHashTests
 
     [Theory]
     [InlineData(@"C:\Provider\bmwm4gt3\setup.sto", "BMW M4 GT3", "GT3")]
-    [InlineData(@"C:\Provider\porsche718gt4\setup.sto", "Porsche 718 Cayman GT4 Clubsport", "GT4")]
+    [InlineData(@"C:\Provider\porsche718gt4\setup.sto", "Porsche 718 Cayman GT4 Clubsport MR", "GT4")]
     [InlineData(@"C:\Provider\bmwm8gte\setup.sto", "BMW M8 GTE", "GTE")]
     [InlineData("VRS_26S3_M8_LeMans_R.sto", "BMW M8 GTE", "GTE")]
     [InlineData(@"C:\Provider\dallarap217\setup.sto", "Dallara P217", "LMP2")]
+    [InlineData(@"C:\Provider\ligierjsp320\setup.sto", "Ligier JS P320", "LMP3")]
     [InlineData(@"C:\Provider\ferrari499p\setup.sto", "Ferrari 499P", "GTP")]
-    [InlineData(@"C:\Provider\porsche9922cup\setup.sto", "Porsche 911 GT3 Cup (992) Gen 2", "PCUP")]
+    [InlineData(@"C:\Provider\porsche9922cup\setup.sto", "Porsche 911 Cup (992.2)", "PCUP")]
     public void MetadataAnalyzerRecognizesSelectedIracingCarCatalog(string path, string car, string category)
     {
         var metadata = new SetupMetadataAnalyzer().Analyze(path);
@@ -115,10 +164,10 @@ public sealed class FileClassificationAndHashTests
     }
 
     [Theory]
-    [InlineData("26S1-W02-GnG-PCUP-Spa-Q-safe.sto", "Porsche 911 GT3 Cup (992) Gen 2")]
-    [InlineData("GO 26S1 992.2Cup Adelaide E Q.sto", "Porsche 911 GT3 Cup (992) Gen 2")]
-    [InlineData("GO 26S1 9922Cup Sebring E R.sto", "Porsche 911 GT3 Cup (992) Gen 2")]
-    [InlineData("VRS_26S1MS_PC992.2_Sebring_Q1.sto", "Porsche 911 GT3 Cup (992) Gen 2")]
+    [InlineData("26S1-W02-GnG-PCUP-Spa-Q-safe.sto", "Porsche 911 Cup (992.2)")]
+    [InlineData("GO 26S1 992.2Cup Adelaide E Q.sto", "Porsche 911 Cup (992.2)")]
+    [InlineData("GO 26S1 9922Cup Sebring E R.sto", "Porsche 911 Cup (992.2)")]
+    [InlineData("VRS_26S1MS_PC992.2_Sebring_Q1.sto", "Porsche 911 Cup (992.2)")]
     [InlineData("VRS_26S1JF_992Cup_Miami_Q.sto", "Porsche 911 GT3 Cup (992)")]
     public void MetadataAnalyzerRecognizesPorscheCupProviderAliases(string fileName, string expectedCar)
     {

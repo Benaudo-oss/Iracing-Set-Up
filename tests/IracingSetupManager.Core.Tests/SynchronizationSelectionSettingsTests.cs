@@ -7,6 +7,12 @@ namespace IracingSetupManager.Core.Tests;
 public sealed class SynchronizationSelectionSettingsTests
 {
     [Fact]
+    public void DefaultSelectionIncludesLmp3()
+    {
+        Assert.Contains("LMP3", SynchronizationSelectionSettingsService.Default.Categories);
+    }
+
+    [Fact]
     public async Task SelectionPersistsUncheckedProvidersAndCategories()
     {
         var root = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "SyncSelectionTests", Guid.NewGuid().ToString("N"))).FullName;

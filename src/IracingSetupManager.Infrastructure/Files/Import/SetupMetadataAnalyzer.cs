@@ -6,17 +6,17 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
 {
     private const string Unknown = "À identifier";
 
-    private static readonly string[] Categories = ["GT4", "GT3", "GTE", "LMP2", "GTP", "PCUP"];
+    private static readonly string[] Categories = ["GT4", "GT3", "GTE", "LMP2", "LMP3", "GTP", "PCUP"];
     private static readonly string[] SetupTypes =
         ["Endurance", "Aggressive", "Qualifying", "Quali", "Sprint", "Race", "Wet", "Safe"];
     private static readonly IReadOnlyDictionary<string, (string Car, string Category)> Cars =
         new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase)
         {
-            ["acuransxevo22gt3"] = ("Acura NSX GT3 Evo 22", "GT3"),
-            ["NSX"] = ("Acura NSX GT3 Evo 22", "GT3"),
-            ["amvantageevogt3"] = ("Aston Martin Vantage GT3 Evo", "GT3"),
+            ["acuransxevo22gt3"] = ("Acura NSX GT3 EVO 22", "GT3"),
+            ["NSX"] = ("Acura NSX GT3 EVO 22", "GT3"),
+            ["amvantageevogt3"] = ("Aston Martin Vantage GT3 EVO", "GT3"),
             ["audir8gt3"] = ("Audi R8 LMS GT3", "GT3"),
-            ["audir8lmsevo2gt3"] = ("Audi R8 LMS Evo II GT3", "GT3"),
+            ["audir8lmsevo2gt3"] = ("Audi R8 LMS EVO II GT3", "GT3"),
             ["bmwm4gt3"] = ("BMW M4 GT3", "GT3"),
             ["bmwz4gt3"] = ("BMW Z4 GT3", "GT3"),
             ["chevyvettez06rgt3"] = ("Chevrolet Corvette Z06 GT3.R", "GT3"),
@@ -29,23 +29,23 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
             ["ferrarievogt3"] = ("Ferrari 488 GT3 Evo", "GT3"),
             ["fordgtgt3"] = ("Ford GT GT3", "GT3"),
             ["fordmustanggt3"] = ("Ford Mustang GT3", "GT3"),
-            ["lamborghinievogt3"] = ("Lamborghini Huracán GT3 Evo", "GT3"),
-            ["mclaren720sgt3"] = ("McLaren 720S GT3", "GT3"),
+            ["lamborghinievogt3"] = ("Lamborghini Huracán GT3 EVO", "GT3"),
+            ["mclaren720sgt3"] = ("McLaren 720S GT3 EVO", "GT3"),
             ["mclarenmp4"] = ("McLaren MP4-12C GT3", "GT3"),
-            ["mercedesamgevogt3"] = ("Mercedes-AMG GT3 Evo", "GT3"),
+            ["mercedesamgevogt3"] = ("Mercedes-AMG GT3 2020", "GT3"),
             ["mercedesamggt3"] = ("Mercedes-AMG GT3", "GT3"),
             ["porsche911rgt3"] = ("Porsche 911 GT3 R", "GT3"),
             ["porsche992rgt3"] = ("Porsche 911 GT3 R (992)", "GT3"),
-            ["720SGT3"] = ("McLaren 720S GT3", "GT3"),
+            ["720SGT3"] = ("McLaren 720S GT3 EVO", "GT3"),
             ["M4GT3"] = ("BMW M4 GT3", "GT3"),
 
             ["amvantagegt4"] = ("Aston Martin Vantage GT4", "GT4"),
-            ["bmwm4evogt4"] = ("BMW M4 GT4 Evo", "GT4"),
+            ["bmwm4evogt4"] = ("BMW M4 G82 GT4", "GT4"),
             ["bmwm4gt4"] = ("BMW M4 GT4", "GT4"),
             ["fordmustanggt4"] = ("Ford Mustang GT4", "GT4"),
             ["mclaren570sgt4"] = ("McLaren 570S GT4", "GT4"),
             ["mercedesamggt4"] = ("Mercedes-AMG GT4", "GT4"),
-            ["porsche718gt4"] = ("Porsche 718 Cayman GT4 Clubsport", "GT4"),
+            ["porsche718gt4"] = ("Porsche 718 Cayman GT4 Clubsport MR", "GT4"),
 
             ["bmwm8gte"] = ("BMW M8 GTE", "GTE"),
             ["M8"] = ("BMW M8 GTE", "GTE"),
@@ -59,30 +59,52 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
             ["c7vettedp"] = ("Chevrolet Corvette C7 Daytona Prototype", "DP"),
             ["corvettec7dp"] = ("Chevrolet Corvette C7 Daytona Prototype", "DP"),
             ["ferrari488gte"] = ("Ferrari 488 GTE", "GTE"),
-            ["fordgt2017"] = ("Ford GT GTE", "GTE"),
+            ["fordgt2017"] = ("Ford GTE", "GTE"),
             ["porsche991rsr"] = ("Porsche 911 RSR", "GTE"),
 
             ["dallarap217"] = ("Dallara P217", "LMP2"),
             ["hpdarx01c"] = ("HPD ARX-01c", "LMP2"),
+            ["ligierjsp320"] = ("Ligier JS P320", "LMP3"),
+            ["ligierp320"] = ("Ligier JS P320", "LMP3"),
+            ["jsp320"] = ("Ligier JS P320", "LMP3"),
 
-            ["acuraarx06gtp"] = ("Acura ARX-06", "GTP"),
+            ["acuraarx06gtp"] = ("Acura ARX-06 GTP", "GTP"),
             ["bmwlmdh"] = ("BMW M Hybrid V8", "GTP"),
-            ["cadillacvseriesrgtp"] = ("Cadillac V-Series.R", "GTP"),
-            ["Caddy"] = ("Cadillac V-Series.R", "GTP"),
+            ["cadillacvseriesgtp"] = ("Cadillac V-Series.R GTP", "GTP"),
+            ["cadillacvseriesrgtp"] = ("Cadillac V-Series.R GTP", "GTP"),
+            ["Caddy"] = ("Cadillac V-Series.R GTP", "GTP"),
             ["ferrari499p"] = ("Ferrari 499P", "GTP"),
             ["nissangtpzxt"] = ("Nissan GTP ZX-T", "GTP"),
-            ["porsche963gtp"] = ("Porsche 963", "GTP"),
-            ["ARX06"] = ("Acura ARX-06", "GTP"),
+            ["porsche963gtp"] = ("Porsche 963 GTP", "GTP"),
+            ["ARX06"] = ("Acura ARX-06 GTP", "GTP"),
             ["BMWGTP"] = ("BMW M Hybrid V8", "GTP"),
 
             ["porsche911cup"] = ("Porsche 911 GT3 Cup", "PCUP"),
             ["porsche992cup"] = ("Porsche 911 GT3 Cup (992)", "PCUP"),
             ["992Cup"] = ("Porsche 911 GT3 Cup (992)", "PCUP"),
-            ["porsche9922cup"] = ("Porsche 911 GT3 Cup (992) Gen 2", "PCUP"),
-            ["992.2Cup"] = ("Porsche 911 GT3 Cup (992) Gen 2", "PCUP"),
-            ["9922Cup"] = ("Porsche 911 GT3 Cup (992) Gen 2", "PCUP"),
-            ["PC992.2"] = ("Porsche 911 GT3 Cup (992) Gen 2", "PCUP"),
-            ["PCUP"] = ("Porsche 911 GT3 Cup (992) Gen 2", "PCUP")
+            ["porsche9922cup"] = ("Porsche 911 Cup (992.2)", "PCUP"),
+            ["992.2Cup"] = ("Porsche 911 Cup (992.2)", "PCUP"),
+            ["9922Cup"] = ("Porsche 911 Cup (992.2)", "PCUP"),
+            ["PC992.2"] = ("Porsche 911 Cup (992.2)", "PCUP"),
+            ["PCUP"] = ("Porsche 911 Cup (992.2)", "PCUP")
+        };
+
+    private static readonly IReadOnlyDictionary<string, string> LegacyCarNames =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Acura NSX GT3 Evo 22"] = "Acura NSX GT3 EVO 22",
+            ["Aston Martin Vantage GT3 Evo"] = "Aston Martin Vantage GT3 EVO",
+            ["Audi R8 LMS Evo II GT3"] = "Audi R8 LMS EVO II GT3",
+            ["Lamborghini Huracán GT3 Evo"] = "Lamborghini Huracán GT3 EVO",
+            ["McLaren 720S GT3"] = "McLaren 720S GT3 EVO",
+            ["Mercedes-AMG GT3 Evo"] = "Mercedes-AMG GT3 2020",
+            ["BMW M4 GT4 Evo"] = "BMW M4 G82 GT4",
+            ["Porsche 718 Cayman GT4 Clubsport"] = "Porsche 718 Cayman GT4 Clubsport MR",
+            ["Ford GT GTE"] = "Ford GTE",
+            ["Acura ARX-06"] = "Acura ARX-06 GTP",
+            ["Cadillac V-Series.R"] = "Cadillac V-Series.R GTP",
+            ["Porsche 963"] = "Porsche 963 GTP",
+            ["Porsche 911 GT3 Cup (992) Gen 2"] = "Porsche 911 Cup (992.2)"
         };
 
     public static string? ResolveIracingFolderName(string car, IEnumerable<string> availableFolderNames)
@@ -91,8 +113,9 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
         ArgumentNullException.ThrowIfNull(availableFolderNames);
 
         var folders = availableFolderNames.ToList();
+        var canonicalCar = LegacyCarNames.GetValueOrDefault(car, car);
         var aliases = Cars
-            .Where(item => item.Value.Car.Equals(car, StringComparison.OrdinalIgnoreCase))
+            .Where(item => item.Value.Car.Equals(canonicalCar, StringComparison.OrdinalIgnoreCase))
             .Select(item => item.Key)
             .ToList();
         foreach (var alias in aliases)
