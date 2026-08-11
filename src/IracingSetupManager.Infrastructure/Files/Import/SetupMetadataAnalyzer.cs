@@ -76,6 +76,7 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
             ["ferrari499p"] = ("Ferrari 499P", "GTP"),
             ["nissangtpzxt"] = ("Nissan GTP ZX-T", "GTP"),
             ["porsche963gtp"] = ("Porsche 963 GTP", "GTP"),
+            ["ARX"] = ("Acura ARX-06 GTP", "GTP"),
             ["ARX06"] = ("Acura ARX-06 GTP", "GTP"),
             ["BMWGTP"] = ("BMW M Hybrid V8", "GTP"),
 

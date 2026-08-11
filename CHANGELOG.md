@@ -5,6 +5,10 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 0.2.7.24
+
+- Reconnaît `ARX` comme alias de l’Acura ARX-06 GTP.
+
 # 0.2.7.23
 
 - Ajoute la copie vers iRacing Team avec un nom de Team Garage61 persistant et un historique indépendant.
