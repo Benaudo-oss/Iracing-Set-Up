@@ -4,8 +4,9 @@ using IracingSetupManager.Infrastructure.Files.Import;
 using IracingSetupManager.Infrastructure.Files.Monitoring;
 using IracingSetupManager.Infrastructure.Settings;
 using IracingSetupManager.Infrastructure.Iracing;
-using IracingSetupManager.Infrastructure.Security;
+using IracingSetupManager.Infrastructure.Logging;
 using IracingSetupManager.Integrations.Updates;
+using Serilog;
 
 namespace IracingSetupManager.App.Services;
 
@@ -17,11 +18,19 @@ public sealed class AppServices
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "IracingSetupManager");
         var installerCache = Path.Combine(dataRoot, "Updates", "Installers");
+        var logRoot = Path.Combine(dataRoot, "Logs");
+        Directory.CreateDirectory(logRoot);
+        ApplicationLog = new SecureApplicationLog(new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .WriteTo.File(
+                Path.Combine(logRoot, "application-.log"),
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 14)
+            .CreateLogger());
         ContextFactory = new LocalSetupDbContextFactory(Path.Combine(dataRoot, "setups.db"));
         Database = new SetupDatabase(ContextFactory);
         Backups = new DatabaseBackupService(ContextFactory);
         SensitiveData = new SensitiveDataRetentionService(ContextFactory);
-        Secrets = new WindowsCredentialManagerSecretStore();
         QueryService = new SetupQueryService(ContextFactory);
         TrackCatalog = new TrackCatalogService(ContextFactory);
         var metadataAnalyzer = new SetupMetadataAnalyzer(TrackCatalog);
@@ -57,13 +66,15 @@ public sealed class AppServices
             importer,
             ArchivePaths.GetAsync,
             SynchronizationSelection);
+        Monitoring.ImportFailed += (_, exception) =>
+            ApplicationLog.Error(exception, "Échec de l’import d’un fichier surveillé");
     }
 
     public LocalSetupDbContextFactory ContextFactory { get; }
+    public IApplicationLog ApplicationLog { get; }
     public SetupDatabase Database { get; }
     public DatabaseBackupService Backups { get; }
     public SensitiveDataRetentionService SensitiveData { get; }
-    public ISecretStore Secrets { get; }
     public SetupQueryService QueryService { get; }
     public TrackCatalogService TrackCatalog { get; }
     public SetupMetadataRefreshService MetadataRefresh { get; }

@@ -43,14 +43,6 @@ public sealed class ImportMonitoringService(
         }
     }
 
-    public async Task ScanNowAsync(CancellationToken cancellationToken = default)
-    {
-        foreach (var file in await folderMonitor.ScanAsync(_folders, cancellationToken))
-        {
-            await _queue.Writer.WriteAsync(file, cancellationToken);
-        }
-    }
-
     public async Task ImportNowAsync(CancellationToken cancellationToken = default)
     {
         var folders = await settingsService.GetAsync(cancellationToken);

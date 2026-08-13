@@ -4,17 +4,18 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Loaded="OnLoaded">
     <Grid Padding="32" RowSpacing="18">
-        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /></Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /></Grid.RowDefinitions>
         <Grid ColumnSpacing="16">
             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-            <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Historique et erreurs" /><TextBlock Opacity="0.65" Text="Validations, refus, notes et commentaires" /></StackPanel>
+            <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Historique" /><TextBlock Opacity="0.65" Text="Imports, validations, refus, notes et copies" /></StackPanel>
             <Button Grid.Column="1" VerticalAlignment="Center" Content="Effacer l’historique de l’application" Click="OnClearHistoryClick" />
         </Grid>
         <TextBox x:Name="HistorySearch" Grid.Row="1" PlaceholderText="Rechercher un fichier ou une action…" TextChanged="OnSearchChanged" />
-        <Border Grid.Row="2" Padding="12" Background="#FF20242B" CornerRadius="10">
+        <InfoBar x:Name="HistoryInfo" Grid.Row="2" IsOpen="False" IsClosable="True" Severity="Error" />
+        <Border Grid.Row="3" Padding="12" Background="#FF20242B" CornerRadius="10">
             <Grid>
                 <ListView x:Name="HistoryList">
-                    <ListView.ItemTemplate><DataTemplate><Grid Padding="8" ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="220" /><ColumnDefinition Width="130" /><ColumnDefinition /></Grid.ColumnDefinitions><TextBlock Text="{Binding ChangedAtUtc}" /><TextBlock Grid.Column="1" Text="{Binding OriginalFileName}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="2" Text="{Binding ChangeType}" /><StackPanel Grid.Column="3" Orientation="Horizontal"><TextBlock Text="{Binding PreviousStatus}" /><TextBlock Text=" → " /><TextBlock Text="{Binding NewStatus}" /></StackPanel></Grid></DataTemplate></ListView.ItemTemplate>
+                    <ListView.ItemTemplate><DataTemplate><Grid Padding="8" ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="220" /><ColumnDefinition Width="130" /><ColumnDefinition /></Grid.ColumnDefinitions><TextBlock Text="{Binding ChangedAtUtc}" /><TextBlock Grid.Column="1" Text="{Binding OriginalFileName}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="2" Text="{Binding ChangeType}" /><TextBlock Grid.Column="3" Text="{Binding StatusTransitionDisplay}" /></Grid></DataTemplate></ListView.ItemTemplate>
                 </ListView>
                 <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8"><FontIcon FontSize="36" Glyph="&#xE81C;" Opacity="0.45" /><TextBlock Opacity="0.65" Text="Aucun changement enregistré" /></StackPanel>
             </Grid>

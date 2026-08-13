@@ -4,6 +4,8 @@ using IracingSetupManager.Infrastructure.Database.Entities;
 using IracingSetupManager.Infrastructure.Files.Import;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using IracingSetupManager.App.Services;
+using IracingSetupManager.Core.Presentation;
 
 namespace IracingSetupManager.App.Views;
 
@@ -31,12 +33,12 @@ public sealed partial class LibraryPage : Page
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        await UiOperation.RunAsync(LoadPageAsync, "Impossible de charger la bibliothèque");
+    }
+
+    private async Task LoadPageAsync()
+    {
         StartListeningForImports();
-        var archiveRoot = await App.Services.ArchivePaths.GetAsync();
-        if (!string.IsNullOrWhiteSpace(archiveRoot))
-        {
-            await App.Services.ArchiveReorganization.ReorganizeAsync(archiveRoot);
-        }
         await App.Services.LibraryIntegrity.MarkMissingFilesAsync();
         await App.Services.MetadataRefresh.RefreshAsync();
         await ReloadAsync();
@@ -61,9 +63,12 @@ public sealed partial class LibraryPage : Page
         if (result.Outcome != SetupImportOutcome.Imported || string.IsNullOrWhiteSpace(result.Sha256)) return;
         DispatcherQueue.TryEnqueue(async () =>
         {
-            if (!IsLoaded) return;
-            var setup = await App.Services.QueryService.GetBySha256Async(result.Sha256);
-            if (setup is not null) AddOrUpdateSetup(setup);
+            await UiOperation.RunAsync(async () =>
+            {
+                if (!IsLoaded) return;
+                var setup = await App.Services.QueryService.GetBySha256Async(result.Sha256);
+                if (setup is not null) AddOrUpdateSetup(setup);
+            }, "Impossible d’actualiser la bibliothèque après l’import");
         });
     }
 
@@ -100,6 +105,11 @@ public sealed partial class LibraryPage : Page
     }
 
     private async void OnRemoveMissing(object sender, RoutedEventArgs e)
+    {
+        await UiOperation.RunAsync(RemoveMissingAsync, "Impossible de retirer les fichiers manquants");
+    }
+
+    private async Task RemoveMissingAsync()
     {
         var selected = _setups.Where(item => item.Status == SetupStatus.FichierManquant).Select(item => item.Id).ToArray();
         if (selected.Length == 0) return;
@@ -146,13 +156,13 @@ public sealed partial class LibraryPage : Page
 
     private bool MatchesCurrentFilters(SetupEntity item)
     {
-        var search = SearchBox.Text.Trim();
-        return MatchesSearch(item, search) &&
-               Matches(item.Provider, ProviderFilter.SelectedItem) &&
-               Matches(item.Category, CategoryFilter.SelectedItem) &&
-               Matches(item.Car, CarFilter.SelectedItem) &&
-               Matches(item.Track, TrackFilter.SelectedItem) &&
-               Matches(item.StatusDisplay, StatusFilter.SelectedItem);
+        return SetupListFilter.Matches(ToListItem(item), new SetupFilterCriteria(
+            SearchBox.Text,
+            ProviderFilter.SelectedItem as string,
+            CategoryFilter.SelectedItem as string,
+            CarFilter.SelectedItem as string,
+            TrackFilter.SelectedItem as string,
+            StatusFilter.SelectedItem as string));
     }
 
     private IReadOnlyList<string> Distinct(Func<SetupEntity, string?> selector) =>
@@ -187,14 +197,7 @@ public sealed partial class LibraryPage : Page
     private void UpdateEmptyState() =>
         EmptyState.Visibility = _visibleSetups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
-    private static bool Matches(string? value, object? selection) =>
-        selection is not string selected || string.Equals(value, selected, StringComparison.OrdinalIgnoreCase);
-
-    private static bool MatchesSearch(SetupEntity item, string search) =>
-        string.IsNullOrWhiteSpace(search) || Contains(item.OriginalFileName, search) || Contains(item.Provider, search) ||
-        Contains(item.Car, search) || Contains(item.Track, search) || Contains(item.TrackConfiguration, search) ||
-        Contains(item.Season, search) || Contains(item.SetupType, search);
-
-    private static bool Contains(string? value, string search) =>
-        value?.Contains(search, StringComparison.CurrentCultureIgnoreCase) == true;
+    private static SetupListItem ToListItem(SetupEntity item) => new(
+        item.OriginalFileName, item.Provider, item.Category, item.Car, item.Track,
+        item.TrackConfiguration, item.Season, item.SetupType, item.StatusDisplay);
 }

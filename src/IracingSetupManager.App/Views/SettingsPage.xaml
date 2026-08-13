@@ -11,6 +11,7 @@
                     <TextBlock FontSize="20" FontWeight="SemiBold" Text="Bibliothèque principale" />
                     <TextBlock Opacity="0.65" Text="Les fichiers originaux restent dans cette archive et ne sont jamais renommés." />
                     <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBox x:Name="ArchivePathBox" IsReadOnly="True" PlaceholderText="Choisir le dossier d’archive…" /><Button Grid.Column="1" Content="Parcourir" Click="OnChooseArchive" /></Grid>
+                    <Button HorizontalAlignment="Left" Content="Réorganiser l’archive maintenant" Click="OnReorganizeArchive" />
                 </StackPanel>
             </Border>
             <Border Padding="20" Background="#FF20242B" CornerRadius="10">
@@ -61,7 +62,7 @@
                     <Button HorizontalAlignment="Left" Content="Rétablir l’ordre par défaut" Click="OnResetPathLayout" />
                 </StackPanel>
             </Border>
-            <Border Padding="20" Background="#FF20242B" CornerRadius="10"><StackPanel Spacing="14"><TextBlock FontSize="20" FontWeight="SemiBold" Text="Confidentialité et Garage61" /><ToggleSwitch Header="Bloquer par défaut les setups dont l’origine est inconnue" IsOn="True" /><ToggleSwitch Header="Exiger une confirmation avant toute validation groupée" IsOn="True" IsEnabled="False" /><ToggleSwitch Header="Exiger une confirmation avant tout envoi Garage61" IsOn="True" IsEnabled="False" /></StackPanel></Border>
+            <Border Padding="20" Background="#FF20242B" CornerRadius="10"><StackPanel Spacing="8"><TextBlock FontSize="20" FontWeight="SemiBold" Text="Confidentialité" /><TextBlock Opacity="0.75" Text="Les setups inconnus restent dans À vérifier. Toute validation groupée demande une confirmation explicite." TextWrapping="Wrap" /></StackPanel></Border>
             <Border Padding="20" Background="#FF20242B" CornerRadius="10">
                 <StackPanel Spacing="12">
                     <TextBlock FontSize="20" FontWeight="SemiBold" Text="Sauvegarde locale" />

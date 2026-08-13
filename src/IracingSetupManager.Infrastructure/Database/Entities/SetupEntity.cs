@@ -33,19 +33,12 @@ public sealed class SetupEntity
 
     public string? SourcePath { get; set; }
 
-    public bool IsPrivate { get; set; }
-
-    public bool Garage61ExportApproved { get; set; }
-
-    public SetupStatus Status { get; set; } = SetupStatus.Nouveau;
+    public SetupStatus Status { get; set; } = SetupStatus.AVerifier;
 
     [NotMapped]
     public string StatusDisplay => Status switch
     {
         SetupStatus.AVerifier => "À vérifier",
-        SetupStatus.ACorriger => "À corriger",
-        SetupStatus.EnvoyeVersGarage61 => "Envoyé vers Garage61",
-        SetupStatus.ErreurEnvoi => "Erreur d’envoi",
         SetupStatus.FichierManquant => "Fichier manquant",
         _ => Status.ToString()
     };
@@ -56,8 +49,6 @@ public sealed class SetupEntity
 
     public DateTimeOffset DownloadedAtUtc { get; set; }
 
-    public DateTimeOffset? SentToGarage61AtUtc { get; set; }
-
     public DateTimeOffset? LastCopiedToIracingAtUtc { get; set; }
 
     public int IracingCopyCount { get; set; }
@@ -66,11 +57,4 @@ public sealed class SetupEntity
 
     public int IracingTeamCopyCount { get; set; }
 
-    public bool? Garage61Succeeded { get; set; }
-
-    public string? Garage61Result { get; set; }
-
-    public string? Garage61SetupId { get; set; }
-
-    public string? Garage61SetupUrl { get; set; }
 }

@@ -1,6 +1,7 @@
 using IracingSetupManager.Infrastructure.Database.Entities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using IracingSetupManager.App.Services;
 
 namespace IracingSetupManager.App.Views;
 
@@ -10,7 +11,10 @@ public sealed partial class HistoryPage : Page
 
     public HistoryPage() => InitializeComponent();
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(LoadHistoryAsync, "Impossible de charger l’historique", HistoryInfo);
+
+    private async Task LoadHistoryAsync()
     {
         _history = await App.Services.QueryService.GetHistoryAsync();
         ApplySearch();
@@ -18,7 +22,10 @@ public sealed partial class HistoryPage : Page
 
     private void OnSearchChanged(object sender, TextChangedEventArgs e) => ApplySearch();
 
-    private async void OnClearHistoryClick(object sender, RoutedEventArgs e)
+    private async void OnClearHistoryClick(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(ClearHistoryAsync, "Impossible d’effacer l’historique", HistoryInfo);
+
+    private async Task ClearHistoryAsync()
     {
         var confirmation = new ContentDialog
         {

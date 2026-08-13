@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using IracingSetupManager.Infrastructure.Files;
 using IracingSetupManager.Infrastructure.Files.Import;
 using System.Text.RegularExpressions;
+using IracingSetupManager.Core.Catalog;
 
 namespace IracingSetupManager.Infrastructure.Iracing;
 
@@ -227,16 +228,8 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
         }
     }
 
-    private static string GetTeamProviderFolder(string provider) => provider switch
-    {
-        "Grid & Go" => "GNG",
-        "GO Setups" => "GO",
-        "HYMO" => "HYMO",
-        "SRS" => "SRS",
-        "VRS" => "VRS",
-        "Coach Dave Academy (CDA)" => "CDA",
-        _ => SanitizeSegment(provider)
-    };
+    private static string GetTeamProviderFolder(string provider) =>
+        SanitizeSegment(SetupCatalog.GetTeamFolderCode(provider));
 
     private static string SanitizeSegment(string value)
     {

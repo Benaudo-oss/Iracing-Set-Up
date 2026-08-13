@@ -8,24 +8,21 @@ fournisseur n'empêche pas les autres fonctions de travailler.
 - `Infrastructure/Database` isole SQLite et les dépôts de données.
 - `Infrastructure/Files` gère l'archive, les ZIP et les empreintes.
 - `Infrastructure/Logging` contient la journalisation sans données sensibles.
-- `Infrastructure/Security` protège les secrets avec les services Windows.
-- `Providers/Hymo`, `Providers/GoSetups`, `Providers/GridAndGo` et `Providers/Vrs` sont quatre
-  connecteurs indépendants qui partagent uniquement des contrats communs.
-- `Providers/Synchronization` exécute seulement les fournisseurs choisis. Plusieurs
-  fournisseurs peuvent travailler simultanément et chaque erreur reste isolée.
-- `Integrations/Iracing` copie les setups validés sans toucher aux archives.
-- `Integrations/Garage61` n'utilise qu'une méthode officiellement autorisée.
+- `Infrastructure/Iracing` copie les setups validés sans toucher aux archives.
+- Les fournisseurs sont reconnus lors de l'import local ; aucun connecteur de
+  téléchargement direct n'est embarqué.
 - `Integrations/Updates` vérifie les versions et l'intégrité des téléchargements.
 
-Les dépendances pointent vers `Core`. Aucun module fournisseur ne doit dépendre
-d'un autre fournisseur. L'orchestrateur collecte un résultat par fournisseur :
-une panne HYMO ne bloque donc ni GO Setups, ni Grid & Go, ni VRS. Les secrets ne transitent jamais dans les modèles métier
-et ne doivent jamais apparaître dans les journaux.
+Les dépendances pointent vers `Core`. Les imports provenant de chaque dossier
+surveillé sont traités indépendamment. Aucun identifiant fournisseur n'est demandé
+ou conservé par l'application.
 
 ## Base locale
 
 La base SQLite contient une table `Setups` avec les métadonnées du fichier, son
-empreinte SHA-256 unique, son classement, son statut et le résultat Garage61. Les
+empreinte SHA-256 unique, son classement, son statut et ses informations de copie. La
+table `SchemaMigrations` enregistre les évolutions appliquées ; une migration n'est
+donc jamais rejouée à chaque lancement. Les
 index couvrent les recherches par fournisseur, catégorie, statut, voiture, circuit
 et saison. La table `ApplicationSettings` conserve le dossier d'archive : le
 sélecteur est affiché uniquement si aucun chemin n'a encore été enregistré.
@@ -35,8 +32,8 @@ sélecteur est affiché uniquement si aucun chemin n'a encore été enregistré.
 Seuls le dossier Téléchargements et les dossiers explicitement configurés des
 applications officielles peuvent être surveillés. `Documents\\iRacing\\setups` et
 tous ses sous-dossiers sont refusés par le code afin de ne pas mélanger les setups
-personnels avec ceux des fournisseurs. Un setup privé, non validé ou non approuvé
-manuellement ne peut pas être proposé à l'export Garage61.
+personnels avec ceux des fournisseurs. Aucun upload direct vers Garage61 n'est
+effectué par l'application.
 
 ## Bibliothèque locale
 
@@ -52,7 +49,15 @@ Une collision de nom avec un contenu différent est conservée dans un sous-doss
 La surveillance combine `FileSystemWatcher` avec un balayage au démarrage et à la
 demande. Les événements passent dans une file séquentielle ; un fichier doit rester
 stable et lisible plusieurs fois avant import. Les fichiers temporaires sont ignorés
-et seuls `.sto` et `.zip` sont acceptés.
+et seuls `.sto`, `.zip` et `.rar` sont acceptés.
+
+## Catalogues
+
+`Core/Catalog/SetupCatalog` est la source unique des fournisseurs, catégories,
+voitures actuelles, dossiers internes iRacing et codes fournisseurs Team. Les alias
+historiques de voitures et de circuits restent regroupés dans l'analyseur de
+métadonnées. Le catalogue extrait de `Documents\iRacing\lapfiles` réutilise cette
+même résolution des noms de circuits.
 
 ## Validation et historique
 
@@ -73,14 +78,26 @@ copie lit l’original depuis l’archive sans jamais le déplacer ou le supprim
 
 ## Sécurité et sauvegarde
 
-Les secrets sont confiés au Gestionnaire d’identifiants Windows et ne transitent
-pas par SQLite. Le filtre de journalisation masque mots de passe, jetons, clés API,
+Le filtre de journalisation masque mots de passe, jetons, clés API,
 en-têtes d’autorisation et cookies ; les messages d’exception externes ne sont pas
 écrits. Les chemins de périphérique, sorties de dossier et flux NTFS alternatifs
 sont refusés. Les ZIP sont contrôlés avant extraction (traversée, liens, doublons,
 nombre, tailles et taux de compression). Les chemins sources devenus inutiles sont
 effacés au démarrage. La sauvegarde utilise l’API SQLite afin de produire une base
 cohérente pendant que l’application est ouverte.
+
+Les erreurs des opérations WinUI sont interceptées à la frontière de l'interface,
+présentées sans détails sensibles et écrites dans des journaux quotidiens expurgés.
+Les échecs de la surveillance utilisent le même journal. Les panneaux qui ne
+représentaient aucun état réel ont été retirés de l'interface.
+
+## Tests
+
+Les tests couvrent l'import, les archives, SHA-256, SQLite, les migrations, la
+validation, la surveillance, la copie iRacing et la logique partagée de recherche
+et de filtres. Les tests de présentation ciblent du code indépendant de WinUI afin
+de rester exécutables dans l'intégration continue. Une vérification visuelle de
+l'application Windows complète les tests automatisés avant publication.
 
 ## Mises à jour
 

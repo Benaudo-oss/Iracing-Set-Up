@@ -2,6 +2,8 @@ using IracingSetupManager.Core.Setups;
 
 namespace IracingSetupManager.Infrastructure.Database.Entities;
 
+using System.ComponentModel.DataAnnotations.Schema;
+
 public sealed class SetupChangeHistoryEntity
 {
     public long Id { get; set; }
@@ -25,5 +27,9 @@ public sealed class SetupChangeHistoryEntity
     public string? NewComment { get; set; }
 
     public DateTimeOffset ChangedAtUtc { get; set; }
-}
 
+    [NotMapped]
+    public string StatusTransitionDisplay => PreviousStatus is null && NewStatus is null
+        ? string.Empty
+        : $"{PreviousStatus} → {NewStatus}";
+}

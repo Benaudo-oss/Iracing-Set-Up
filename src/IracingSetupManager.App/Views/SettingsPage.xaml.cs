@@ -14,7 +14,10 @@ public sealed partial class SettingsPage : Page
 
     public SettingsPage() => InitializeComponent();
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(LoadSettingsAsync, "Impossible de charger les paramètres", SettingsInfo);
+
+    private async Task LoadSettingsAsync()
     {
         ArchivePathBox.Text = await App.Services.ArchivePaths.GetAsync() ?? string.Empty;
         IracingTeamNameBox.Text = await App.Services.IracingTeam.GetNameAsync() ?? string.Empty;
@@ -32,13 +35,46 @@ public sealed partial class SettingsPage : Page
         SetPathLayout(await App.Services.IracingPathLayout.GetAsync());
     }
 
-    private async void OnChooseArchive(object sender, RoutedEventArgs e)
+    private async void OnChooseArchive(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(ChooseArchiveAsync, "Impossible de sélectionner l’archive", SettingsInfo);
+
+    private async Task ChooseArchiveAsync()
     {
         var path = await WinUiFolderPicker.PickAsync();
         if (!string.IsNullOrWhiteSpace(path))
         {
             ArchivePathBox.Text = await App.Services.ArchivePaths.ChangeAsync(path);
         }
+    }
+
+    private async void OnReorganizeArchive(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(ReorganizeArchiveAsync, "Impossible de réorganiser l’archive", SettingsInfo);
+
+    private async Task ReorganizeArchiveAsync()
+    {
+        var archive = await App.Services.ArchivePaths.GetAsync();
+        if (string.IsNullOrWhiteSpace(archive))
+        {
+            SettingsInfo.Severity = InfoBarSeverity.Warning;
+            SettingsInfo.Message = "Choisissez d’abord le dossier d’archive.";
+            SettingsInfo.IsOpen = true;
+            return;
+        }
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Réorganiser l’archive ?",
+            Content = "Les fichiers seront replacés selon les métadonnées actuelles, sans écrasement.",
+            PrimaryButtonText = "Réorganiser",
+            CloseButtonText = "Annuler",
+            DefaultButton = ContentDialogButton.Close
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        var moved = await App.Services.ArchiveReorganization.ReorganizeAsync(archive);
+        SettingsInfo.Severity = InfoBarSeverity.Success;
+        SettingsInfo.Message = $"Réorganisation terminée : {moved} fichier(s) déplacé(s).";
+        SettingsInfo.IsOpen = true;
     }
 
     private async void OnSaveTeamName(object sender, RoutedEventArgs e) => await SaveTeamNameAsync();
@@ -96,7 +132,10 @@ public sealed partial class SettingsPage : Page
         }
     }
 
-    private async void OnSave(object sender, RoutedEventArgs e)
+    private async void OnSave(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(SaveSettingsAsync, "Impossible d’enregistrer les paramètres", SettingsInfo);
+
+    private async Task SaveSettingsAsync()
     {
         await App.Services.Monitoring.StopAsync();
         var folders = new List<MonitoredFolder>();

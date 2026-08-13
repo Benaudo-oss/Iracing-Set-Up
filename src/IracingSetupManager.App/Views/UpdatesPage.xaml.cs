@@ -2,6 +2,7 @@ using System.Reflection;
 using IracingSetupManager.Integrations.Updates;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using IracingSetupManager.App.Services;
 
 namespace IracingSetupManager.App.Views;
 
@@ -68,14 +69,20 @@ public sealed partial class UpdatesPage : Page
         Application.Current.Exit();
     }
 
-    private async void OnDefer(object sender, RoutedEventArgs e)
+    private async void OnDefer(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(DeferAsync, "Impossible de reporter la mise à jour", UpdateInfo);
+
+    private async Task DeferAsync()
     {
         await App.Services.UpdatePreferences.DeferAsync(TimeSpan.FromDays(7));
         DisableOfferActions();
         Show("La proposition est reportée de 7 jours.", InfoBarSeverity.Informational);
     }
 
-    private async void OnIgnore(object sender, RoutedEventArgs e)
+    private async void OnIgnore(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(IgnoreAsync, "Impossible d’ignorer la mise à jour", UpdateInfo);
+
+    private async Task IgnoreAsync()
     {
         if (availableUpdate?.AvailableVersion is null) return;
         await App.Services.UpdatePreferences.IgnoreAsync(availableUpdate.AvailableVersion);

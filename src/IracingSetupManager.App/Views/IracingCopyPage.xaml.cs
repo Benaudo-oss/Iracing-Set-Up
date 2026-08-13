@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Navigation;
+using IracingSetupManager.App.Services;
 
 namespace IracingSetupManager.App.Views;
 
@@ -29,7 +30,10 @@ public sealed partial class IracingCopyPage : Page
         isTeam = e.Parameter as string == "team";
     }
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(LoadPageAsync, "Impossible de charger les setups validés", ActionInfo);
+
+    private async Task LoadPageAsync()
     {
         if (isTeam)
         {
@@ -68,7 +72,10 @@ public sealed partial class IracingCopyPage : Page
         Show(FolderPathBox.Text.Length > 0 ? "Dossier iRacing détecté." : "Dossier non détecté : sélectionnez-le manuellement.", FolderPathBox.Text.Length > 0 ? InfoBarSeverity.Success : InfoBarSeverity.Warning);
     }
 
-    private async void OnPickFolder(object sender, RoutedEventArgs e)
+    private async void OnPickFolder(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(PickFolderAsync, "Impossible de sélectionner le dossier iRacing", ActionInfo);
+
+    private async Task PickFolderAsync()
     {
         var path = await Services.WinUiFolderPicker.PickAsync();
         if (!string.IsNullOrWhiteSpace(path)) FolderPathBox.Text = path;
@@ -95,7 +102,10 @@ public sealed partial class IracingCopyPage : Page
         ApplyFilters();
     }
 
-    private async void OnCreatePreview(object sender, RoutedEventArgs e)
+    private async void OnCreatePreview(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(CreatePreviewAsync, "Impossible de créer l’aperçu", ActionInfo);
+
+    private async Task CreatePreviewAsync()
     {
         if (string.IsNullOrWhiteSpace(FolderPathBox.Text))
         {

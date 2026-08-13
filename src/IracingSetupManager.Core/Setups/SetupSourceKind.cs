@@ -4,7 +4,5 @@ public enum SetupSourceKind
 {
     Unknown,
     DownloadsFolder,
-    OfficialProviderApplication,
-    ManualImport
+    OfficialProviderApplication
 }
-

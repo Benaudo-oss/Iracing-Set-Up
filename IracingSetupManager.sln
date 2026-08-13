@@ -8,8 +8,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IracingSetupManager.Core", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IracingSetupManager.Infrastructure", "src\IracingSetupManager.Infrastructure\IracingSetupManager.Infrastructure.csproj", "{0B655485-C6AE-4BBE-95DA-88C6A89A2B02}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IracingSetupManager.Providers", "src\IracingSetupManager.Providers\IracingSetupManager.Providers.csproj", "{181E9773-5661-4E2F-A005-6A072E2532E7}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IracingSetupManager.Integrations", "src\IracingSetupManager.Integrations\IracingSetupManager.Integrations.csproj", "{E2FE4EB4-F308-4901-B33D-F84C85E0BCA6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IracingSetupManager.Core.Tests", "tests\IracingSetupManager.Core.Tests\IracingSetupManager.Core.Tests.csproj", "{CB593290-A2BD-49D8-BC02-0C32BC071C82}"
@@ -32,10 +30,6 @@ Global
     {0B655485-C6AE-4BBE-95DA-88C6A89A2B02}.Debug|Any CPU.Build.0 = Debug|Any CPU
     {0B655485-C6AE-4BBE-95DA-88C6A89A2B02}.Release|Any CPU.ActiveCfg = Release|Any CPU
     {0B655485-C6AE-4BBE-95DA-88C6A89A2B02}.Release|Any CPU.Build.0 = Release|Any CPU
-    {181E9773-5661-4E2F-A005-6A072E2532E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-    {181E9773-5661-4E2F-A005-6A072E2532E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-    {181E9773-5661-4E2F-A005-6A072E2532E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-    {181E9773-5661-4E2F-A005-6A072E2532E7}.Release|Any CPU.Build.0 = Release|Any CPU
     {E2FE4EB4-F308-4901-B33D-F84C85E0BCA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
     {E2FE4EB4-F308-4901-B33D-F84C85E0BCA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
     {E2FE4EB4-F308-4901-B33D-F84C85E0BCA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -46,4 +40,3 @@ Global
     {CB593290-A2BD-49D8-BC02-0C32BC071C82}.Release|Any CPU.Build.0 = Release|Any CPU
   EndGlobalSection
 EndGlobal
-

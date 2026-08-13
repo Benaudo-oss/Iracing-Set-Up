@@ -5,7 +5,22 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
-# 0.2.7.26
+- Retire les connecteurs de téléchargement direct fournisseurs non raccordés et
+  conserve uniquement l'import par surveillance des dossiers autorisés.
+- Retire les fondations d'upload direct Garage61, leur compteur et leurs champs
+  SQLite, avec migration automatique des anciennes bases sans perte de setup.
+- Supprime CommunityToolkit.Mvvm, l'ancienne interface de copie iRacing et la
+  méthode de surveillance qui n'étaient pas utilisées.
+- Centralise les fournisseurs, catégories, voitures actuelles et codes de dossiers
+  Team, puis partage la résolution des circuits avec le catalogue iRacing local.
+- Versionne les migrations SQLite et ajoute des tests de migration et de logique
+  d'interface indépendants de WinUI.
+- Sécurise les opérations principales de l'interface, active la journalisation
+  quotidienne et retire les réglages et indicateurs qui n'avaient aucun effet.
+- Retire le modèle métier et le coffre de secrets devenus sans consommateurs,
+  ainsi que les anciens statuts et noms XAML inutilisés.
+
+# 1.2.7.26
 
 - Utilise le format `week_X` pour les dossiers de semaine de la copie iRacing Team.
 

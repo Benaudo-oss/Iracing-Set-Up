@@ -5,14 +5,12 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
 {
+    public const int CurrentSchemaVersion = 3;
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         await using var context = contextFactory.Create();
         await context.Database.EnsureCreatedAsync(cancellationToken);
-        await EnsureSetupColumnAsync(context, "LastCopiedToIracingAtUtc", "TEXT NULL", cancellationToken);
-        await EnsureSetupColumnAsync(context, "IracingCopyCount", "INTEGER NOT NULL DEFAULT 0", cancellationToken);
-        await EnsureSetupColumnAsync(context, "LastCopiedToIracingTeamAtUtc", "TEXT NULL", cancellationToken);
-        await EnsureSetupColumnAsync(context, "IracingTeamCopyCount", "INTEGER NOT NULL DEFAULT 0", cancellationToken);
         await context.Database.ExecuteSqlRawAsync(
             """
             CREATE TABLE IF NOT EXISTS "SetupChangeHistory" (
@@ -41,14 +39,180 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
             );
             CREATE INDEX IF NOT EXISTS "IX_TrackCatalog_NormalizedAlias"
                 ON "TrackCatalog" ("NormalizedAlias");
+            CREATE TABLE IF NOT EXISTS "SchemaMigrations" (
+                "Version" INTEGER NOT NULL CONSTRAINT "PK_SchemaMigrations" PRIMARY KEY,
+                "AppliedAtUtc" TEXT NOT NULL
+            );
             """,
             cancellationToken);
+        await ApplyPendingMigrationsAsync(context, cancellationToken);
+    }
+
+    public async Task<int> GetSchemaVersionAsync(CancellationToken cancellationToken = default)
+    {
+        await using var context = contextFactory.Create();
+        return await ReadSchemaVersionAsync(context, cancellationToken);
+    }
+
+    private static async Task ApplyPendingMigrationsAsync(
+        SetupDbContext context,
+        CancellationToken cancellationToken)
+    {
+        var version = await ReadSchemaVersionAsync(context, cancellationToken);
+        if (version < 1)
+        {
+            await RunMigrationAsync(context, 1, async () =>
+            {
+                await EnsureSetupColumnAsync(context, "LastCopiedToIracingAtUtc", "TEXT NULL", cancellationToken);
+                await EnsureSetupColumnAsync(context, "IracingCopyCount", "INTEGER NOT NULL DEFAULT 0", cancellationToken);
+                await EnsureSetupColumnAsync(context, "LastCopiedToIracingTeamAtUtc", "TEXT NULL", cancellationToken);
+                await EnsureSetupColumnAsync(context, "IracingTeamCopyCount", "INTEGER NOT NULL DEFAULT 0", cancellationToken);
+            }, cancellationToken);
+            version = 1;
+        }
+
+        if (version < 2)
+        {
+            await RunMigrationAsync(
+                context,
+                2,
+                () => RemoveLegacyGarage61UploadSchemaAsync(context, cancellationToken),
+                cancellationToken);
+            version = 2;
+        }
+
+        if (version < 3)
+        {
+            await RunMigrationAsync(context, 3, async () =>
+            {
+                await context.Database.ExecuteSqlRawAsync(
+                    "UPDATE \"Setups\" SET \"Status\" = 'AVerifier' WHERE \"Status\" IN ('Nouveau', 'ACorriger');",
+                    cancellationToken);
+                await context.Database.ExecuteSqlRawAsync(
+                    "UPDATE \"SetupChangeHistory\" SET \"PreviousStatus\" = 'AVerifier' WHERE \"PreviousStatus\" IN ('Nouveau', 'ACorriger');",
+                    cancellationToken);
+                await context.Database.ExecuteSqlRawAsync(
+                    "UPDATE \"SetupChangeHistory\" SET \"NewStatus\" = 'AVerifier' WHERE \"NewStatus\" IN ('Nouveau', 'ACorriger');",
+                    cancellationToken);
+            }, cancellationToken);
+        }
+    }
+
+    private static async Task RunMigrationAsync(
+        SetupDbContext context,
+        int version,
+        Func<Task> migration,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        await migration();
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"INSERT INTO \"SchemaMigrations\" (\"Version\", \"AppliedAtUtc\") VALUES ({version}, {DateTimeOffset.UtcNow});",
+            cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    private static async Task<int> ReadSchemaVersionAsync(
+        SetupDbContext context,
+        CancellationToken cancellationToken)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldClose = connection.State != ConnectionState.Open;
+        if (shouldClose) await connection.OpenAsync(cancellationToken);
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT COALESCE(MAX(\"Version\"), 0) FROM \"SchemaMigrations\";";
+            var result = await command.ExecuteScalarAsync(cancellationToken);
+            return Convert.ToInt32(result, System.Globalization.CultureInfo.InvariantCulture);
+        }
+        finally
+        {
+            if (shouldClose) await connection.CloseAsync();
+        }
+    }
+
+    private static async Task RemoveLegacyGarage61UploadSchemaAsync(
+        SetupDbContext context,
+        CancellationToken cancellationToken)
+    {
+        await context.Database.ExecuteSqlRawAsync(
+            "UPDATE \"Setups\" SET \"Status\" = 'Valide' WHERE \"Status\" IN ('EnvoyeVersGarage61', 'ErreurEnvoi');",
+            cancellationToken);
+        await context.Database.ExecuteSqlRawAsync(
+            "UPDATE \"SetupChangeHistory\" SET \"PreviousStatus\" = 'Valide' WHERE \"PreviousStatus\" IN ('EnvoyeVersGarage61', 'ErreurEnvoi');",
+            cancellationToken);
+        await context.Database.ExecuteSqlRawAsync(
+            "UPDATE \"SetupChangeHistory\" SET \"NewStatus\" = 'Valide' WHERE \"NewStatus\" IN ('EnvoyeVersGarage61', 'ErreurEnvoi');",
+            cancellationToken);
+        await context.Database.ExecuteSqlRawAsync(
+            "DROP INDEX IF EXISTS \"IX_Setups_IsPrivate_Garage61ExportApproved_Status\";",
+            cancellationToken);
+
+        string[] legacyColumns =
+        [
+            "IsPrivate",
+            "Garage61ExportApproved",
+            "SentToGarage61AtUtc",
+            "Garage61Succeeded",
+            "Garage61Result",
+            "Garage61SetupId",
+            "Garage61SetupUrl"
+        ];
+        foreach (var column in legacyColumns)
+        {
+            await DropSetupColumnIfExistsAsync(context, column, cancellationToken);
+        }
     }
 
     private static async Task EnsureSetupColumnAsync(
         SetupDbContext context,
         string columnName,
         string definition,
+        CancellationToken cancellationToken)
+    {
+        if (await SetupColumnExistsAsync(context, columnName, cancellationToken)) return;
+        await ExecuteSetupSchemaCommandAsync(
+            context,
+            $"ALTER TABLE \"Setups\" ADD COLUMN \"{columnName}\" {definition};",
+            cancellationToken);
+    }
+
+    private static async Task DropSetupColumnIfExistsAsync(
+        SetupDbContext context,
+        string columnName,
+        CancellationToken cancellationToken)
+    {
+        if (!await SetupColumnExistsAsync(context, columnName, cancellationToken)) return;
+        await ExecuteSetupSchemaCommandAsync(
+            context,
+            $"ALTER TABLE \"Setups\" DROP COLUMN \"{columnName}\";",
+            cancellationToken);
+    }
+
+    private static async Task ExecuteSetupSchemaCommandAsync(
+        SetupDbContext context,
+        string sql,
+        CancellationToken cancellationToken)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldClose = connection.State != ConnectionState.Open;
+        if (shouldClose) await connection.OpenAsync(cancellationToken);
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = sql;
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+        finally
+        {
+            if (shouldClose) await connection.CloseAsync();
+        }
+    }
+
+    private static async Task<bool> SetupColumnExistsAsync(
+        SetupDbContext context,
+        string columnName,
         CancellationToken cancellationToken)
     {
         var connection = context.Database.GetDbConnection();
@@ -59,21 +223,14 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
             await using var inspect = connection.CreateCommand();
             inspect.CommandText = "PRAGMA table_info(\"Setups\");";
             await using var reader = await inspect.ExecuteReaderAsync(cancellationToken);
-            var exists = false;
             while (await reader.ReadAsync(cancellationToken))
             {
                 if (reader.GetString(1).Equals(columnName, StringComparison.OrdinalIgnoreCase))
                 {
-                    exists = true;
-                    break;
+                    return true;
                 }
             }
-            await reader.DisposeAsync();
-            if (exists) return;
-
-            await using var alter = connection.CreateCommand();
-            alter.CommandText = $"ALTER TABLE \"Setups\" ADD COLUMN \"{columnName}\" {definition};";
-            await alter.ExecuteNonQueryAsync(cancellationToken);
+            return false;
         }
         finally
         {

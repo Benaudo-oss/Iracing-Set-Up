@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using IracingSetupManager.Infrastructure.Settings;
+using IracingSetupManager.App.Services;
 
 namespace IracingSetupManager.App.Views;
 
@@ -10,28 +11,41 @@ public sealed partial class SynchronizationPage : Page
 
     public SynchronizationPage() => InitializeComponent();
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(LoadSelectionAsync, "Impossible de charger la sélection", ActionInfo);
+
+    private async Task LoadSelectionAsync()
     {
         var selection = sessionSelection ?? await App.Services.SynchronizationSelection.GetAsync();
         ApplySelection(selection);
     }
 
-    private async void OnUnloaded(object sender, RoutedEventArgs e)
+    private async void OnUnloaded(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(SaveSelectionAsync, "Impossible d’enregistrer la sélection");
+
+    private async Task SaveSelectionAsync()
     {
         sessionSelection = ReadSelection();
         await App.Services.SynchronizationSelection.SaveAsync(sessionSelection);
     }
 
-    private async void OnScanNow(object sender, RoutedEventArgs e)
+    private async void OnScanNow(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(ScanNowAsync, "L’analyse des dossiers a échoué", ActionInfo);
+
+    private async Task ScanNowAsync()
     {
         sessionSelection = ReadSelection();
         await App.Services.SynchronizationSelection.SaveAsync(sessionSelection);
         await App.Services.Monitoring.ImportNowAsync();
-        ActionInfo.Message = "L’analyse des dossiers configurés est en cours.";
+        ActionInfo.Severity = InfoBarSeverity.Success;
+        ActionInfo.Message = "L’analyse des dossiers configurés est terminée.";
         ActionInfo.IsOpen = true;
     }
 
-    private async void OnStartMonitoring(object sender, RoutedEventArgs e)
+    private async void OnStartMonitoring(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(StartMonitoringAsync, "Le démarrage de la surveillance a échoué", ActionInfo);
+
+    private async Task StartMonitoringAsync()
     {
         sessionSelection = ReadSelection();
         await App.Services.SynchronizationSelection.SaveAsync(sessionSelection);

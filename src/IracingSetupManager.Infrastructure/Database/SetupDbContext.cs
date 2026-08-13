@@ -32,16 +32,12 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
         setup.Property(item => item.SourcePath).HasMaxLength(2048);
         setup.Property(item => item.Status).HasConversion<string>().HasMaxLength(64);
         setup.Property(item => item.Comment).HasMaxLength(4000);
-        setup.Property(item => item.Garage61Result).HasMaxLength(4000);
-        setup.Property(item => item.Garage61SetupId).HasMaxLength(256);
-        setup.Property(item => item.Garage61SetupUrl).HasMaxLength(2048);
         setup.Property(item => item.IracingCopyCount).HasDefaultValue(0);
         setup.Property(item => item.IracingTeamCopyCount).HasDefaultValue(0);
         setup.HasIndex(item => item.Sha256).IsUnique();
         setup.HasIndex(item => item.OriginalFileName);
         setup.HasIndex(item => new { item.Provider, item.Category, item.Status });
         setup.HasIndex(item => new { item.Car, item.Track, item.Season });
-        setup.HasIndex(item => new { item.IsPrivate, item.Garage61ExportApproved, item.Status });
 
         var history = modelBuilder.Entity<SetupChangeHistoryEntity>();
         history.ToTable("SetupChangeHistory");

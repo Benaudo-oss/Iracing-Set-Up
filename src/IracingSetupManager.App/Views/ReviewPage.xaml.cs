@@ -4,6 +4,8 @@ using IracingSetupManager.Infrastructure.Database.Entities;
 using IracingSetupManager.Infrastructure.Files.Import;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using IracingSetupManager.App.Services;
+using IracingSetupManager.Core.Presentation;
 
 namespace IracingSetupManager.App.Views;
 
@@ -27,7 +29,10 @@ public sealed partial class ReviewPage : Page
         TrackFilter.ItemsSource = _tracks;
     }
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(LoadPageAsync, "Impossible de charger les setups à vérifier", ReviewInfo);
+
+    private async Task LoadPageAsync()
     {
         StartListeningForImports();
         await ReloadAsync();
@@ -52,15 +57,21 @@ public sealed partial class ReviewPage : Page
         if (result.Outcome != SetupImportOutcome.Imported || string.IsNullOrWhiteSpace(result.Sha256)) return;
         DispatcherQueue.TryEnqueue(async () =>
         {
-            if (!IsLoaded) return;
-            var setup = await App.Services.QueryService.GetBySha256Async(result.Sha256);
-            if (setup is not null && setup.Status == SetupStatus.AVerifier) AddOrUpdateSetup(setup);
+            await UiOperation.RunAsync(async () =>
+            {
+                if (!IsLoaded) return;
+                var setup = await App.Services.QueryService.GetBySha256Async(result.Sha256);
+                if (setup is not null && setup.Status == SetupStatus.AVerifier) AddOrUpdateSetup(setup);
+            }, "Impossible d’actualiser les setups à vérifier", ReviewInfo);
         });
     }
 
     private void OnSelectAll(object sender, RoutedEventArgs e) => ReviewList.SelectAll();
 
-    private async void OnValidateOne(object sender, RoutedEventArgs e)
+    private async void OnValidateOne(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(() => ValidateOneAsync(sender), "La validation a échoué", ReviewInfo);
+
+    private async Task ValidateOneAsync(object sender)
     {
         if (!TryGetSetupId(sender, out var setupId)) return;
         await App.Services.Validation.ValidateAsync(setupId);
@@ -68,7 +79,10 @@ public sealed partial class ReviewPage : Page
         RemoveSetup(setupId);
     }
 
-    private async void OnRefuseOne(object sender, RoutedEventArgs e)
+    private async void OnRefuseOne(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(() => RefuseOneAsync(sender), "Le refus a échoué", ReviewInfo);
+
+    private async Task RefuseOneAsync(object sender)
     {
         if (!TryGetSetupId(sender, out var setupId)) return;
         await App.Services.Validation.RefuseAsync(setupId);
@@ -76,8 +90,10 @@ public sealed partial class ReviewPage : Page
         RemoveSetup(setupId);
     }
 
-    private async void OnValidateSelection(object sender, RoutedEventArgs e) => await RunGroupedActionAsync(true);
-    private async void OnRefuseSelection(object sender, RoutedEventArgs e) => await RunGroupedActionAsync(false);
+    private async void OnValidateSelection(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(() => RunGroupedActionAsync(true), "La validation groupée a échoué", ReviewInfo);
+    private async void OnRefuseSelection(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(() => RunGroupedActionAsync(false), "Le refus groupé a échoué", ReviewInfo);
 
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -88,7 +104,10 @@ public sealed partial class ReviewPage : Page
         }
     }
 
-    private async void OnSaveNotes(object sender, RoutedEventArgs e)
+    private async void OnSaveNotes(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(SaveNotesAsync, "L’enregistrement des notes a échoué", ReviewInfo);
+
+    private async Task SaveNotesAsync()
     {
         if (ReviewList.SelectedItems.Count != 1 || ReviewList.SelectedItem is not SetupEntity setup)
         {
@@ -198,14 +217,15 @@ public sealed partial class ReviewPage : Page
 
     private bool MatchesCurrentFilters(SetupEntity setup)
     {
-        var search = SearchBox.Text.Trim();
-        return (string.IsNullOrWhiteSpace(search) ||
-                Contains(setup.OriginalFileName, search) || Contains(setup.Provider, search) ||
-                Contains(setup.Category, search) || Contains(setup.Car, search) || Contains(setup.Track, search)) &&
-               Matches(setup.Provider, ProviderFilter.SelectedItem) &&
-               Matches(setup.Category, CategoryFilter.SelectedItem) &&
-               Matches(setup.Car, CarFilter.SelectedItem) &&
-               Matches(setup.Track, TrackFilter.SelectedItem);
+        return SetupListFilter.Matches(new SetupListItem(
+                setup.OriginalFileName, setup.Provider, setup.Category, setup.Car, setup.Track,
+                setup.TrackConfiguration, setup.Season, setup.SetupType, setup.StatusDisplay),
+            new SetupFilterCriteria(
+                SearchBox.Text,
+                ProviderFilter.SelectedItem as string,
+                CategoryFilter.SelectedItem as string,
+                CarFilter.SelectedItem as string,
+                TrackFilter.SelectedItem as string));
     }
 
     private IReadOnlyList<string> Distinct(Func<SetupEntity, string?> selector) =>
@@ -225,12 +245,6 @@ public sealed partial class ReviewPage : Page
         while (index < target.Count && StringComparer.CurrentCultureIgnoreCase.Compare(target[index], value) < 0) index++;
         target.Insert(index, value);
     }
-
-    private static bool Matches(string? value, object? selection) =>
-        selection is not string selected || string.Equals(value, selected, StringComparison.OrdinalIgnoreCase);
-
-    private static bool Contains(string? value, string search) =>
-        value?.Contains(search, StringComparison.CurrentCultureIgnoreCase) == true;
 
     private static bool TryGetSetupId(object sender, out Guid setupId)
     {

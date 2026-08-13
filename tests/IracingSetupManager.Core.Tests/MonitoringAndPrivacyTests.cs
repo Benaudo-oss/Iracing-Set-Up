@@ -1,6 +1,4 @@
-using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Files.Monitoring;
-using IracingSetupManager.Integrations.Garage61;
 using Xunit;
 
 namespace IracingSetupManager.Core.Tests;
@@ -39,34 +37,4 @@ public sealed class MonitoringAndPrivacyTests
         Assert.EndsWith("Downloads", downloads);
         Assert.EndsWith("GOFast", providerFolder);
     }
-
-    [Theory]
-    [InlineData(true, true, SetupStatus.Valide, false)]
-    [InlineData(false, false, SetupStatus.Valide, false)]
-    [InlineData(false, true, SetupStatus.AVerifier, false)]
-    [InlineData(false, true, SetupStatus.Valide, true)]
-    public void Garage61RequiresNonPrivateValidatedAndApprovedSetup(
-        bool isPrivate,
-        bool approved,
-        SetupStatus status,
-        bool expected)
-    {
-        var setup = new SetupFile(
-            Guid.NewGuid(),
-            "setup.sto",
-            new string('a', 64),
-            1024,
-            @"C:\Archive\setup.sto",
-            status,
-            DateTimeOffset.UtcNow,
-            SetupSourceKind.OfficialProviderApplication,
-            @"C:\GOFast\setup.sto",
-            isPrivate,
-            approved);
-
-        var allowed = new Garage61ExportPolicy().CanExport(setup, out _);
-
-        Assert.Equal(expected, allowed);
-    }
 }
-

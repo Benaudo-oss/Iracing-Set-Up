@@ -35,13 +35,6 @@
                     </StackPanel>
                 </Border>
             </Grid>
-            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
-                <StackPanel Spacing="12">
-                    <Grid><TextBlock FontSize="20" FontWeight="SemiBold" Text="Progression" /><TextBlock HorizontalAlignment="Right" Opacity="0.65" Text="En attente" /></Grid>
-                    <ProgressBar Value="0" />
-                    <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><TextBlock Text="Fournisseur : —" /><TextBlock Grid.Column="1" Text="Voiture : —" /><TextBlock Grid.Column="2" Text="Circuit : —" /><TextBlock Grid.Column="3" Text="Fichiers : 0 / 0" /></Grid>
-                </StackPanel>
-            </Border>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
                 <Button Content="Analyser maintenant" Click="OnScanNow" />
                 <Button Content="Démarrer la surveillance" Style="{StaticResource AccentButtonStyle}" Click="OnStartMonitoring" />

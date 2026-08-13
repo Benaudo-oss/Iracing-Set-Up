@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using IracingSetupManager.Core.Catalog;
 
 namespace IracingSetupManager.Infrastructure.Files.Import;
 
@@ -6,7 +7,6 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
 {
     private const string Unknown = "À identifier";
 
-    private static readonly string[] Categories = ["GT4", "GT3", "GTE", "LMP2", "LMP3", "GTP", "PCUP"];
     private static readonly string[] SetupTypes =
         ["Endurance", "Aggressive", "Qualifying", "Quali", "Sprint", "Race", "Wet", "Safe"];
     private static readonly IReadOnlyDictionary<string, (string Car, string Category)> Cars =
@@ -115,10 +115,14 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
 
         var folders = availableFolderNames.ToList();
         var canonicalCar = LegacyCarNames.GetValueOrDefault(car, car);
+        var catalogCar = SetupCatalog.Cars.FirstOrDefault(item =>
+            item.DisplayName.Equals(canonicalCar, StringComparison.OrdinalIgnoreCase));
         var aliases = Cars
             .Where(item => item.Value.Car.Equals(canonicalCar, StringComparison.OrdinalIgnoreCase))
             .Select(item => item.Key)
             .ToList();
+        if (catalogCar is not null && !aliases.Contains(catalogCar.IracingFolder, StringComparer.OrdinalIgnoreCase))
+            aliases.Insert(0, catalogCar.IracingFolder);
         foreach (var alias in aliases)
         {
             var existing = folders.FirstOrDefault(folder => folder.Equals(alias, StringComparison.OrdinalIgnoreCase));
@@ -127,6 +131,11 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
 
         return aliases.FirstOrDefault(alias => alias.All(character => char.IsLetterOrDigit(character)));
     }
+
+    public static string? ResolveKnownTrackName(string alias) =>
+        Tracks.GetValueOrDefault(alias) ??
+        Tracks.FirstOrDefault(item =>
+            NormalizeAlias(item.Key).Equals(NormalizeAlias(alias), StringComparison.OrdinalIgnoreCase)).Value;
 
     private static readonly IReadOnlyDictionary<string, string> Tracks =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -247,6 +256,11 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
             ["Mosport"] = "Canadian Tire Motorsport Park"
         };
 
+    public static IReadOnlyList<string> KnownTrackNames { get; } = Tracks.Values
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Order(StringComparer.CurrentCultureIgnoreCase)
+        .ToArray();
+
     public SetupMetadata Analyze(string filePath, SetupMetadata? defaults = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
@@ -254,7 +268,7 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
 
         var provider = FindProvider(tokens) ?? defaults?.Provider ?? Unknown;
         var carMatch = FindCar(filePath, tokens);
-        var category = carMatch.Category ?? FindKnown(tokens, Categories) ?? defaults?.Category ?? Unknown;
+        var category = carMatch.Category ?? FindKnown(tokens, SetupCatalog.Categories) ?? defaults?.Category ?? Unknown;
         var setupType = FindSetupType(tokens) ?? defaults?.SetupType ?? Unknown;
         var car = carMatch.Car ?? EmptyAsNull(defaults?.Car) ?? Unknown;
         var catalogTrack = trackCatalog?.Find(filePath);

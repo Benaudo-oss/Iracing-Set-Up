@@ -33,6 +33,7 @@ public sealed class SetupMetadataRefreshService(
             changed |= AssignKnown(metadata.Category, setup.Category, value => setup.Category = value);
             changed |= AssignKnown(metadata.Car, setup.Car, value => setup.Car = value);
             changed |= AssignKnown(metadata.Track, setup.Track, value => setup.Track = value);
+            changed |= AssignKnown(metadata.TrackConfiguration, setup.TrackConfiguration, value => setup.TrackConfiguration = value);
             changed |= AssignKnown(metadata.Season, setup.Season, value => setup.Season = value);
             changed |= AssignKnown(metadata.SetupType, setup.SetupType, value => setup.SetupType = value);
             if (changed)

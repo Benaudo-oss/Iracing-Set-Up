@@ -2,8 +2,4 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\IracingSetupManager.Core\IracingSetupManager.Core.csproj" />
-  </ItemGroup>
 </Project>
-

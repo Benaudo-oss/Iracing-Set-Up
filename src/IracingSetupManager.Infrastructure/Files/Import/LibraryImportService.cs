@@ -149,8 +149,6 @@ public sealed class LibraryImportService(
             destinationDirectory,
             cancellationToken);
         var fileInfo = new FileInfo(setupPath);
-        var isUnidentified = metadata.Provider.Equals("À identifier", StringComparison.OrdinalIgnoreCase);
-
         var importedSetup = new SetupEntity
         {
             Id = Guid.NewGuid(),
@@ -167,8 +165,6 @@ public sealed class LibraryImportService(
             ArchivePath = archivePath,
             SourceKind = sourceKind,
             SourcePath = null,
-            IsPrivate = isUnidentified,
-            Garage61ExportApproved = false,
             Status = SetupStatus.AVerifier,
             DownloadedAtUtc = new DateTimeOffset(fileInfo.LastWriteTimeUtc, TimeSpan.Zero)
         };
@@ -215,8 +211,6 @@ public sealed class LibraryImportService(
         existing.ArchivePath = archivePath;
         existing.SourceKind = sourceKind;
         existing.SourcePath = null;
-        existing.IsPrivate = metadata.Provider.Equals("À identifier", StringComparison.OrdinalIgnoreCase);
-        existing.Garage61ExportApproved = false;
         existing.Status = SetupStatus.AVerifier;
         existing.DownloadedAtUtc = new DateTimeOffset(fileInfo.LastWriteTimeUtc, TimeSpan.Zero);
         await repository.UpdateAsync(existing, cancellationToken);

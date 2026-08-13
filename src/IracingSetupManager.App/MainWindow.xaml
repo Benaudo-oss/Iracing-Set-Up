@@ -44,7 +44,7 @@
             <NavigationViewItem Content="À vérifier" Tag="review">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D5;" /></NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem Content="Historique et erreurs" Tag="history">
+                <NavigationViewItem Content="Historique" Tag="history">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE81C;" /></NavigationViewItem.Icon>
             </NavigationViewItem>
             <NavigationViewItem Content="Mises à jour" Tag="updates">

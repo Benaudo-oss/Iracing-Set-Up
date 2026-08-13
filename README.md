@@ -3,23 +3,29 @@
 Application Windows en français destinée à centraliser, classer, vérifier et copier
 des setups iRacing sans modifier les fichiers originaux.
 
-> Le projet n'utilisera que les API et méthodes d'importation officiellement
-> autorisées par les fournisseurs et Garage61. Il ne contournera aucune
-> authentification, limitation, protection ou condition d'abonnement.
+> Le projet utilise uniquement les fichiers placés dans les dossiers locaux
+> autorisés par l'utilisateur. Il ne contourne aucune authentification,
+> limitation, protection ou condition d'abonnement et n'effectue aucun upload
+> direct vers Garage61.
 
 ## État du projet
 
-Le projet est en phase d'initialisation. La version actuelle est `0.1.7.18` :
-bibliothèque locale, calcul SHA-256, base SQLite et interface de consultation.
+La version actuelle est `1.2.7.26`. Elle comprend la bibliothèque locale, la
+surveillance des dossiers autorisés, la validation, la copie vers iRacing et
+iRacing Team, les sauvegardes et les mises à jour automatiques.
 
 ## Technologies
 
 - C# et .NET 10 LTS
 - WinUI 3 / Windows App SDK 2.3.1
-- MVVM avec CommunityToolkit.Mvvm
+- interface WinUI en C# avec pages XAML
 - SQLite avec Entity Framework Core
 - xUnit pour les tests
 - GitHub Actions pour l'intégration continue
+
+Les fournisseurs, catégories et voitures prises en charge sont définis dans un
+catalogue unique. Les alias de circuits sont partagés entre l'analyse des noms de
+fichiers et l'import du catalogue local iRacing.
 
 ## Organisation
 
@@ -28,8 +34,7 @@ src/
   IracingSetupManager.App/              Interface Windows WinUI 3
   IracingSetupManager.Core/             Modèles et règles métier
   IracingSetupManager.Infrastructure/   Base, fichiers, journaux et sécurité
-  IracingSetupManager.Providers/        HYMO, GO, GNG et orchestration parallèle
-  IracingSetupManager.Integrations/     iRacing, Garage61 et mises à jour
+  IracingSetupManager.Integrations/     Vérification et installation des mises à jour
 tests/
   IracingSetupManager.Core.Tests/       Tests automatisés
 docs/                                   Architecture et décisions
@@ -68,9 +73,9 @@ dotnet test IracingSetupManager.sln --configuration Release --maxcpucount:1
 ## Sécurité
 
 Ne jamais ajouter au dépôt de mot de passe, cookie, jeton, archive personnelle,
-base locale ou certificat. Les secrets de développement doivent rester dans le
-gestionnaire d'informations d'identification Windows. Les secrets de publication
-doivent être enregistrés dans GitHub Actions Secrets.
+base locale ou certificat. L'application ne demande actuellement aucun identifiant
+de fournisseur. Les secrets de publication doivent être enregistrés dans GitHub
+Actions Secrets.
 
 ## Méthode de contribution
 
@@ -82,8 +87,8 @@ doivent être enregistrés dans GitHub Actions Secrets.
 
 ## Publication
 
-Les versions suivront le format `MAJEURE.MINEURE.CORRECTIF`. À terme, la création
-d'un tag déclenchera les tests, la compilation, la génération de l'installateur,
+Les versions suivent le format `MAJEURE.MINEURE.CORRECTIF` avec une quatrième
+partie facultative. La création d'un tag déclenche les tests, la compilation, la génération de l'installateur,
 le calcul SHA-256 et la publication dans GitHub Releases.
 
 Les livrables Windows seront publiés en mode autonome. Exemple pour Windows x64 :
@@ -98,7 +103,7 @@ dotnet publish src/IracingSetupManager.App/IracingSetupManager.App.csproj `
 
 ### Installateur Windows
 
-La commande `installer/Build-Installer.ps1 -Version 0.1.7.18` publie l’application
+La commande `installer/Build-Installer.ps1 -Version 1.2.7.26` publie l’application
 autonome, génère l’installateur Inno Setup versionné et son empreinte SHA-256. Le
 même identifiant d’application assure installation, désinstallation et mise à
 niveau. L’installateur ne supprime jamais `%LocalAppData%\IracingSetupManager`,
@@ -112,6 +117,17 @@ l’application, construit l’installateur et publie automatiquement l’exécu
 son fichier SHA-256 dans GitHub Releases. Les secrets facultatifs
 `SIGNING_CERTIFICATE_BASE64` et `SIGNING_CERTIFICATE_PASSWORD` activent la
 signature. L’application ne propose jamais une release privée d’un des deux assets.
+
+## Fiabilité et base locale
+
+Les actions sensibles de l'interface interceptent les erreurs attendues et les
+écrivent dans des journaux quotidiens expurgés sous les données locales de
+l'application. Le schéma SQLite est versionné dans `SchemaMigrations` : chaque
+évolution est appliquée une seule fois et testée sur une ancienne structure.
+
+La suite automatisée couvre aussi la logique de recherche et de filtrage utilisée
+par les pages Bibliothèque et À vérifier. Les contrôles WinUI eux-mêmes restent à
+valider visuellement sur Windows lors de chaque publication.
 
 ## Licence
 

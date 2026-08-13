@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -8,11 +9,13 @@ public sealed class GitHubReleaseUpdateService(HttpClient httpClient, string upd
 {
     private static readonly Uri LatestReleaseUri = new("https://api.github.com/repos/Benaudo-oss/Iracing-Set-Up/releases/latest");
     private static readonly Uri LatestReleasePageUri = new("https://github.com/Benaudo-oss/Iracing-Set-Up/releases/latest");
+    private static string CurrentUserAgent =>
+        $"IracingSetupManager/{Assembly.GetEntryAssembly()?.GetName().Version ?? new Version(0, 0)}";
 
     public async Task<UpdateAvailability> CheckAsync(Version installedVersion, CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, LatestReleaseUri);
-        request.Headers.UserAgent.ParseAdd("IracingSetupManager/0.1");
+        request.Headers.UserAgent.ParseAdd(CurrentUserAgent);
         request.Headers.Accept.ParseAdd("application/vnd.github+json");
         using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -47,7 +50,7 @@ public sealed class GitHubReleaseUpdateService(HttpClient httpClient, string upd
         CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, LatestReleasePageUri);
-        request.Headers.UserAgent.ParseAdd("IracingSetupManager/0.1");
+        request.Headers.UserAgent.ParseAdd(CurrentUserAgent);
         using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
 

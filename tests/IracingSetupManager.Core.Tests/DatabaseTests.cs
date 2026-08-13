@@ -23,7 +23,6 @@ public sealed class DatabaseTests
         Assert.NotNull(stored);
         Assert.Equal("HYMO", stored.Provider);
         Assert.Equal("Spa-Francorchamps", stored.Track);
-        Assert.Equal("Envoi accepté", stored.Garage61Result);
     }
 
     [Fact]
@@ -74,6 +73,71 @@ public sealed class DatabaseTests
         Assert.Equal(1, populated.Total);
         Assert.Equal(1, populated.CopiedToIracingTeam);
         Assert.Equal(setup.DownloadedAtUtc, populated.LastDownloadUtc);
+    }
+
+    [Fact]
+    public async Task LegacyGarage61UploadSchemaIsRemovedWithoutLosingTheSetup()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var setup = CreateSetup();
+        await new SetupRepository(environment.Factory).AddAsync(setup);
+
+        await using (var context = environment.Factory.Create())
+        {
+            await context.Database.ExecuteSqlRawAsync(
+                """
+                ALTER TABLE "Setups" ADD COLUMN "IsPrivate" INTEGER NOT NULL DEFAULT 0;
+                ALTER TABLE "Setups" ADD COLUMN "Garage61ExportApproved" INTEGER NOT NULL DEFAULT 0;
+                ALTER TABLE "Setups" ADD COLUMN "SentToGarage61AtUtc" TEXT NULL;
+                ALTER TABLE "Setups" ADD COLUMN "Garage61Succeeded" INTEGER NULL;
+                ALTER TABLE "Setups" ADD COLUMN "Garage61Result" TEXT NULL;
+                ALTER TABLE "Setups" ADD COLUMN "Garage61SetupId" TEXT NULL;
+                ALTER TABLE "Setups" ADD COLUMN "Garage61SetupUrl" TEXT NULL;
+                CREATE INDEX "IX_Setups_IsPrivate_Garage61ExportApproved_Status"
+                    ON "Setups" ("IsPrivate", "Garage61ExportApproved", "Status");
+                UPDATE "Setups" SET "Status" = 'EnvoyeVersGarage61';
+                DELETE FROM "SchemaMigrations" WHERE "Version" >= 2;
+                """);
+        }
+
+        await new SetupDatabase(environment.Factory).InitializeAsync();
+
+        await using var migratedContext = environment.Factory.Create();
+        var migrated = await migratedContext.Setups.SingleAsync();
+        Assert.Equal(SetupStatus.Valide, migrated.Status);
+
+        var connection = migratedContext.Database.GetDbConnection();
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA table_info(\"Setups\");";
+        await using var reader = await command.ExecuteReaderAsync();
+        var columns = new List<string>();
+        while (await reader.ReadAsync()) columns.Add(reader.GetString(1));
+
+        Assert.DoesNotContain("IsPrivate", columns);
+        Assert.DoesNotContain("Garage61ExportApproved", columns);
+        Assert.DoesNotContain("SentToGarage61AtUtc", columns);
+        Assert.DoesNotContain("Garage61Succeeded", columns);
+        Assert.DoesNotContain("Garage61Result", columns);
+        Assert.DoesNotContain("Garage61SetupId", columns);
+        Assert.DoesNotContain("Garage61SetupUrl", columns);
+        Assert.Equal(SetupDatabase.CurrentSchemaVersion, await new SetupDatabase(environment.Factory).GetSchemaVersionAsync());
+    }
+
+    [Fact]
+    public async Task SchemaMigrationsAreVersionedAndIdempotent()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var database = new SetupDatabase(environment.Factory);
+
+        await database.InitializeAsync();
+        await database.InitializeAsync();
+
+        Assert.Equal(SetupDatabase.CurrentSchemaVersion, await database.GetSchemaVersionAsync());
+        await using var context = environment.Factory.Create();
+        var versions = await context.Database.SqlQueryRaw<int>(
+            "SELECT \"Version\" AS \"Value\" FROM \"SchemaMigrations\" ORDER BY \"Version\"").ToListAsync();
+        Assert.Equal([1, 2, 3], versions);
     }
 
     [Fact]
@@ -132,6 +196,7 @@ public sealed class DatabaseTests
         setup.Category = "À identifier";
         setup.Car = "À identifier";
         setup.Track = "À identifier";
+        setup.TrackConfiguration = null;
         setup.Season = null;
         setup.SetupType = "À identifier";
         var originalArchivePath = setup.ArchivePath;
@@ -150,6 +215,24 @@ public sealed class DatabaseTests
         Assert.Equal("2026 S3", refreshed.Season);
         Assert.Equal("Race V2", refreshed.SetupType);
         Assert.Equal(originalArchivePath, refreshed.ArchivePath);
+    }
+
+    [Fact]
+    public async Task MetadataRefreshUpdatesTrackConfigurationWhenItBecomesKnown()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var setup = CreateSetup();
+        setup.OriginalFileName = "VRS_26S3_M4GT3_Donington_NTL_R.sto";
+        setup.Track = "À identifier";
+        setup.TrackConfiguration = null;
+        await new SetupRepository(environment.Factory).AddAsync(setup);
+
+        await new SetupMetadataRefreshService(environment.Factory, new SetupMetadataAnalyzer()).RefreshAsync();
+        var refreshed = await new SetupRepository(environment.Factory).FindBySha256Async(setup.Sha256);
+
+        Assert.NotNull(refreshed);
+        Assert.Equal("Donington Park", refreshed.Track);
+        Assert.Equal("National", refreshed.TrackConfiguration);
     }
 
     [Fact]
@@ -187,15 +270,10 @@ public sealed class DatabaseTests
         ArchivePath = @"C:\Archive\2026 S3\Spa\Porsche\HYMO\Race\spa_race.sto",
         SourceKind = SetupSourceKind.OfficialProviderApplication,
         SourcePath = @"C:\HYMO\spa_race.sto",
-        Status = SetupStatus.EnvoyeVersGarage61,
+        Status = SetupStatus.Valide,
         PersonalRating = 5,
         Comment = "Stable",
-        DownloadedAtUtc = DateTimeOffset.UtcNow.AddDays(-1),
-        SentToGarage61AtUtc = DateTimeOffset.UtcNow,
-        Garage61Succeeded = true,
-        Garage61Result = "Envoi accepté",
-        Garage61SetupId = "g61-42",
-        Garage61SetupUrl = "https://garage61.net/setup/g61-42"
+        DownloadedAtUtc = DateTimeOffset.UtcNow.AddDays(-1)
     };
 
     private sealed class FakeFolderPicker(string path) : IArchiveFolderPicker

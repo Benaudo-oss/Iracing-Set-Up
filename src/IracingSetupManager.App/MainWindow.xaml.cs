@@ -19,6 +19,11 @@ public sealed partial class MainWindow : Window
         }
 
         AppWindow.Resize(new SizeInt32(1440, 900));
+        ContentFrame.NavigationFailed += (_, args) =>
+        {
+            Services.UiOperation.Report(args.Exception, $"Impossible d’ouvrir la page {args.SourcePageType.Name}");
+            args.Handled = true;
+        };
         ContentFrame.Navigate(typeof(DashboardPage));
         MainNavigation.SelectedItem = MainNavigation.MenuItems[0];
     }
@@ -27,6 +32,8 @@ public sealed partial class MainWindow : Window
         NavigationView sender,
         NavigationViewSelectionChangedEventArgs args)
     {
+        try
+        {
         if (args.IsSettingsSelected)
         {
             Navigate(typeof(SettingsPage));
@@ -51,6 +58,11 @@ public sealed partial class MainWindow : Window
             _ => typeof(DashboardPage)
         };
         Navigate(pageType, tag == "iracing-team-copy" ? "team" : null);
+        }
+        catch (Exception exception)
+        {
+            Services.UiOperation.Report(exception, "La navigation a échoué");
+        }
     }
 
     private void Navigate(Type pageType, object? parameter = null)

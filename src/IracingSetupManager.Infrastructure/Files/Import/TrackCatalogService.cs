@@ -9,26 +9,6 @@ public sealed record TrackCatalogMatch(string TrackName, string? Configuration);
 
 public sealed class TrackCatalogService(ISetupDbContextFactory contextFactory)
 {
-    private static readonly IReadOnlyDictionary<string, string> DisplayNames =
-        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["adelaide"] = "Adelaide", ["algarve"] = "Algarve", ["barcelona"] = "Barcelona", ["bathurst"] = "Bathurst",
-            ["charlotte"] = "Charlotte", ["daytona"] = "Daytona", ["donington"] = "Donington Park",
-            ["fuji"] = "Fuji", ["hockenheim"] = "Hockenheim", ["imola"] = "Imola",
-            ["lagunaseca"] = "Laguna Seca", ["lakeland"] = "Lakeland", ["ledenon"] = "Lédenon",
-            ["lemans"] = "Le Mans", ["limerock"] = "Lime Rock Park", ["magnycours"] = "Magny-Cours",
-            ["miami"] = "Miami", ["misano"] = "Misano", ["monza"] = "Monza",
-            ["mexico"] = "Mexique", ["stpete"] = "Saint-Pétersbourg",
-            ["mosport"] = "Canadian Tire Motorsport Park",
-            ["nurburgring"] = "Nürburgring", ["okayama"] = "Okayama", ["oran"] = "Oran Park",
-            ["oschersleben"] = "Oschersleben", ["oulton"] = "Oulton Park", ["phoenix"] = "Phoenix",
-            ["roadamerica"] = "Road America", ["roadatlanta"] = "Road Atlanta", ["rudskogen"] = "Rudskogen",
-            ["sebring"] = "Sebring", ["silverstone"] = "Silverstone", ["snetterton"] = "Snetterton",
-            ["spa"] = "Spa-Francorchamps", ["summit"] = "Summit Point", ["twinring"] = "Twin Ring Motegi",
-            ["virginia"] = "Virginia International Raceway", ["watkinsglen"] = "Watkins Glen",
-            ["wildwest"] = "Wild West"
-        };
-
     private volatile IReadOnlyList<TrackCatalogEntity> snapshot = [];
 
     public static string? DetectLapfilesFolder()
@@ -111,7 +91,7 @@ public sealed class TrackCatalogService(ISetupDbContextFactory contextFactory)
     {
         var parts = folderName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var baseName = parts[0];
-        var trackName = DisplayNames.GetValueOrDefault(baseName) ?? ToTitleCase(baseName);
+        var trackName = SetupMetadataAnalyzer.ResolveKnownTrackName(baseName) ?? ToTitleCase(baseName);
         var configuration = parts.Length > 1 ? string.Join(' ', parts.Skip(1).Select(ToTitleCase)) : null;
         return new TrackCatalogMatch(trackName, configuration);
     }
