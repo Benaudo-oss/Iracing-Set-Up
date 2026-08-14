@@ -5,6 +5,11 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.2.9.29
+
+- Remplacement des sélecteurs personnalisés par des cases à cocher Windows fiables.
+- Conservation de la présentation en cartes et de la logique de filtrage des fournisseurs et catégories.
+
 # 1.2.9.28
 
 - Rétablissement d’un témoin de sélection visible pour chaque fournisseur et chaque catégorie.

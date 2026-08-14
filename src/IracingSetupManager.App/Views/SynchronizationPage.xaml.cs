@@ -4,7 +4,6 @@ using IracingSetupManager.Infrastructure.Files.Monitoring;
 using IracingSetupManager.Infrastructure.Settings;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace IracingSetupManager.App.Views;
 
@@ -215,10 +214,10 @@ public sealed partial class SynchronizationPage : Page
             (GtpCategory, "GTP"), (PcupCategory, "PCUP"));
     }
 
-    private static IReadOnlyList<string> SelectedValues(params (ToggleButton Box, string Value)[] items) =>
+    private static IReadOnlyList<string> SelectedValues(params (CheckBox Box, string Value)[] items) =>
         items.Where(item => item.Box.IsChecked == true).Select(item => item.Value).ToList();
 
-    private static void SetChecked(IReadOnlyList<string> selected, params (ToggleButton Box, string Value)[] items)
+    private static void SetChecked(IReadOnlyList<string> selected, params (CheckBox Box, string Value)[] items)
     {
         var values = selected.ToHashSet(StringComparer.Ordinal);
         foreach (var item in items) item.Box.IsChecked = values.Contains(item.Value);
