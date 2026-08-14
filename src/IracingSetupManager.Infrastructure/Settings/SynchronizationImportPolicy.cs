@@ -13,8 +13,9 @@ public static class SynchronizationImportPolicy
 
         var providerAllowed = IsUnknown(metadata.Provider) ||
             selection.Providers.Contains(metadata.Provider, StringComparer.OrdinalIgnoreCase);
-        var categoryAllowed = IsUnknown(metadata.Category) ||
-            selection.Categories.Contains(metadata.Category, StringComparer.OrdinalIgnoreCase);
+        // A category filter must remain strict. Importing an unidentified category here can
+        // make a later metadata refresh reveal a category that the user explicitly excluded.
+        var categoryAllowed = selection.Categories.Contains(metadata.Category, StringComparer.OrdinalIgnoreCase);
 
         return providerAllowed && categoryAllowed;
     }

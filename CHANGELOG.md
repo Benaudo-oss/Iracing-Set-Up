@@ -5,6 +5,12 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.2.9.30
+
+- Application stricte du filtre de catégories pendant les synchronisations manuelles et automatiques.
+- Les catégories décochées ou non identifiées ne sont plus importées.
+- Ajout de tests couvrant les catégories inconnues et l’absence de sélection.
+
 # 1.2.9.29
 
 - Remplacement des sélecteurs personnalisés par des cases à cocher Windows fiables.
