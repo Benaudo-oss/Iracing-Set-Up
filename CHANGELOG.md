@@ -5,6 +5,27 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.2.8.26
+
+- Affiche la progression réelle et le volume téléchargé pendant une mise à jour.
+- Traduit les limites GitHub, délais et coupures réseau en messages compréhensibles.
+- Mémorise la version attendue avant installation et confirme automatiquement le
+  succès ou l’échec lors du redémarrage de l’application.
+
+- Transforme la synchronisation en suivi temps réel avec progression par fichier,
+  récapitulatif, arrêt propre et protection contre les lancements simultanés.
+- Conserve deux modes explicites : manuel, ou automatique uniquement lorsque
+  l'utilisateur l'active dans Paramètres ; ce choix reste désactivé par défaut.
+- Rend les copies d'archive atomiques afin qu'une interruption ne laisse aucun
+  fichier final incomplet.
+
+- Ajoute la correction manuelle des métadonnées depuis l’onglet À vérifier,
+  avec reclassement sécurisé du fichier archivé et historique du changement.
+- Permet de mémoriser des abréviations personnelles de voitures et circuits,
+  puis de les consulter ou supprimer depuis les paramètres.
+- Ajoute une migration SQLite pour le dictionnaire de reconnaissance et des
+  tests couvrant l’apprentissage, les doublons et le reclassement.
+
 - Retire les connecteurs de téléchargement direct fournisseurs non raccordés et
   conserve uniquement l'import par surveillance des dossiers autorisés.
 - Retire les fondations d'upload direct Garage61, leur compteur et leurs champs

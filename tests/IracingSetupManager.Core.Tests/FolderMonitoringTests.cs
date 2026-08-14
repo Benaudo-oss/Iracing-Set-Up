@@ -1,4 +1,5 @@
 using IracingSetupManager.Infrastructure.Files.Monitoring;
+using IracingSetupManager.Infrastructure.Files;
 using Xunit;
 
 namespace IracingSetupManager.Core.Tests;
@@ -68,6 +69,26 @@ public sealed class FolderMonitoringTests
             using var restartedMonitor = new ImportFolderMonitor(new MonitoredFolderPolicy(Path.Combine(root, "Documents")));
             var resumed = Assert.Single(await restartedMonitor.ScanAsync([new MonitoredFolder(root, ImportFolderKind.Downloads)]));
             Assert.Equal(completed, resumed.FullPath);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
+    public async Task CancelledArchiveCopyLeavesNoFinalOrTemporaryFile()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var source = Path.Combine(root, "source.sto");
+            var destination = Path.Combine(root, "archive");
+            await File.WriteAllBytesAsync(source, new byte[1024 * 1024]);
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                new ArchiveFileManager(new Sha256Calculator()).CopyWithoutOverwriteAsync(source, destination, cancellation.Token));
+
+            Assert.Empty(Directory.Exists(destination) ? Directory.EnumerateFiles(destination, "*", SearchOption.AllDirectories) : []);
         }
         finally { Directory.Delete(root, true); }
     }

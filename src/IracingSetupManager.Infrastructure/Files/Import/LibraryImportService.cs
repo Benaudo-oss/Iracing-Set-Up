@@ -41,6 +41,11 @@ public sealed class LibraryImportService(
             return [new SetupImportResult(sourcePath, SetupImportOutcome.Unsupported)];
         }
 
+        var containsSetup = extension.Equals(".rar", StringComparison.OrdinalIgnoreCase)
+            ? rarExtractor.ContainsSetup(sourcePath, cancellationToken)
+            : zipExtractor.ContainsSetup(sourcePath, cancellationToken);
+        if (!containsSetup) return [new SetupImportResult(sourcePath, SetupImportOutcome.Unsupported)];
+
         var temporaryRoot = Path.Combine(
             Path.GetTempPath(),
             "IracingSetupManager",

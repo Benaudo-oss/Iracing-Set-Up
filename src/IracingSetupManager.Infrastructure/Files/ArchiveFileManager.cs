@@ -41,21 +41,27 @@ public sealed class ArchiveFileManager(Sha256Calculator sha256Calculator) : IArc
             }
         }
 
-        await using var source = new FileStream(
-            sourceFullPath,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            bufferSize: 81920,
-            FileOptions.Asynchronous | FileOptions.SequentialScan);
-        await using var destination = new FileStream(
-            destinationPath,
-            FileMode.CreateNew,
-            FileAccess.Write,
-            FileShare.None,
-            bufferSize: 81920,
-            FileOptions.Asynchronous);
-        await source.CopyToAsync(destination, cancellationToken);
+        var temporaryPath = SecurePath.EnsureChildOf(
+            Path.Combine(Path.GetDirectoryName(destinationPath)!, $".{Path.GetFileName(destinationPath)}.{Guid.NewGuid():N}.tmp"),
+            destinationRoot);
+        try
+        {
+            await using (var source = new FileStream(
+                sourceFullPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920,
+                FileOptions.Asynchronous | FileOptions.SequentialScan))
+            await using (var destination = new FileStream(
+                temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920,
+                FileOptions.Asynchronous | FileOptions.WriteThrough))
+            {
+                await source.CopyToAsync(destination, cancellationToken);
+                await destination.FlushAsync(cancellationToken);
+            }
+            File.Move(temporaryPath, destinationPath);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath)) File.Delete(temporaryPath);
+        }
         return destinationPath;
     }
 }

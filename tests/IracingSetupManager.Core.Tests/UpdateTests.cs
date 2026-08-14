@@ -31,9 +31,12 @@ public sealed class UpdateTests
             Assert.Equal(new Version(0, 1, 1, 1), availability.AvailableVersion);
             Assert.Contains("Nouveautés simulées", availability.ReleaseNotes);
 
-            var downloaded = await service.DownloadAndVerifyAsync(availability);
+            var reported = new List<UpdateDownloadProgress>();
+            var downloaded = await service.DownloadAndVerifyAsync(availability, new InlineProgress<UpdateDownloadProgress>(reported.Add));
             Assert.Equal(hash, downloaded.Sha256);
             Assert.Equal(package, await File.ReadAllBytesAsync(downloaded.InstallerPath));
+            Assert.Contains(reported, item => item.Stage == "Téléchargement" && item.Percentage == 100);
+            Assert.Contains(reported, item => item.Stage == "Vérification SHA-256");
         }
         finally { Directory.Delete(root, true); }
     }
@@ -98,6 +101,26 @@ public sealed class UpdateTests
     }
 
     [Fact]
+    public async Task RestartConfirmsOrRejectsTheExpectedInstalledVersionOnlyOnce()
+    {
+        var root = CreateRoot();
+        try
+        {
+            var factory = new LocalSetupDbContextFactory(Path.Combine(root, "settings.db"));
+            await new SetupDatabase(factory).InitializeAsync();
+            var preferences = new UpdatePreferenceService(factory);
+            await preferences.MarkInstallationPendingAsync(new Version(1, 2, 8, 0));
+
+            var failed = await preferences.VerifyInstallationAfterRestartAsync(new Version(1, 2, 7, 26));
+
+            Assert.NotNull(failed);
+            Assert.False(failed.Success);
+            Assert.Null(await preferences.VerifyInstallationAfterRestartAsync(new Version(1, 2, 8, 0)));
+        }
+        finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); Directory.Delete(root, true); }
+    }
+
+    [Fact]
     public void RollbackSelectsNewestInstallerOlderThanInstalledVersion()
     {
         var root = CreateRoot();
@@ -133,5 +156,9 @@ public sealed class UpdateTests
     private sealed class SimulatedGitHubHandler(Func<HttpRequestMessage, HttpResponseMessage> response) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => Task.FromResult(response(request));
+    }
+    private sealed class InlineProgress<T>(Action<T> report) : IProgress<T>
+    {
+        public void Report(T value) => report(value);
     }
 }

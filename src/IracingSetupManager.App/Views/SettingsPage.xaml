@@ -28,7 +28,7 @@
             <Border Padding="20" Background="#FF20242B" CornerRadius="10">
                 <StackPanel Spacing="14">
                     <TextBlock FontSize="20" FontWeight="SemiBold" Text="Dossiers surveillés" />
-                    <ToggleSwitch x:Name="AutomaticMonitoringToggle" Header="Surveillance automatique" OnContent="Activée" OffContent="Désactivée" />
+                    <ToggleSwitch x:Name="AutomaticMonitoringToggle" Header="Surveillance automatique" OnContent="Activée" OffContent="Désactivée" Toggled="OnAutomaticMonitoringToggled" />
                     <TextBlock Opacity="0.65" Text="Lorsqu’elle est désactivée, seuls les imports lancés manuellement depuis Synchronisation sont effectués." TextWrapping="Wrap" />
                     <InfoBar IsOpen="True" IsClosable="False" Severity="Warning" Title="Protection des setups privés" Message="Documents\iRacing\setups est volontairement interdit. Seuls Téléchargements et les dossiers des applications officielles sont acceptés." />
                     <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Téléchargements" /><TextBox x:Name="DownloadsPathBox" Grid.Column="1" IsReadOnly="True" /><ToggleSwitch x:Name="DownloadsToggle" Grid.Column="2" IsOn="True" OnContent="Actif" OffContent="Inactif" /></Grid>
@@ -60,6 +60,28 @@
                     <TextBlock Text="Aperçu" FontWeight="SemiBold" />
                     <TextBlock x:Name="PathLayoutPreview" Opacity="0.75" TextWrapping="Wrap" />
                     <Button HorizontalAlignment="Left" Content="Rétablir l’ordre par défaut" Click="OnResetPathLayout" />
+                </StackPanel>
+            </Border>
+            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+                <StackPanel Spacing="12">
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="Dictionnaire de reconnaissance" />
+                    <TextBlock Opacity="0.65" Text="Les abréviations mémorisées lors d’une correction sont prioritaires pour les prochains imports. Vous pouvez les supprimer ici." TextWrapping="Wrap" />
+                    <Button HorizontalAlignment="Left" Content="Ajouter une abréviation" Style="{StaticResource AccentButtonStyle}" Click="OnAddRecognitionAlias" />
+                    <ListView x:Name="RecognitionAliasesList" SelectionMode="None" MaxHeight="300">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="6" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="100" /><ColumnDefinition Width="160" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock VerticalAlignment="Center" Text="{Binding KindLabel}" />
+                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Alias}" />
+                                    <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="{Binding CanonicalValue}" TextTrimming="CharacterEllipsis" />
+                                    <Button Grid.Column="3" Tag="{Binding Id}" Content="Modifier" Click="OnEditRecognitionAlias" />
+                                    <Button Grid.Column="4" Tag="{Binding Id}" Content="Supprimer" Click="OnDeleteRecognitionAlias" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <TextBlock x:Name="NoRecognitionAliasesText" Opacity="0.65" Text="Aucune abréviation personnelle enregistrée." />
                 </StackPanel>
             </Border>
             <Border Padding="20" Background="#FF20242B" CornerRadius="10"><StackPanel Spacing="8"><TextBlock FontSize="20" FontWeight="SemiBold" Text="Confidentialité" /><TextBlock Opacity="0.75" Text="Les setups inconnus restent dans À vérifier. Toute validation groupée demande une confirmation explicite." TextWrapping="Wrap" /></StackPanel></Border>

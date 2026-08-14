@@ -33,7 +33,9 @@ public sealed class AppServices
         SensitiveData = new SensitiveDataRetentionService(ContextFactory);
         QueryService = new SetupQueryService(ContextFactory);
         TrackCatalog = new TrackCatalogService(ContextFactory);
-        var metadataAnalyzer = new SetupMetadataAnalyzer(TrackCatalog);
+        RecognitionAliases = new RecognitionAliasService(ContextFactory);
+        var metadataAnalyzer = new SetupMetadataAnalyzer(TrackCatalog, RecognitionAliases);
+        SetupCorrection = new SetupCorrectionService(ContextFactory, new ArchivePathBuilder(), RecognitionAliases);
         MetadataRefresh = new SetupMetadataRefreshService(ContextFactory, metadataAnalyzer);
         LibraryIntegrity = new SetupLibraryIntegrityService(ContextFactory);
         ArchiveReorganization = new ArchiveReorganizationService(ContextFactory, new ArchivePathBuilder(), new Sha256Calculator());
@@ -66,6 +68,8 @@ public sealed class AppServices
             importer,
             ArchivePaths.GetAsync,
             SynchronizationSelection);
+        SynchronizationActivity = new SynchronizationActivityStore();
+        SynchronizationActivity.Attach(Monitoring);
         Monitoring.ImportFailed += (_, exception) =>
             ApplicationLog.Error(exception, "Échec de l’import d’un fichier surveillé");
     }
@@ -77,6 +81,8 @@ public sealed class AppServices
     public SensitiveDataRetentionService SensitiveData { get; }
     public SetupQueryService QueryService { get; }
     public TrackCatalogService TrackCatalog { get; }
+    public RecognitionAliasService RecognitionAliases { get; }
+    public SetupCorrectionService SetupCorrection { get; }
     public SetupMetadataRefreshService MetadataRefresh { get; }
     public SetupLibraryIntegrityService LibraryIntegrity { get; }
     public ArchiveReorganizationService ArchiveReorganization { get; }
@@ -88,9 +94,11 @@ public sealed class AppServices
     public MonitoredFolderSettingsService MonitoredFolders { get; }
     public AutomaticMonitoringSettingsService AutomaticMonitoring { get; }
     public ImportMonitoringService Monitoring { get; }
+    public SynchronizationActivityStore SynchronizationActivity { get; }
     public UpdatePreferenceService UpdatePreferences { get; }
     public SynchronizationSelectionSettingsService SynchronizationSelection { get; }
     public IracingTeamSettingsService IracingTeam { get; }
     public IUpdateService Updates { get; }
     public UpdateInstallerLauncher UpdateInstaller { get; }
+    public UpdateVerificationResult? StartupUpdateVerification { get; set; }
 }

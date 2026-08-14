@@ -1,6 +1,9 @@
 using IracingSetupManager.App.Services;
 using IracingSetupManager.Infrastructure.Files.Monitoring;
 using IracingSetupManager.Infrastructure.Iracing;
+using IracingSetupManager.Infrastructure.Database.Entities;
+using IracingSetupManager.Infrastructure.Files.Import;
+using IracingSetupManager.Core.Catalog;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -11,6 +14,7 @@ namespace IracingSetupManager.App.Views;
 public sealed partial class SettingsPage : Page
 {
     private readonly List<PathElementRow> pathLayout = [];
+    private bool loadingSettings;
 
     public SettingsPage() => InitializeComponent();
 
@@ -19,6 +23,9 @@ public sealed partial class SettingsPage : Page
 
     private async Task LoadSettingsAsync()
     {
+        loadingSettings = true;
+        try
+        {
         ArchivePathBox.Text = await App.Services.ArchivePaths.GetAsync() ?? string.Empty;
         IracingTeamNameBox.Text = await App.Services.IracingTeam.GetNameAsync() ?? string.Empty;
         AutomaticMonitoringToggle.IsOn = await App.Services.AutomaticMonitoring.IsEnabledAsync();
@@ -33,6 +40,125 @@ public sealed partial class SettingsPage : Page
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "P1Doks"));
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "Coach Dave Academy (CDA)"));
         SetPathLayout(await App.Services.IracingPathLayout.GetAsync());
+        RefreshRecognitionAliases();
+        }
+        finally { loadingSettings = false; }
+    }
+
+    private async void OnAutomaticMonitoringToggled(object sender, RoutedEventArgs e)
+    {
+        if (loadingSettings) return;
+        await UiOperation.RunAsync(SaveAutomaticMonitoringAsync, "Impossible de modifier la surveillance automatique", SettingsInfo);
+    }
+
+    private async Task SaveAutomaticMonitoringAsync()
+    {
+        var enabled = AutomaticMonitoringToggle.IsOn;
+        await App.Services.AutomaticMonitoring.SaveAsync(enabled);
+        if (enabled)
+        {
+            if (string.IsNullOrWhiteSpace(await App.Services.ArchivePaths.GetAsync()))
+            {
+                loadingSettings = true;
+                AutomaticMonitoringToggle.IsOn = false;
+                loadingSettings = false;
+                await App.Services.AutomaticMonitoring.SaveAsync(false);
+                throw new InvalidOperationException("Choisissez d’abord le dossier d’archive.");
+            }
+            await App.Services.Monitoring.StartAsync();
+        }
+        else await App.Services.Monitoring.StopAsync();
+        SettingsInfo.Severity = InfoBarSeverity.Success;
+        SettingsInfo.Message = enabled
+            ? "La surveillance automatique est activée et mémorisée."
+            : "La surveillance automatique est arrêtée et restera désactivée au prochain lancement.";
+        SettingsInfo.IsOpen = true;
+    }
+
+    private void RefreshRecognitionAliases()
+    {
+        var rows = App.Services.RecognitionAliases.Snapshot.Select(item => new RecognitionAliasRow(
+            item.Id,
+            item.Kind,
+            item.Alias,
+            item.CanonicalValue)).ToArray();
+        RecognitionAliasesList.ItemsSource = rows;
+        NoRecognitionAliasesText.Visibility = rows.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void OnAddRecognitionAlias(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(() => EditRecognitionAliasAsync(null), "Impossible d’ajouter l’abréviation", SettingsInfo);
+
+    private async void OnEditRecognitionAlias(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(() => EditRecognitionAliasAsync(sender), "Impossible de modifier l’abréviation", SettingsInfo);
+
+    private async Task EditRecognitionAliasAsync(object? sender)
+    {
+        var existing = sender is Button { Tag: long id }
+            ? App.Services.RecognitionAliases.Snapshot.FirstOrDefault(item => item.Id == id)
+            : null;
+        var kind = new ComboBox { Header = "Type", HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = new[] { "Voiture", "Circuit" }, IsEnabled = existing is null };
+        kind.SelectedIndex = existing?.Kind == RecognitionAliasKind.Track ? 1 : 0;
+        var alias = new TextBox { Header = "Abréviation", Text = existing?.Alias ?? string.Empty, PlaceholderText = "Au moins 3 caractères", IsReadOnly = existing is not null };
+        var canonical = new ComboBox { Header = "Valeur reconnue", HorizontalAlignment = HorizontalAlignment.Stretch };
+        var tracks = SetupMetadataAnalyzer.KnownTrackNames.Concat((await App.Services.TrackCatalog.GetAllAsync()).Select(item => item.TrackName))
+            .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase).ToArray();
+        void RefreshValues()
+        {
+            canonical.ItemsSource = kind.SelectedIndex == 0
+                ? SetupCatalog.Cars.Select(item => item.DisplayName).Order(StringComparer.CurrentCultureIgnoreCase).ToArray()
+                : tracks;
+            canonical.SelectedItem = canonical.Items.Cast<string>().FirstOrDefault(item =>
+                item.Equals(existing?.CanonicalValue, StringComparison.OrdinalIgnoreCase));
+        }
+        kind.SelectionChanged += (_, _) => RefreshValues();
+        RefreshValues();
+        var panel = new StackPanel { Spacing = 12 };
+        panel.Children.Add(kind);
+        panel.Children.Add(alias);
+        panel.Children.Add(canonical);
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = existing is null ? "Ajouter une abréviation" : "Modifier l’abréviation",
+            Content = panel,
+            PrimaryButtonText = "Enregistrer",
+            CloseButtonText = "Annuler",
+            DefaultButton = ContentDialogButton.Primary
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        if (canonical.SelectedItem is not string value) throw new InvalidOperationException("Choisissez une valeur reconnue.");
+        await App.Services.RecognitionAliases.SaveAsync(
+            kind.SelectedIndex == 0 ? RecognitionAliasKind.Car : RecognitionAliasKind.Track,
+            alias.Text,
+            value);
+        RefreshRecognitionAliases();
+        SettingsInfo.Severity = InfoBarSeverity.Success;
+        SettingsInfo.Message = "L’abréviation a été enregistrée.";
+        SettingsInfo.IsOpen = true;
+    }
+
+    private async void OnDeleteRecognitionAlias(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(() => DeleteRecognitionAliasAsync(sender), "Impossible de supprimer l’abréviation", SettingsInfo);
+
+    private async Task DeleteRecognitionAliasAsync(object sender)
+    {
+        if (sender is not Button { Tag: long id }) return;
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Supprimer cette abréviation ?",
+            Content = "Les fichiers déjà classés ne seront pas modifiés.",
+            PrimaryButtonText = "Supprimer",
+            CloseButtonText = "Annuler",
+            DefaultButton = ContentDialogButton.Close
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        await App.Services.RecognitionAliases.DeleteAsync(id);
+        RefreshRecognitionAliases();
+        SettingsInfo.Severity = InfoBarSeverity.Success;
+        SettingsInfo.Message = "L’abréviation a été supprimée.";
+        SettingsInfo.IsOpen = true;
     }
 
     private async void OnChooseArchive(object sender, RoutedEventArgs e) =>
@@ -270,4 +396,8 @@ public sealed partial class SettingsPage : Page
     }
 
     private sealed record PathElementRow(string Key, string Label);
+    private sealed record RecognitionAliasRow(long Id, RecognitionAliasKind Kind, string Alias, string CanonicalValue)
+    {
+        public string KindLabel => Kind == RecognitionAliasKind.Car ? "Voiture" : "Circuit";
+    }
 }

@@ -8,6 +8,18 @@ public sealed class SecureZipExtractor(
     long maximumEntryBytes = 256L * 1024 * 1024,
     int maximumCompressionRatio = 200)
 {
+    public bool ContainsSetup(string zipPath, CancellationToken cancellationToken = default)
+    {
+        using var archive = ZipFile.OpenRead(SecurePath.GetFullPath(zipPath));
+        foreach (var entry in archive.Entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!string.IsNullOrEmpty(entry.Name) &&
+                Path.GetExtension(entry.Name).Equals(".sto", StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
     public async Task<IReadOnlyList<string>> ExtractAsync(string zipPath, string destinationDirectory, CancellationToken cancellationToken = default)
     {
         var source = SecurePath.GetFullPath(zipPath);

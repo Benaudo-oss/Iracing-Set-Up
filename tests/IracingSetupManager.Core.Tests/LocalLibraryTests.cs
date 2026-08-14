@@ -191,6 +191,24 @@ public sealed class LocalLibraryTests
     }
 
     [Fact]
+    public async Task ArchiveWithoutStoIsIgnoredBeforeExtractionLimitsAreEvaluated()
+    {
+        await using var environment = await LibraryTestEnvironment.CreateAsync();
+        var zipPath = Path.Combine(environment.SourcePath, "software.zip");
+        using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+        {
+            var entry = archive.CreateEntry("installer.exe", CompressionLevel.SmallestSize);
+            await using var stream = entry.Open();
+            await stream.WriteAsync(new byte[1024 * 1024]);
+        }
+
+        var result = Assert.Single(await environment.Service.ImportAsync(
+            zipPath, environment.ArchivePath, SetupSourceKind.DownloadsFolder));
+
+        Assert.Equal(SetupImportOutcome.Unsupported, result.Outcome);
+    }
+
+    [Fact]
     public async Task DoesNotArchiveASetupRejectedBySynchronizationFilter()
     {
         await using var environment = await LibraryTestEnvironment.CreateAsync();

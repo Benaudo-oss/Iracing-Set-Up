@@ -13,6 +13,8 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
 
     public DbSet<TrackCatalogEntity> TrackCatalog => Set<TrackCatalogEntity>();
 
+    public DbSet<RecognitionAliasEntity> RecognitionAliases => Set<RecognitionAliasEntity>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var setup = modelBuilder.Entity<SetupEntity>();
@@ -65,5 +67,14 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
         track.Property(item => item.Configuration).HasMaxLength(256);
         track.Property(item => item.NormalizedAlias).HasMaxLength(256).IsRequired();
         track.HasIndex(item => item.NormalizedAlias);
+
+        var recognitionAlias = modelBuilder.Entity<RecognitionAliasEntity>();
+        recognitionAlias.ToTable("RecognitionAliases");
+        recognitionAlias.HasKey(item => item.Id);
+        recognitionAlias.Property(item => item.Kind).HasConversion<string>().HasMaxLength(32);
+        recognitionAlias.Property(item => item.Alias).HasMaxLength(128).IsRequired();
+        recognitionAlias.Property(item => item.NormalizedAlias).HasMaxLength(128).IsRequired();
+        recognitionAlias.Property(item => item.CanonicalValue).HasMaxLength(256).IsRequired();
+        recognitionAlias.HasIndex(item => new { item.Kind, item.NormalizedAlias }).IsUnique();
     }
 }

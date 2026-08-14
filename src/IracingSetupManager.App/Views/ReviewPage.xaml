@@ -27,10 +27,11 @@
                     <ListView.ItemTemplate>
                         <DataTemplate>
                             <Grid Padding="8" ColumnSpacing="12">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <StackPanel Spacing="3"><TextBlock FontWeight="SemiBold" Text="{Binding OriginalFileName}" /><TextBlock Opacity="0.65"><Run Text="{Binding Provider}" /><Run Text=" · " /><Run Text="{Binding Car}" /><Run Text=" · " /><Run Text="{Binding Track}" /></TextBlock></StackPanel>
-                                <Button Grid.Column="1" Tag="{Binding Id}" Content="Valider" Style="{StaticResource AccentButtonStyle}" Click="OnValidateOne" />
-                                <Button Grid.Column="2" Tag="{Binding Id}" Content="Refuser" Click="OnRefuseOne" />
+                                <Button Grid.Column="1" Tag="{Binding Id}" Content="Corriger" Click="OnCorrectOne" />
+                                <Button Grid.Column="2" Tag="{Binding Id}" Content="Valider" Style="{StaticResource AccentButtonStyle}" Click="OnValidateOne" />
+                                <Button Grid.Column="3" Tag="{Binding Id}" Content="Refuser" Click="OnRefuseOne" />
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>

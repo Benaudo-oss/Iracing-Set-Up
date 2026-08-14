@@ -76,7 +76,10 @@ public sealed class GitHubReleaseUpdateService(HttpClient httpClient, string upd
             "Mise à jour détectée via la page publique GitHub Releases.");
     }
 
-    public async Task<DownloadedUpdate> DownloadAndVerifyAsync(UpdateAvailability update, CancellationToken cancellationToken = default)
+    public async Task<DownloadedUpdate> DownloadAndVerifyAsync(
+        UpdateAvailability update,
+        IProgress<UpdateDownloadProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         if (!update.IsAvailable || update.AvailableVersion is null || update.DownloadUri is null || update.Sha256Uri is null || update.AssetName is null)
             throw new InvalidOperationException("Aucune mise à jour téléchargeable.");
@@ -89,15 +92,29 @@ public sealed class GitHubReleaseUpdateService(HttpClient httpClient, string upd
             var expected = await ReadExpectedHashAsync(update.Sha256Uri, cancellationToken);
             using var response = await httpClient.GetAsync(update.DownloadUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
+            var totalBytes = response.Content.Headers.ContentLength;
+            long received = 0;
             await using (var input = await response.Content.ReadAsStreamAsync(cancellationToken))
             await using (var output = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true))
-                await input.CopyToAsync(output, cancellationToken);
+            {
+                var buffer = new byte[81920];
+                int read;
+                while ((read = await input.ReadAsync(buffer, cancellationToken)) > 0)
+                {
+                    await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                    received += read;
+                    progress?.Report(new UpdateDownloadProgress(received, totalBytes, "Téléchargement"));
+                }
+                await output.FlushAsync(cancellationToken);
+            }
+            progress?.Report(new UpdateDownloadProgress(received, totalBytes, "Vérification SHA-256"));
             string actual;
             await using (var installer = File.OpenRead(temporaryPath))
                 actual = Convert.ToHexString(await SHA256.HashDataAsync(installer, cancellationToken)).ToLowerInvariant();
             if (!CryptographicOperations.FixedTimeEquals(Convert.FromHexString(actual), Convert.FromHexString(expected)))
                 throw new InvalidDataException("L'empreinte SHA-256 de la mise à jour ne correspond pas.");
             File.Move(temporaryPath, finalPath, true);
+            progress?.Report(new UpdateDownloadProgress(received, totalBytes, "Terminé"));
             return new(update.AvailableVersion, finalPath, actual);
         }
         catch { if (File.Exists(temporaryPath)) File.Delete(temporaryPath); throw; }

@@ -6,8 +6,8 @@
     Unloaded="OnUnloaded">
     <ScrollViewer>
         <StackPanel Padding="32" Spacing="20">
-            <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Synchronisation" /><TextBlock Opacity="0.65" Text="Choisissez les sources et catégories à importer" /></StackPanel>
-            <InfoBar IsOpen="True" IsClosable="False" Severity="Informational" Title="Import autorisé uniquement" Message="L’application surveille Téléchargements et les dossiers des applications officielles. Le dossier iRacing n’est jamais surveillé." />
+            <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Synchronisation" /><TextBlock Opacity="0.65" Text="Importe les fichiers .sto et les archives qui contiennent des setups .sto" /></StackPanel>
+            <InfoBar IsOpen="True" IsClosable="False" Severity="Informational" Title="Fichiers acceptés" Message="Seuls les fichiers .sto, ainsi que les archives .zip ou .rar contenant au moins un fichier .sto, sont importés. Le dossier iRacing n’est jamais surveillé." />
             <Grid ColumnSpacing="20">
                 <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                 <Border Padding="20" Background="#FF20242B" CornerRadius="10">
@@ -35,10 +35,41 @@
                     </StackPanel>
                 </Border>
             </Grid>
+            <Border Padding="16" Background="#FF20242B" CornerRadius="10">
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Spacing="4"><TextBlock FontWeight="SemiBold" Text="Mode de synchronisation" /><TextBlock x:Name="SynchronizationModeText" Opacity="0.7" TextWrapping="Wrap" /></StackPanel>
+                    <Button Grid.Column="1" Content="Modifier dans Paramètres" Click="OnOpenSettings" />
+                </Grid>
+            </Border>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
-                <Button Content="Analyser maintenant" Click="OnScanNow" />
-                <Button Content="Démarrer la surveillance" Style="{StaticResource AccentButtonStyle}" Click="OnStartMonitoring" />
+                <Button x:Name="ClearResultsButton" Content="Effacer les résultats" Click="OnClearResults" />
+                <Button x:Name="StopScanButton" Content="Interrompre" IsEnabled="False" Click="OnStopScan" />
+                <Button x:Name="ScanNowButton" Content="Synchroniser maintenant" Style="{StaticResource AccentButtonStyle}" Click="OnScanNow" />
             </StackPanel>
+            <Border Padding="18" Background="#FF20242B" CornerRadius="10">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ProgressText" FontWeight="SemiBold" Text="Aucune synchronisation en cours" />
+                        <TextBlock x:Name="ProgressCountersText" Grid.Column="1" Opacity="0.7" />
+                    </Grid>
+                    <ProgressBar x:Name="ScanProgress" Minimum="0" Maximum="1" Value="0" />
+                    <ListView x:Name="SynchronizationResultsList" SelectionMode="None" MaxHeight="360">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="7" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition Width="150" /><ColumnDefinition Width="2*" /></Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="1" Text="{Binding State}" FontWeight="SemiBold" />
+                                    <TextBlock Grid.Column="2" Text="{Binding Message}" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <TextBlock x:Name="EmptyResultsText" HorizontalAlignment="Center" Opacity="0.6" Text="Aucun fichier traité pour le moment." />
+                </StackPanel>
+            </Border>
             <InfoBar x:Name="ActionInfo" IsOpen="False" IsClosable="True" Severity="Success" />
         </StackPanel>
     </ScrollViewer>

@@ -1,6 +1,7 @@
 using IracingSetupManager.App.Services;
 using IracingSetupManager.Infrastructure.Logging;
 using Microsoft.UI.Xaml;
+using System.Reflection;
 
 namespace IracingSetupManager.App;
 
@@ -21,6 +22,9 @@ public partial class App : Application
         try
         {
             await Services.Database.InitializeAsync();
+            Services.StartupUpdateVerification = await Services.UpdatePreferences.VerifyInstallationAfterRestartAsync(
+                Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0));
+            await Services.RecognitionAliases.LoadAsync();
             await Services.TrackCatalog.SynchronizeAsync();
             await Services.MetadataRefresh.RefreshAsync();
             await Services.SensitiveData.PurgeUnneededSourcePathsAsync();

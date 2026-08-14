@@ -8,6 +8,18 @@ public sealed class SecureRarExtractor(
     long maximumEntryBytes = 256L * 1024 * 1024,
     int maximumCompressionRatio = 200)
 {
+    public bool ContainsSetup(string rarPath, CancellationToken cancellationToken = default)
+    {
+        using var archive = ArchiveFactory.OpenArchive(SecurePath.GetFullPath(rarPath));
+        foreach (var entry in archive.Entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!entry.IsDirectory && !string.IsNullOrWhiteSpace(entry.Key) &&
+                Path.GetExtension(entry.Key).Equals(".sto", StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
     public async Task<IReadOnlyList<string>> ExtractAsync(
         string rarPath,
         string destinationDirectory,

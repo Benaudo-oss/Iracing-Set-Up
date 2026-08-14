@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -39,6 +39,17 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
             );
             CREATE INDEX IF NOT EXISTS "IX_TrackCatalog_NormalizedAlias"
                 ON "TrackCatalog" ("NormalizedAlias");
+            CREATE TABLE IF NOT EXISTS "RecognitionAliases" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_RecognitionAliases" PRIMARY KEY AUTOINCREMENT,
+                "Kind" TEXT NOT NULL,
+                "Alias" TEXT NOT NULL,
+                "NormalizedAlias" TEXT NOT NULL,
+                "CanonicalValue" TEXT NOT NULL,
+                "CreatedAtUtc" TEXT NOT NULL,
+                "UpdatedAtUtc" TEXT NOT NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_RecognitionAliases_Kind_NormalizedAlias"
+                ON "RecognitionAliases" ("Kind", "NormalizedAlias");
             CREATE TABLE IF NOT EXISTS "SchemaMigrations" (
                 "Version" INTEGER NOT NULL CONSTRAINT "PK_SchemaMigrations" PRIMARY KEY,
                 "AppliedAtUtc" TEXT NOT NULL
@@ -95,6 +106,12 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
                     "UPDATE \"SetupChangeHistory\" SET \"NewStatus\" = 'AVerifier' WHERE \"NewStatus\" IN ('Nouveau', 'ACorriger');",
                     cancellationToken);
             }, cancellationToken);
+            version = 3;
+        }
+
+        if (version < 4)
+        {
+            await RunMigrationAsync(context, 4, () => Task.CompletedTask, cancellationToken);
         }
     }
 

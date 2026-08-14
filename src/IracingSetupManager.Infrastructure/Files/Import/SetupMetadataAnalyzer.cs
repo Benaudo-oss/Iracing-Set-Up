@@ -1,9 +1,12 @@
 using System.Text.RegularExpressions;
 using IracingSetupManager.Core.Catalog;
+using IracingSetupManager.Infrastructure.Database.Entities;
 
 namespace IracingSetupManager.Infrastructure.Files.Import;
 
-public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCatalog = null)
+public sealed partial class SetupMetadataAnalyzer(
+    TrackCatalogService? trackCatalog = null,
+    RecognitionAliasService? recognitionAliases = null)
 {
     private const string Unknown = "À identifier";
 
@@ -267,12 +270,18 @@ public sealed partial class SetupMetadataAnalyzer(TrackCatalogService? trackCata
         var tokens = Tokenize(filePath);
 
         var provider = FindProvider(tokens) ?? defaults?.Provider ?? Unknown;
-        var carMatch = FindCar(filePath, tokens);
+        var learnedCar = recognitionAliases?.Find(RecognitionAliasKind.Car, Path.GetFileNameWithoutExtension(filePath));
+        var learnedCarDefinition = SetupCatalog.Cars.FirstOrDefault(item =>
+            item.DisplayName.Equals(learnedCar, StringComparison.OrdinalIgnoreCase));
+        var carMatch = learnedCarDefinition is null
+            ? FindCar(filePath, tokens)
+            : (Car: learnedCarDefinition.DisplayName, Category: learnedCarDefinition.Category);
         var category = carMatch.Category ?? FindKnown(tokens, SetupCatalog.Categories) ?? defaults?.Category ?? Unknown;
         var setupType = FindSetupType(tokens) ?? defaults?.SetupType ?? Unknown;
         var car = carMatch.Car ?? EmptyAsNull(defaults?.Car) ?? Unknown;
         var catalogTrack = trackCatalog?.Find(filePath);
-        var track = FindTrack(filePath, tokens)
+        var track = recognitionAliases?.Find(RecognitionAliasKind.Track, Path.GetFileNameWithoutExtension(filePath))
+            ?? FindTrack(filePath, tokens)
             ?? catalogTrack?.TrackName ?? EmptyAsNull(defaults?.Track) ?? Unknown;
         var seasonMatch = tokens.Select(token => SeasonRegex().Match(token))
             .FirstOrDefault(match => match.Success);

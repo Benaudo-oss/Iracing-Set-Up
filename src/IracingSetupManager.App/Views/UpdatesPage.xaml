@@ -11,10 +11,11 @@
                     <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <StackPanel Spacing="8"><TextBlock FontSize="18" FontWeight="SemiBold" Text="Version installée" /><TextBlock x:Name="InstalledVersionText" FontSize="30" /></StackPanel>
                     <StackPanel Grid.Column="1" Spacing="8"><TextBlock FontSize="18" FontWeight="SemiBold" Text="Nouvelle version" /><TextBlock x:Name="AvailableVersionText" FontSize="30" Text="—" /></StackPanel>
-                    <Button Grid.Column="2" VerticalAlignment="Center" Content="Rechercher" Style="{StaticResource AccentButtonStyle}" Click="OnCheckUpdates" />
+                    <Button x:Name="CheckButton" Grid.Column="2" VerticalAlignment="Center" Content="Rechercher" Style="{StaticResource AccentButtonStyle}" Click="OnCheckUpdates" />
                 </Grid>
             </Border>
             <ProgressBar x:Name="UpdateProgress" IsIndeterminate="True" Visibility="Collapsed" />
+            <TextBlock x:Name="UpdateProgressText" Opacity="0.7" Visibility="Collapsed" />
             <InfoBar x:Name="UpdateInfo" IsOpen="False" IsClosable="True" />
             <Border Padding="20" Background="#FF20242B" CornerRadius="10">
                 <StackPanel Spacing="12">

@@ -1,27 +1,52 @@
+using System.Collections.ObjectModel;
+using IracingSetupManager.App.Services;
+using IracingSetupManager.Infrastructure.Files.Monitoring;
+using IracingSetupManager.Infrastructure.Settings;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using IracingSetupManager.Infrastructure.Settings;
-using IracingSetupManager.App.Services;
 
 namespace IracingSetupManager.App.Views;
 
 public sealed partial class SynchronizationPage : Page
 {
     private static SynchronizationSelection? sessionSelection;
+    private readonly ObservableCollection<SynchronizationResultRow> results = [];
+    private bool listening;
 
-    public SynchronizationPage() => InitializeComponent();
-
-    private async void OnLoaded(object sender, RoutedEventArgs e) =>
-        await UiOperation.RunAsync(LoadSelectionAsync, "Impossible de charger la sélection", ActionInfo);
-
-    private async Task LoadSelectionAsync()
+    public SynchronizationPage()
     {
-        var selection = sessionSelection ?? await App.Services.SynchronizationSelection.GetAsync();
-        ApplySelection(selection);
+        InitializeComponent();
+        SynchronizationResultsList.ItemsSource = results;
     }
 
-    private async void OnUnloaded(object sender, RoutedEventArgs e) =>
+    private async void OnLoaded(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(LoadPageAsync, "Impossible de charger la synchronisation", ActionInfo);
+
+    private async Task LoadPageAsync()
+    {
+        ApplySelection(sessionSelection ?? await App.Services.SynchronizationSelection.GetAsync());
+        SynchronizationModeText.Text = await App.Services.AutomaticMonitoring.IsEnabledAsync()
+            ? "Automatique : les nouveaux fichiers sont traités en arrière-plan. Vous pouvez aussi lancer une analyse manuelle."
+            : "Manuelle uniquement : aucun dossier n’est surveillé en arrière-plan.";
+        ReloadStoredResults();
+        if (!listening)
+        {
+            App.Services.SynchronizationActivity.Changed += OnProgressChanged;
+            listening = true;
+        }
+        SetRunningState(App.Services.Monitoring.IsManualScanRunning);
+        if (App.Services.SynchronizationActivity.LastSummary is { } summary) ShowSummary(summary, false);
+    }
+
+    private async void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (listening)
+        {
+            App.Services.SynchronizationActivity.Changed -= OnProgressChanged;
+            listening = false;
+        }
         await UiOperation.RunAsync(SaveSelectionAsync, "Impossible d’enregistrer la sélection");
+    }
 
     private async Task SaveSelectionAsync()
     {
@@ -30,47 +55,136 @@ public sealed partial class SynchronizationPage : Page
     }
 
     private async void OnScanNow(object sender, RoutedEventArgs e) =>
-        await UiOperation.RunAsync(ScanNowAsync, "L’analyse des dossiers a échoué", ActionInfo);
+        await UiOperation.RunAsync(ScanNowAsync, "La synchronisation a échoué", ActionInfo);
 
     private async Task ScanNowAsync()
     {
+        if (App.Services.Monitoring.IsManualScanRunning)
+        {
+            ShowWarning("Une synchronisation est déjà en cours.");
+            return;
+        }
         sessionSelection = ReadSelection();
         await App.Services.SynchronizationSelection.SaveAsync(sessionSelection);
-        await App.Services.Monitoring.ImportNowAsync();
-        ActionInfo.Severity = InfoBarSeverity.Success;
-        ActionInfo.Message = "L’analyse des dossiers configurés est terminée.";
+        if (string.IsNullOrWhiteSpace(await App.Services.ArchivePaths.GetAsync()))
+        {
+            ShowWarning("Choisissez d’abord le dossier d’archive dans les paramètres.");
+            return;
+        }
+        App.Services.SynchronizationActivity.Clear();
+        results.Clear();
+        EmptyResultsText.Visibility = Visibility.Visible;
+        SetRunningState(true);
+        ProgressText.Text = "Recherche des fichiers…";
+        ScanProgress.IsIndeterminate = true;
+        try
+        {
+            var summary = await App.Services.Monitoring.ImportNowAsync();
+            App.Services.SynchronizationActivity.SetSummary(summary);
+            ShowSummary(summary, true);
+        }
+        finally { SetRunningState(false); }
+    }
+
+    private async void OnStopScan(object sender, RoutedEventArgs e)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Interrompre la synchronisation ?",
+            Content = "Le fichier en cours sera arrêté proprement. Les fichiers déjà importés seront conservés.",
+            PrimaryButtonText = "Interrompre",
+            CloseButtonText = "Continuer",
+            DefaultButton = ContentDialogButton.Close
+        };
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        {
+            App.Services.Monitoring.CancelImportNow();
+            StopScanButton.IsEnabled = false;
+            ProgressText.Text = "Arrêt en cours…";
+        }
+    }
+
+    private void OnClearResults(object sender, RoutedEventArgs e)
+    {
+        if (App.Services.Monitoring.IsManualScanRunning) return;
+        App.Services.SynchronizationActivity.Clear();
+        results.Clear();
+        EmptyResultsText.Visibility = Visibility.Visible;
+        ProgressText.Text = "Aucune synchronisation en cours";
+        ProgressCountersText.Text = string.Empty;
+        ScanProgress.Value = 0;
+    }
+
+    private void OnOpenSettings(object sender, RoutedEventArgs e) => Frame.Navigate(typeof(SettingsPage));
+
+    private void OnProgressChanged(object? sender, SynchronizationProgress progress) =>
+        DispatcherQueue.TryEnqueue(() => ApplyProgress(progress));
+
+    private void ApplyProgress(SynchronizationProgress progress)
+    {
+        var row = SynchronizationResultRow.From(progress);
+        var existing = results.FirstOrDefault(item => item.FullPath.Equals(progress.FilePath, StringComparison.OrdinalIgnoreCase));
+        if (existing is null) results.Insert(0, row);
+        else results[results.IndexOf(existing)] = row;
+        EmptyResultsText.Visibility = Visibility.Collapsed;
+        ProgressText.Text = progress.Automatic ? "Synchronisation automatique" : "Synchronisation manuelle";
+        if (progress.Total > 0)
+        {
+            ScanProgress.IsIndeterminate = false;
+            ScanProgress.Maximum = progress.Total;
+            ScanProgress.Value = progress.Completed;
+            ProgressCountersText.Text = $"{progress.Completed} / {progress.Total}";
+        }
+        else
+        {
+            ScanProgress.IsIndeterminate = progress.State == SynchronizationFileState.Analyzing;
+            ProgressCountersText.Text = progress.Automatic ? "Traitement en arrière-plan" : string.Empty;
+        }
+    }
+
+    private void ReloadStoredResults()
+    {
+        results.Clear();
+        foreach (var progress in App.Services.SynchronizationActivity.Snapshot())
+            results.Add(SynchronizationResultRow.From(progress));
+        EmptyResultsText.Visibility = results.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ShowSummary(SynchronizationSummary summary, bool showInfo)
+    {
+        ScanProgress.IsIndeterminate = false;
+        ScanProgress.Maximum = Math.Max(1, summary.Detected);
+        ScanProgress.Value = summary.Detected;
+        ProgressText.Text = summary.Cancelled ? "Synchronisation interrompue" : "Synchronisation terminée";
+        ProgressCountersText.Text = $"{summary.Detected} détecté(s) · {summary.Imported} importé(s) · {summary.Duplicates} doublon(s) · {summary.Filtered} filtré(s) · {summary.Errors} erreur(s) · {summary.Duration.TotalSeconds:N0} s";
+        if (!showInfo) return;
+        ActionInfo.Severity = summary.Errors > 0 ? InfoBarSeverity.Warning : InfoBarSeverity.Success;
+        ActionInfo.Message = summary.Cancelled
+            ? "Synchronisation interrompue. Les imports terminés ont été conservés."
+            : $"Terminé : {summary.Imported} importé(s), {summary.Duplicates} doublon(s), {summary.Filtered} ignoré(s), {summary.Errors} erreur(s).";
         ActionInfo.IsOpen = true;
     }
 
-    private async void OnStartMonitoring(object sender, RoutedEventArgs e) =>
-        await UiOperation.RunAsync(StartMonitoringAsync, "Le démarrage de la surveillance a échoué", ActionInfo);
-
-    private async Task StartMonitoringAsync()
+    private void SetRunningState(bool running)
     {
-        sessionSelection = ReadSelection();
-        await App.Services.SynchronizationSelection.SaveAsync(sessionSelection);
-        var archive = await App.Services.ArchivePaths.GetAsync();
-        if (string.IsNullOrWhiteSpace(archive))
-        {
-            ActionInfo.Severity = InfoBarSeverity.Warning;
-            ActionInfo.Message = "Choisissez d’abord le dossier d’archive dans les paramètres.";
-            ActionInfo.IsOpen = true;
-            return;
-        }
+        ScanNowButton.IsEnabled = !running;
+        StopScanButton.IsEnabled = running;
+        ClearResultsButton.IsEnabled = !running;
+    }
 
-        await App.Services.Monitoring.StartAsync();
-        ActionInfo.Severity = InfoBarSeverity.Success;
-        ActionInfo.Message = "La surveillance locale est activée.";
+    private void ShowWarning(string message)
+    {
+        ActionInfo.Severity = InfoBarSeverity.Warning;
+        ActionInfo.Message = message;
         ActionInfo.IsOpen = true;
     }
 
     private SynchronizationSelection ReadSelection() => new(
-        SelectedValues(
-            (HymoProvider, "HYMO"), (GoProvider, "GO Setups"), (GngProvider, "Grid & Go"),
+        SelectedValues((HymoProvider, "HYMO"), (GoProvider, "GO Setups"), (GngProvider, "Grid & Go"),
             (VrsProvider, "VRS"), (SrsProvider, "SRS"), (P1DoksProvider, "P1Doks"),
             (CdaProvider, "Coach Dave Academy (CDA)")),
-        SelectedValues(
-            (Gt3Category, "GT3"), (Gt4Category, "GT4"), (GteCategory, "GTE"),
+        SelectedValues((Gt3Category, "GT3"), (Gt4Category, "GT4"), (GteCategory, "GTE"),
             (Lmp2Category, "LMP2"), (Lmp3Category, "LMP3"), (GtpCategory, "GTP"), (PcupCategory, "PCUP")));
 
     private void ApplySelection(SynchronizationSelection selection)
@@ -90,5 +204,24 @@ public sealed partial class SynchronizationPage : Page
     {
         var values = selected.ToHashSet(StringComparer.Ordinal);
         foreach (var item in items) item.Box.IsChecked = values.Contains(item.Value);
+    }
+
+    private sealed record SynchronizationResultRow(string FullPath, string FileName, string State, string Message)
+    {
+        public static SynchronizationResultRow From(SynchronizationProgress progress) => new(
+            progress.FilePath,
+            Path.GetFileName(progress.FilePath),
+            progress.State switch
+            {
+                SynchronizationFileState.Detected => "Détecté",
+                SynchronizationFileState.Analyzing => "Analyse",
+                SynchronizationFileState.Imported => "Importé",
+                SynchronizationFileState.Duplicate => "Doublon",
+                SynchronizationFileState.Filtered => "Ignoré",
+                SynchronizationFileState.Unsupported => "Ignoré",
+                SynchronizationFileState.Error => "Erreur",
+                _ => "Interrompu"
+            },
+            progress.Message);
     }
 }

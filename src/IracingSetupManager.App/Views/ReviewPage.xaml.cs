@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using IracingSetupManager.App.Services;
 using IracingSetupManager.Core.Presentation;
+using IracingSetupManager.Core.Catalog;
 
 namespace IracingSetupManager.App.Views;
 
@@ -67,6 +68,64 @@ public sealed partial class ReviewPage : Page
     }
 
     private void OnSelectAll(object sender, RoutedEventArgs e) => ReviewList.SelectAll();
+
+    private async void OnCorrectOne(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(() => CorrectOneAsync(sender), "La correction a échoué", ReviewInfo);
+
+    private async Task CorrectOneAsync(object sender)
+    {
+        if (!TryGetSetupId(sender, out var setupId)) return;
+        var setup = _setups.Single(item => item.Id == setupId);
+        var provider = CreateCombo("Fournisseur", SetupCatalog.ProviderNames, setup.Provider);
+        var category = CreateCombo("Catégorie", SetupCatalog.Categories, setup.Category);
+        var car = CreateCombo("Voiture", SetupCatalog.Cars.Select(item => item.DisplayName), setup.Car);
+        var trackCatalog = await App.Services.TrackCatalog.GetAllAsync();
+        var track = CreateCombo("Circuit", SetupMetadataAnalyzer.KnownTrackNames.Concat(trackCatalog.Select(item => item.TrackName)), setup.Track);
+        var configuration = new TextBox { Header = "Configuration", Text = setup.TrackConfiguration ?? string.Empty };
+        var season = new TextBox { Header = "Saison", Text = setup.Season ?? string.Empty, PlaceholderText = "Exemple : 2026 S3" };
+        var type = new TextBox { Header = "Type de setup", Text = setup.SetupType };
+        var carAlias = new TextBox { Header = "Mémoriser une abréviation voiture (facultatif)", PlaceholderText = "Exemple : NSXE22" };
+        var trackAlias = new TextBox { Header = "Mémoriser une abréviation circuit (facultatif)", PlaceholderText = "Exemple : RoadAm" };
+        var content = new StackPanel { Spacing = 10 };
+        content.Children.Add(new TextBlock { Text = setup.OriginalFileName, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+        foreach (var control in new Control[] { provider, category, car, track, configuration, season, type, carAlias, trackAlias })
+            content.Children.Add(control);
+        content.Children.Add(new TextBlock
+        {
+            Text = "Laissez les abréviations vides pour corriger uniquement ce fichier.",
+            Opacity = 0.65,
+            TextWrapping = TextWrapping.Wrap
+        });
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Corriger l’identification",
+            Content = new ScrollViewer { Content = content, MaxHeight = 620 },
+            PrimaryButtonText = "Enregistrer",
+            CloseButtonText = "Annuler",
+            DefaultButton = ContentDialogButton.Primary
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        await App.Services.SetupCorrection.CorrectAsync(setup.Id, new SetupCorrection(
+            provider.SelectedItem as string ?? string.Empty,
+            category.SelectedItem as string ?? string.Empty,
+            car.SelectedItem as string ?? string.Empty,
+            track.SelectedItem as string ?? string.Empty,
+            configuration.Text, season.Text, type.Text, carAlias.Text, trackAlias.Text));
+        var refreshed = await App.Services.QueryService.GetBySha256Async(setup.Sha256);
+        if (refreshed is not null) AddOrUpdateSetup(refreshed);
+        ShowSuccess("L’identification et le classement ont été corrigés.");
+    }
+
+    private static ComboBox CreateCombo(string header, IEnumerable<string> values, string selected)
+    {
+        var combo = new ComboBox { Header = header, HorizontalAlignment = HorizontalAlignment.Stretch };
+        combo.ItemsSource = values.Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.CurrentCultureIgnoreCase).ToArray();
+        combo.SelectedItem = combo.Items.Cast<string>()
+            .FirstOrDefault(item => item.Equals(selected, StringComparison.OrdinalIgnoreCase));
+        return combo;
+    }
 
     private async void OnValidateOne(object sender, RoutedEventArgs e) =>
         await UiOperation.RunAsync(() => ValidateOneAsync(sender), "La validation a échoué", ReviewInfo);

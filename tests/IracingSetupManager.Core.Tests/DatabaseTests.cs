@@ -137,7 +137,7 @@ public sealed class DatabaseTests
         await using var context = environment.Factory.Create();
         var versions = await context.Database.SqlQueryRaw<int>(
             "SELECT \"Version\" AS \"Value\" FROM \"SchemaMigrations\" ORDER BY \"Version\"").ToListAsync();
-        Assert.Equal([1, 2, 3], versions);
+        Assert.Equal(Enumerable.Range(1, SetupDatabase.CurrentSchemaVersion), versions);
     }
 
     [Fact]
