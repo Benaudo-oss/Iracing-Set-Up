@@ -4,15 +4,18 @@ using IracingSetupManager.Infrastructure.Database.Entities;
 using IracingSetupManager.Infrastructure.Files.Import;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using IracingSetupManager.App.Services;
 using IracingSetupManager.Core.Presentation;
+using Windows.UI;
 
 namespace IracingSetupManager.App.Views;
 
 public sealed partial class LibraryPage : Page
 {
     private readonly List<SetupEntity> _setups = [];
-    private readonly ObservableCollection<SetupEntity> _visibleSetups = [];
+    private readonly ObservableCollection<LibrarySetupRow> _visibleSetups = [];
     private readonly ObservableCollection<string> _providers = [];
     private readonly ObservableCollection<string> _categories = [];
     private readonly ObservableCollection<string> _cars = [];
@@ -96,11 +99,12 @@ public sealed partial class LibraryPage : Page
         AddOption(_tracks, setup.Track);
         AddOption(_statuses, setup.StatusDisplay);
 
-        var visibleIndex = IndexOf(_visibleSetups, setup.Id);
+        var visibleIndex = IndexOf(_visibleSetups.Select(item => item.Setup), setup.Id);
         var isVisible = MatchesCurrentFilters(setup);
-        if (visibleIndex >= 0 && isVisible) _visibleSetups[visibleIndex] = setup;
+        if (visibleIndex >= 0 && isVisible) _visibleSetups[visibleIndex] = CreateRow(setup, visibleIndex);
         else if (visibleIndex >= 0) _visibleSetups.RemoveAt(visibleIndex);
-        else if (isVisible) _visibleSetups.Insert(0, setup);
+        else if (isVisible) _visibleSetups.Insert(0, CreateRow(setup, 0));
+        RefreshRowAppearance();
         UpdateEmptyState();
     }
 
@@ -127,9 +131,10 @@ public sealed partial class LibraryPage : Page
         foreach (var id in selected)
         {
             _setups.RemoveAll(item => item.Id == id);
-            var index = IndexOf(_visibleSetups, id);
+            var index = IndexOf(_visibleSetups.Select(item => item.Setup), id);
             if (index >= 0) _visibleSetups.RemoveAt(index);
         }
+        RefreshRowAppearance();
         UpdateEmptyState();
     }
 
@@ -147,12 +152,65 @@ public sealed partial class LibraryPage : Page
         ApplyFilters();
     }
 
+    private void OnRemoveFilter(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string key }) return;
+        switch (key)
+        {
+            case "search": SearchBox.Text = string.Empty; break;
+            case "provider": ProviderFilter.SelectedItem = null; break;
+            case "category": CategoryFilter.SelectedItem = null; break;
+            case "car": CarFilter.SelectedItem = null; break;
+            case "track": TrackFilter.SelectedItem = null; break;
+            case "status": StatusFilter.SelectedItem = null; break;
+        }
+        ApplyFilters();
+    }
+
     private void ApplyFilters()
     {
         _visibleSetups.Clear();
-        foreach (var setup in _setups.Where(MatchesCurrentFilters)) _visibleSetups.Add(setup);
+        foreach (var setup in _setups.Where(MatchesCurrentFilters))
+            _visibleSetups.Add(CreateRow(setup, _visibleSetups.Count));
         UpdateEmptyState();
     }
+
+    private void OnRowPointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is Border row) row.Background = Brush("#FF2B333B");
+    }
+
+    private void OnRowPointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is Border { DataContext: LibrarySetupRow item } row) row.Background = item.RowBackground;
+    }
+
+    private void RefreshRowAppearance()
+    {
+        for (var index = 0; index < _visibleSetups.Count; index++)
+            _visibleSetups[index] = CreateRow(_visibleSetups[index].Setup, index);
+    }
+
+    private static LibrarySetupRow CreateRow(SetupEntity setup, int index)
+    {
+        var (background, border, foreground, glyph) = setup.Status switch
+        {
+            SetupStatus.Valide => ("#FF173C26", "#FF28643B", "#FFA9E8B3", "\uE73E"),
+            SetupStatus.AVerifier => ("#FF493313", "#FF78541C", "#FFFFD18A", "\uE823"),
+            SetupStatus.FichierManquant => ("#FF4B2222", "#FF773331", "#FFFFAAA5", "\uE783"),
+            _ => ("#FF183852", "#FF285D84", "#FFA9D8FF", "\uE8B0")
+        };
+        return new LibrarySetupRow(
+            setup,
+            Brush(index % 2 == 0 ? "#FF1F2227" : "#FF23262C"),
+            Brush(background), Brush(border), Brush(foreground), glyph);
+    }
+
+    private static SolidColorBrush Brush(string value) => new(Color.FromArgb(
+        Convert.ToByte(value.Substring(1, 2), 16),
+        Convert.ToByte(value.Substring(3, 2), 16),
+        Convert.ToByte(value.Substring(5, 2), 16),
+        Convert.ToByte(value.Substring(7, 2), 16)));
 
     private bool MatchesCurrentFilters(SetupEntity item)
     {
@@ -194,10 +252,34 @@ public sealed partial class LibraryPage : Page
         return -1;
     }
 
-    private void UpdateEmptyState() =>
+    private void UpdateEmptyState()
+    {
         EmptyState.Visibility = _visibleSetups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        ResultCountText.Text = $"{_visibleSetups.Count} résultat{(_visibleSetups.Count > 1 ? "s" : string.Empty)} sur {_setups.Count}";
+        var active = new List<(string Key, string Label)>();
+        if (!string.IsNullOrWhiteSpace(SearchBox.Text)) active.Add(("search", $"Recherche : {SearchBox.Text.Trim()}"));
+        AddActive(active, "provider", "Fournisseur", ProviderFilter.SelectedItem as string);
+        AddActive(active, "category", "Catégorie", CategoryFilter.SelectedItem as string);
+        AddActive(active, "car", "Voiture", CarFilter.SelectedItem as string);
+        AddActive(active, "track", "Circuit", TrackFilter.SelectedItem as string);
+        AddActive(active, "status", "Statut", StatusFilter.SelectedItem as string);
+        FilterPresentation.Rebuild(ActiveFiltersPanel, active, OnRemoveFilter);
+    }
+
+    private static void AddActive(List<(string Key, string Label)> filters, string key, string label, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value)) filters.Add((key, $"{label} : {value}"));
+    }
 
     private static SetupListItem ToListItem(SetupEntity item) => new(
         item.OriginalFileName, item.Provider, item.Category, item.Car, item.Track,
         item.TrackConfiguration, item.Season, item.SetupType, item.StatusDisplay);
 }
+
+public sealed record LibrarySetupRow(
+    SetupEntity Setup,
+    SolidColorBrush RowBackground,
+    SolidColorBrush StatusBackground,
+    SolidColorBrush StatusBorder,
+    SolidColorBrush StatusForeground,
+    string StatusGlyph);

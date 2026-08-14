@@ -22,15 +22,16 @@ public partial class App : Application
         try
         {
             await Services.Database.InitializeAsync();
+            MainWindowInstance = new MainWindow();
+            MainWindowInstance.Closed += async (_, _) => await Services.Monitoring.DisposeAsync();
+            MainWindowInstance.Activate();
+
             Services.StartupUpdateVerification = await Services.UpdatePreferences.VerifyInstallationAfterRestartAsync(
                 Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0));
             await Services.RecognitionAliases.LoadAsync();
             await Services.TrackCatalog.SynchronizeAsync();
             await Services.MetadataRefresh.RefreshAsync();
             await Services.SensitiveData.PurgeUnneededSourcePathsAsync();
-            MainWindowInstance = new MainWindow();
-            MainWindowInstance.Closed += async (_, _) => await Services.Monitoring.DisposeAsync();
-            MainWindowInstance.Activate();
             if (await Services.AutomaticMonitoring.IsEnabledAsync())
             {
                 await Services.Monitoring.StartAsync();

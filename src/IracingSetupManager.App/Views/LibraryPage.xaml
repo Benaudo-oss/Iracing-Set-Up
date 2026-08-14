@@ -17,12 +17,7 @@
             <TextBlock Opacity="0.65" Text="Recherchez et filtrez tous les setups archivés" />
         </StackPanel>
 
-        <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="10">
-            <Button Content="Effacer les filtres" Click="OnClearFilters" />
-            <Button Content="Retirer les fichiers manquants" Click="OnRemoveMissing" />
-        </StackPanel>
-
-        <Grid Grid.Row="2" Padding="8,0" ColumnSpacing="16">
+        <Grid Grid.Row="1" Padding="8,0" ColumnSpacing="10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition />
@@ -31,15 +26,23 @@
                 <ColumnDefinition />
                 <ColumnDefinition />
             </Grid.ColumnDefinitions>
-            <TextBox x:Name="SearchBox" PlaceholderText="Rechercher un fichier…" TextChanged="OnSearchChanged" />
-            <ComboBox x:Name="ProviderFilter" Grid.Column="1" HorizontalAlignment="Stretch" PlaceholderText="Fournisseur" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="CategoryFilter" Grid.Column="2" HorizontalAlignment="Stretch" PlaceholderText="Catégorie" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="CarFilter" Grid.Column="3" HorizontalAlignment="Stretch" PlaceholderText="Voiture" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="TrackFilter" Grid.Column="4" HorizontalAlignment="Stretch" PlaceholderText="Circuit" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="StatusFilter" Grid.Column="5" HorizontalAlignment="Stretch" PlaceholderText="Statut" SelectionChanged="OnFilterChanged" />
+            <Grid><TextBox x:Name="SearchBox" Height="40" Padding="34,0,8,0" PlaceholderText="Rechercher un fichier…" TextChanged="OnSearchChanged" /><FontIcon Margin="11,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE721;" /></Grid>
+            <Grid Grid.Column="1"><ComboBox x:Name="ProviderFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Fournisseur" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="13" Glyph="&#xE77B;" /></Grid>
+            <Grid Grid.Column="2"><ComboBox x:Name="CategoryFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Catégorie" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE80F;" /></Grid>
+            <Grid Grid.Column="3"><ComboBox x:Name="CarFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Voiture" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE806;" /></Grid>
+            <Grid Grid.Column="4"><ComboBox x:Name="TrackFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Circuit" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE707;" /></Grid>
+            <Grid Grid.Column="5"><ComboBox x:Name="StatusFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Statut" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE73E;" /></Grid>
         </Grid>
 
-        <Border Grid.Row="3" Padding="20" Background="#FF20242B" CornerRadius="10">
+        <Grid Grid.Row="2" ColumnSpacing="12">
+            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled"><StackPanel x:Name="ActiveFiltersPanel" Orientation="Horizontal" Spacing="8" /></ScrollViewer>
+            <TextBlock x:Name="ResultCountText" Grid.Column="1" VerticalAlignment="Center" Opacity="0.7" Text="0 résultat" />
+            <Button Grid.Column="2" Padding="10,6" Click="OnClearFilters" ToolTipService.ToolTip="Effacer tous les filtres"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="13" Glyph="&#xE711;" /><TextBlock Text="Effacer" /></StackPanel></Button>
+            <Button Grid.Column="3" Content="Retirer les fichiers manquants" Click="OnRemoveMissing" />
+        </Grid>
+
+        <Border Grid.Row="3" Background="#FF20242B" BorderBrush="#FF343A43" BorderThickness="1" CornerRadius="10">
             <Grid>
                 <ListView x:Name="SetupList" HorizontalContentAlignment="Stretch" SelectionMode="None">
                     <ListView.ItemContainerStyle>
@@ -48,7 +51,7 @@
                         </Style>
                     </ListView.ItemContainerStyle>
                     <ListView.Header>
-                        <Grid Padding="8" ColumnSpacing="16">
+                        <Grid Padding="20,14" Background="#FF252A31" ColumnSpacing="16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="2*" />
                                 <ColumnDefinition />
@@ -67,28 +70,33 @@
                     </ListView.Header>
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <Grid Padding="8" ColumnSpacing="16">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="2*" />
-                                    <ColumnDefinition />
-                                    <ColumnDefinition />
-                                    <ColumnDefinition />
-                                    <ColumnDefinition />
-                                    <ColumnDefinition />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding OriginalFileName}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Grid.Column="1" Text="{Binding Provider}" />
-                                <TextBlock Grid.Column="2" Text="{Binding Category}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Grid.Column="3" Text="{Binding Car}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Grid.Column="4" Text="{Binding Track}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Grid.Column="5" Text="{Binding StatusDisplay}" />
-                            </Grid>
+                            <Border Padding="20,11" Background="{Binding RowBackground}" BorderBrush="#FF30353C" BorderThickness="0,0,0,1" PointerEntered="OnRowPointerEntered" PointerExited="OnRowPointerExited">
+                                <Grid ColumnSpacing="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*" />
+                                        <ColumnDefinition />
+                                        <ColumnDefinition />
+                                        <ColumnDefinition />
+                                        <ColumnDefinition />
+                                        <ColumnDefinition />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock VerticalAlignment="Center" Text="{Binding Setup.OriginalFileName}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{Binding Setup.OriginalFileName}" />
+                                    <Border Grid.Column="1" HorizontalAlignment="Left" Padding="10,4" Background="#FF173847" BorderBrush="#FF245A70" BorderThickness="1" CornerRadius="12"><TextBlock Foreground="#FFA9DDF5" FontWeight="SemiBold" Text="{Binding Setup.Provider}" TextTrimming="CharacterEllipsis" /></Border>
+                                    <Border Grid.Column="2" HorizontalAlignment="Left" Padding="10,4" Background="#FF34294E" BorderBrush="#FF544377" BorderThickness="1" CornerRadius="12"><TextBlock Foreground="#FFD5C4FF" FontWeight="SemiBold" Text="{Binding Setup.Category}" TextTrimming="CharacterEllipsis" /></Border>
+                                    <TextBlock Grid.Column="3" VerticalAlignment="Center" Text="{Binding Setup.Car}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="4" VerticalAlignment="Center" Text="{Binding Setup.Track}" TextTrimming="CharacterEllipsis" />
+                                    <Border Grid.Column="5" HorizontalAlignment="Left" Padding="10,4" Background="{Binding StatusBackground}" BorderBrush="{Binding StatusBorder}" BorderThickness="1" CornerRadius="12">
+                                        <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon VerticalAlignment="Center" FontSize="11" Foreground="{Binding StatusForeground}" Glyph="{Binding StatusGlyph}" /><TextBlock VerticalAlignment="Center" Foreground="{Binding StatusForeground}" FontWeight="SemiBold" Text="{Binding Setup.StatusDisplay}" /></StackPanel>
+                                    </Border>
+                                </Grid>
+                            </Border>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
                 <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
-                    <FontIcon FontSize="36" Glyph="&#xE8F1;" Opacity="0.45" />
-                    <TextBlock Opacity="0.65" Text="La bibliothèque est vide" />
+                    <Border Width="66" Height="66" Background="#FF292D33" CornerRadius="33"><FontIcon HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="30" Foreground="#FF7D8792" Glyph="&#xE8F1;" /></Border>
+                    <TextBlock HorizontalAlignment="Center" FontSize="18" FontWeight="SemiBold" Text="Aucun setup à afficher" />
+                    <TextBlock HorizontalAlignment="Center" Foreground="#FF9CA3AD" Text="Modifiez ou effacez les filtres pour retrouver vos fichiers." />
                 </StackPanel>
             </Grid>
         </Border>

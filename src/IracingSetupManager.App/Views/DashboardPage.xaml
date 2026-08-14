@@ -2,56 +2,127 @@
     x:Class="IracingSetupManager.App.Views.DashboardPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ScrollViewer Loaded="OnLoaded">
-        <StackPanel Padding="32" Spacing="24">
-            <StackPanel Spacing="4">
-                <TextBlock FontSize="32" FontWeight="SemiBold" Text="Tableau de bord" />
-                <TextBlock Opacity="0.65" Text="Vue d’ensemble de votre bibliothèque de setups" />
-            </StackPanel>
+    <Page.Resources>
+        <SolidColorBrush x:Key="DashboardCardBrush" Color="#FF20252D" />
+        <SolidColorBrush x:Key="DashboardCardBorderBrush" Color="#FF343A43" />
+        <SolidColorBrush x:Key="DashboardMutedBrush" Color="#FFAAB2BC" />
+        <SolidColorBrush x:Key="DashboardBlueBrush" Color="#FF29B6F6" />
+        <SolidColorBrush x:Key="DashboardOrangeBrush" Color="#FFFFB74D" />
+        <SolidColorBrush x:Key="DashboardGreenBrush" Color="#FF66BB6A" />
+        <SolidColorBrush x:Key="DashboardPurpleBrush" Color="#FF9575CD" />
+        <Style x:Key="DashboardCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource DashboardCardBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource DashboardCardBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="18" />
+        </Style>
+    </Page.Resources>
+
+    <ScrollViewer Loaded="OnLoaded" Unloaded="OnUnloaded">
+        <StackPanel Padding="32" Spacing="18">
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Spacing="4">
+                    <TextBlock FontSize="32" FontWeight="SemiBold" Text="Tableau de bord" />
+                    <TextBlock Foreground="{StaticResource DashboardMutedBrush}" Text="Vue d’ensemble de votre bibliothèque de setups" />
+                </StackPanel>
+                <Button Grid.Column="1" Padding="15,9" VerticalAlignment="Center" Click="OnRefreshClicked">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontSize="16" Glyph="&#xE72C;" />
+                        <TextBlock Text="Actualiser" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
             <InfoBar x:Name="DashboardInfo" IsOpen="False" IsClosable="True" Severity="Error" />
-            <Grid ColumnSpacing="16" RowSpacing="16">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
-                <Border Padding="20" Background="#FF20242B" CornerRadius="10">
-                    <StackPanel><TextBlock Opacity="0.65" Text="Total des setups" /><TextBlock x:Name="TotalText" FontSize="36" FontWeight="SemiBold" Text="0" /></StackPanel>
+
+            <Grid ColumnSpacing="14">
+                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                <Border MinHeight="128" Style="{StaticResource DashboardCardStyle}">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock Foreground="{StaticResource DashboardMutedBrush}" Text="Total des setups" />
+                            <Border Grid.Column="1" Width="34" Height="34" Background="#FF14374A" CornerRadius="8"><FontIcon Foreground="{StaticResource DashboardBlueBrush}" Glyph="&#xE8A5;" /></Border>
+                        </Grid>
+                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Bottom"><TextBlock x:Name="TotalText" HorizontalAlignment="Center" FontSize="34" FontWeight="SemiBold" Text="0" /><TextBlock x:Name="TotalContextText" HorizontalAlignment="Center" TextAlignment="Center" Foreground="{StaticResource DashboardMutedBrush}" Text="Bibliothèque vide" /></StackPanel>
+                    </Grid>
                 </Border>
-                <Border Grid.Column="1" Padding="20" Background="#FF20242B" CornerRadius="10">
-                    <StackPanel><TextBlock Opacity="0.65" Text="À vérifier" /><TextBlock x:Name="ReviewText" FontSize="36" FontWeight="SemiBold" Foreground="#FFFFB74D" Text="0" /></StackPanel>
+                <Border Grid.Column="1" MinHeight="128" Style="{StaticResource DashboardCardStyle}">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock Foreground="{StaticResource DashboardMutedBrush}" Text="À vérifier" />
+                            <Border Grid.Column="1" Width="34" Height="34" Background="#FF49351A" CornerRadius="8"><FontIcon Foreground="{StaticResource DashboardOrangeBrush}" Glyph="&#xE814;" /></Border>
+                        </Grid>
+                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Bottom"><TextBlock x:Name="ReviewText" HorizontalAlignment="Center" FontSize="34" FontWeight="SemiBold" Foreground="{StaticResource DashboardOrangeBrush}" Text="0" /><TextBlock x:Name="ReviewContextText" HorizontalAlignment="Center" TextAlignment="Center" Foreground="{StaticResource DashboardMutedBrush}" Text="Aucune action nécessaire" /></StackPanel>
+                    </Grid>
                 </Border>
-                <Border Grid.Column="2" Padding="20" Background="#FF20242B" CornerRadius="10">
-                    <StackPanel><TextBlock Opacity="0.65" Text="Validés" /><TextBlock x:Name="ValidatedText" FontSize="36" FontWeight="SemiBold" Foreground="#FF66BB6A" Text="0" /></StackPanel>
+                <Border Grid.Column="2" MinHeight="128" Style="{StaticResource DashboardCardStyle}">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock Foreground="{StaticResource DashboardMutedBrush}" Text="Validés" />
+                            <Border Grid.Column="1" Width="34" Height="34" Background="#FF173D29" CornerRadius="8"><FontIcon Foreground="{StaticResource DashboardGreenBrush}" Glyph="&#xE73E;" /></Border>
+                        </Grid>
+                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Bottom"><TextBlock x:Name="ValidatedText" HorizontalAlignment="Center" FontSize="34" FontWeight="SemiBold" Foreground="{StaticResource DashboardGreenBrush}" Text="0" /><TextBlock x:Name="ValidatedContextText" HorizontalAlignment="Center" TextAlignment="Center" Foreground="{StaticResource DashboardMutedBrush}" Text="0 % de la bibliothèque" /></StackPanel>
+                    </Grid>
                 </Border>
-                <Border Grid.Row="1" Padding="20" Background="#FF20242B" CornerRadius="10">
-                    <StackPanel><TextBlock Opacity="0.65" Text="Fournisseurs présents" /><TextBlock x:Name="ProvidersText" FontSize="36" FontWeight="SemiBold" Text="0 / 7" /></StackPanel>
-                </Border>
-                <Border Grid.Row="1" Grid.Column="1" Padding="20" Background="#FF20242B" CornerRadius="10">
-                    <StackPanel><TextBlock Opacity="0.65" Text="Dernier import" /><TextBlock x:Name="LastSyncText" Margin="0,10,0,0" FontSize="18" Text="Jamais" /></StackPanel>
-                </Border>
-                <Border Grid.Row="1" Grid.Column="2" Padding="20" Background="#FF20242B" CornerRadius="10">
-                    <StackPanel><TextBlock Opacity="0.65" Text="Copiés vers iRacing Team" /><TextBlock x:Name="IracingTeamText" FontSize="36" FontWeight="SemiBold" Text="0" /></StackPanel>
+                <Border Grid.Column="3" MinHeight="128" Style="{StaticResource DashboardCardStyle}">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock Foreground="{StaticResource DashboardMutedBrush}" Text="Copiés vers iRacing Team" />
+                            <Border Grid.Column="1" Width="34" Height="34" Background="#FF30264C" CornerRadius="8"><FontIcon Foreground="{StaticResource DashboardPurpleBrush}" Glyph="&#xE8B0;" /></Border>
+                        </Grid>
+                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Bottom"><TextBlock x:Name="IracingTeamText" HorizontalAlignment="Center" FontSize="34" FontWeight="SemiBold" Foreground="{StaticResource DashboardPurpleBrush}" Text="0" /><TextBlock x:Name="ProvidersText" HorizontalAlignment="Center" TextAlignment="Center" Foreground="{StaticResource DashboardMutedBrush}" Text="0 fournisseur" /></StackPanel>
+                    </Grid>
                 </Border>
             </Grid>
-            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
-                <StackPanel Spacing="12">
-                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="Activité récente" />
+
+            <Grid x:Name="ChartsGrid" ColumnSpacing="16" RowSpacing="16">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="420" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Border x:Name="ProviderPanel" Style="{StaticResource DashboardCardStyle}">
+                    <StackPanel Spacing="14">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock FontSize="20" FontWeight="SemiBold" Text="Setups par fournisseur" />
+                            <TextBlock Grid.Column="1" Foreground="{StaticResource DashboardMutedBrush}" Text="Bibliothèque actuelle" />
+                        </Grid>
+                        <StackPanel x:Name="ProviderBarsPanel" Spacing="10" />
+                        <TextBlock x:Name="NoProviderDataText" HorizontalAlignment="Center" Margin="0,34" Foreground="{StaticResource DashboardMutedBrush}" Text="Aucun fournisseur à afficher" />
+                    </StackPanel>
+                </Border>
+                <Border x:Name="StatusPanel" Grid.Column="1" Style="{StaticResource DashboardCardStyle}">
+                    <StackPanel Spacing="14">
+                        <TextBlock FontSize="20" FontWeight="SemiBold" Text="État de la bibliothèque" />
+                        <Grid MinHeight="180" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <Grid Width="170" Height="170" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Canvas x:Name="StatusDonutCanvas" Width="170" Height="170" />
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock x:Name="DonutTotalText" HorizontalAlignment="Center" FontSize="28" FontWeight="SemiBold" Text="0" /><TextBlock Foreground="{StaticResource DashboardMutedBrush}" Text="setups" /></StackPanel>
+                            </Grid>
+                            <StackPanel x:Name="StatusLegendPanel" Grid.Column="1" VerticalAlignment="Center" Spacing="12" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Style="{StaticResource DashboardCardStyle}">
+                <StackPanel Spacing="14">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBlock FontSize="20" FontWeight="SemiBold" Text="Activité récente" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Foreground="{StaticResource DashboardMutedBrush}" Glyph="&#xE823;" /><TextBlock x:Name="LastSyncText" Foreground="{StaticResource DashboardMutedBrush}" Text="Aucun import" /></StackPanel>
+                    </Grid>
                     <ListView x:Name="RecentActivityList" IsItemClickEnabled="False" SelectionMode="None">
                         <ListView.ItemTemplate>
                             <DataTemplate>
-                                <Grid Padding="4" ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="16" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                    <Ellipse Width="9" Height="9" Fill="#FF4FC3F7" VerticalAlignment="Center" />
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock FontWeight="SemiBold" Text="{Binding ChangeType}" />
-                                        <TextBlock Opacity="0.65" Text="{Binding OriginalFileName}" TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-                                    <TextBlock Grid.Column="2" Opacity="0.65" VerticalAlignment="Center" Text="{Binding ChangedAtUtc}" />
+                                <Grid Padding="2,8" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="20" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <Grid Grid.RowSpan="2" Width="16"><Rectangle Width="2" Fill="#FF34434C" HorizontalAlignment="Center" /><Ellipse Width="10" Height="10" Fill="{StaticResource DashboardBlueBrush}" VerticalAlignment="Center" /></Grid>
+                                    <StackPanel Grid.Column="1"><TextBlock FontWeight="SemiBold" Text="{Binding ChangeType}" /><TextBlock Foreground="{StaticResource DashboardMutedBrush}" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" /></StackPanel>
+                                    <TextBlock Grid.Column="2" Foreground="{StaticResource DashboardMutedBrush}" VerticalAlignment="Center" Text="{Binding DateDisplay}" />
                                 </Grid>
                             </DataTemplate>
                         </ListView.ItemTemplate>
                     </ListView>
-                    <TextBlock x:Name="NoRecentActivityText" Opacity="0.65" Text="Aucune activité enregistrée pour le moment." />
+                    <StackPanel x:Name="NoRecentActivityPanel" HorizontalAlignment="Center" Margin="0,30" Spacing="8"><FontIcon HorizontalAlignment="Center" FontSize="34" Foreground="{StaticResource DashboardMutedBrush}" Glyph="&#xE81C;" /><TextBlock Foreground="{StaticResource DashboardMutedBrush}" Text="Aucune activité enregistrée pour le moment" /></StackPanel>
                 </StackPanel>
             </Border>
         </StackPanel>

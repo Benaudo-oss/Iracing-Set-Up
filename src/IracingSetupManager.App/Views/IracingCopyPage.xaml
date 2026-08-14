@@ -3,7 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid Padding="32" RowSpacing="16">
-        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
         <StackPanel Spacing="4">
             <TextBlock x:Name="PageTitle" FontSize="32" FontWeight="SemiBold" Text="Copie vers iRacing" />
             <TextBlock x:Name="PageSubtitle" Opacity="0.65" Text="Prévisualisez chaque destination avant de copier les setups validés." />
@@ -20,17 +20,17 @@
             <TextBlock x:Name="SelectionSummary" VerticalAlignment="Center" Opacity="0.7" />
         </StackPanel>
         <Grid Grid.Row="3" ColumnSpacing="8">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-            <TextBox x:Name="SearchBox" PlaceholderText="Rechercher un fichier, une voiture ou un circuit…" TextChanged="OnFilterChanged" />
-            <ComboBox x:Name="ProviderFilter" Grid.Column="1" PlaceholderText="Fournisseur" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="CategoryFilter" Grid.Column="2" PlaceholderText="Catégorie" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="SeasonFilter" Grid.Column="3" PlaceholderText="Saison" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="CarFilter" Grid.Column="4" PlaceholderText="Voiture" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="TrackFilter" Grid.Column="5" PlaceholderText="Circuit" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="CopyStatusFilter" Grid.Column="6" PlaceholderText="État de copie" SelectionChanged="OnFilterChanged" />
-            <Button Grid.Column="7" Content="Effacer les filtres" Click="OnClearFilters" />
+            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+            <Grid><TextBox x:Name="SearchBox" Height="40" Padding="34,0,8,0" PlaceholderText="Rechercher…" TextChanged="OnFilterChanged" /><FontIcon Margin="11,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE721;" /></Grid>
+            <Grid Grid.Column="1"><ComboBox x:Name="ProviderFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Fournisseur" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="13" Glyph="&#xE77B;" /></Grid>
+            <Grid Grid.Column="2"><ComboBox x:Name="CategoryFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Catégorie" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE80F;" /></Grid>
+            <Grid Grid.Column="3"><ComboBox x:Name="SeasonFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Saison" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="13" Glyph="&#xE787;" /></Grid>
+            <Grid Grid.Column="4"><ComboBox x:Name="CarFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Voiture" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE806;" /></Grid>
+            <Grid Grid.Column="5"><ComboBox x:Name="TrackFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Circuit" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE707;" /></Grid>
+            <Grid Grid.Column="6"><ComboBox x:Name="CopyStatusFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="État de copie" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE73E;" /></Grid>
         </Grid>
-        <ListView x:Name="SetupList" Grid.Row="4" SelectionMode="Multiple">
+        <Grid Grid.Row="4" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled"><StackPanel x:Name="ActiveFiltersPanel" Orientation="Horizontal" Spacing="8" /></ScrollViewer><TextBlock x:Name="ResultCountText" Grid.Column="1" VerticalAlignment="Center" Opacity="0.7" Text="0 résultat" /><Button Grid.Column="2" Padding="10,6" Click="OnClearFilters" ToolTipService.ToolTip="Effacer tous les filtres"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="13" Glyph="&#xE711;" /><TextBlock Text="Effacer" /></StackPanel></Button></Grid>
+        <ListView x:Name="SetupList" Grid.Row="5" SelectionMode="Multiple">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <Grid Padding="8" ColumnSpacing="14">
@@ -45,7 +45,7 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <Grid Grid.Row="5">
+        <Grid Grid.Row="6">
             <InfoBar x:Name="ActionInfo" HorizontalAlignment="Left" IsOpen="False" IsClosable="True" />
             <Button HorizontalAlignment="Right" Content="Copier les fichiers affichés" Style="{StaticResource AccentButtonStyle}" Click="OnCopy" />
         </Grid>

@@ -5,6 +5,14 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.2.9.27
+
+- Modernisation du tableau de bord avec cartes, graphiques et chronologie.
+- Uniformisation des filtres et ajout de pastilles supprimables.
+- Amélioration visuelle des tableaux, statuts et états vides.
+- Nouvelle présentation des fournisseurs et catégories dans la synchronisation.
+- Sélection rapide de tous les fournisseurs ou de toutes les catégories.
+
 # 1.2.8.27
 
 - Conserve le raccourci du Bureau existant pendant une mise à jour afin de ne

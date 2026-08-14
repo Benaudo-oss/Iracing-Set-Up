@@ -5,7 +5,7 @@
     Loaded="OnLoaded"
     Unloaded="OnUnloaded">
     <Grid Padding="32" RowSpacing="18">
-        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
         <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="À vérifier" /><TextBlock Opacity="0.65" Text="Contrôlez chaque setup avant validation ou envoi" /></StackPanel>
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
             <Button Content="Tout sélectionner" Click="OnSelectAll" />
@@ -13,15 +13,15 @@
             <Button Content="Refuser la sélection" Click="OnRefuseSelection" />
         </StackPanel>
         <Grid Grid.Row="2" ColumnSpacing="12">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-            <TextBox x:Name="SearchBox" PlaceholderText="Rechercher un fichier…" TextChanged="OnSearchChanged" />
-            <ComboBox x:Name="ProviderFilter" Grid.Column="1" HorizontalAlignment="Stretch" PlaceholderText="Fournisseur" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="CategoryFilter" Grid.Column="2" HorizontalAlignment="Stretch" PlaceholderText="Catégorie" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="CarFilter" Grid.Column="3" HorizontalAlignment="Stretch" PlaceholderText="Voiture" SelectionChanged="OnFilterChanged" />
-            <ComboBox x:Name="TrackFilter" Grid.Column="4" HorizontalAlignment="Stretch" PlaceholderText="Circuit" SelectionChanged="OnFilterChanged" />
-            <Button Grid.Column="5" Content="Effacer les filtres" Click="OnClearFilters" />
+            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+            <Grid><TextBox x:Name="SearchBox" Height="40" Padding="34,0,8,0" PlaceholderText="Rechercher un fichier…" TextChanged="OnSearchChanged" /><FontIcon Margin="11,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE721;" /></Grid>
+            <Grid Grid.Column="1"><ComboBox x:Name="ProviderFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Fournisseur" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="13" Glyph="&#xE77B;" /></Grid>
+            <Grid Grid.Column="2"><ComboBox x:Name="CategoryFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Catégorie" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE80F;" /></Grid>
+            <Grid Grid.Column="3"><ComboBox x:Name="CarFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Voiture" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE806;" /></Grid>
+            <Grid Grid.Column="4"><ComboBox x:Name="TrackFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Circuit" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE707;" /></Grid>
         </Grid>
-        <Border Grid.Row="3" Padding="12" Background="#FF20242B" CornerRadius="10">
+        <Grid Grid.Row="3" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled"><StackPanel x:Name="ActiveFiltersPanel" Orientation="Horizontal" Spacing="8" /></ScrollViewer><TextBlock x:Name="ResultCountText" Grid.Column="1" VerticalAlignment="Center" Opacity="0.7" Text="0 résultat" /><Button Grid.Column="2" Padding="10,6" Click="OnClearFilters" ToolTipService.ToolTip="Effacer tous les filtres"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="13" Glyph="&#xE711;" /><TextBlock Text="Effacer" /></StackPanel></Button></Grid>
+        <Border Grid.Row="4" Padding="12" Background="#FF20242B" CornerRadius="10">
             <Grid>
                 <ListView x:Name="ReviewList" SelectionMode="Multiple" SelectionChanged="OnSelectionChanged">
                     <ListView.ItemTemplate>
@@ -39,7 +39,7 @@
                 <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8"><FontIcon FontSize="36" Glyph="&#xE9D5;" Opacity="0.45" /><TextBlock Opacity="0.65" Text="Aucun nouveau setup à vérifier" /></StackPanel>
             </Grid>
         </Border>
-        <Border Grid.Row="4" Padding="16" Background="#FF20242B" CornerRadius="10">
+        <Border Grid.Row="5" Padding="16" Background="#FF20242B" CornerRadius="10">
             <Grid ColumnSpacing="12">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="160" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <NumberBox x:Name="RatingBox" Header="Note personnelle / 5" Minimum="1" Maximum="5" SpinButtonPlacementMode="Compact" />
@@ -47,6 +47,6 @@
                 <Button Grid.Column="2" VerticalAlignment="Bottom" Content="Enregistrer" Click="OnSaveNotes" />
             </Grid>
         </Border>
-        <InfoBar x:Name="ReviewInfo" Grid.Row="5" IsOpen="False" IsClosable="True" />
+        <InfoBar x:Name="ReviewInfo" Grid.Row="6" IsOpen="False" IsClosable="True" />
     </Grid>
 </Page>

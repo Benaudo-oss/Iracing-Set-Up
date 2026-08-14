@@ -12,6 +12,14 @@ public sealed record DashboardStatistics(
     int ProviderCount,
     DateTimeOffset? LastDownloadUtc);
 
+public sealed record DashboardCount(string Label, int Count);
+
+public sealed record DashboardStatusCount(SetupStatus Status, int Count);
+
+public sealed record DashboardBreakdown(
+    IReadOnlyList<DashboardCount> Providers,
+    IReadOnlyList<DashboardStatusCount> Statuses);
+
 public sealed class SetupQueryService(ISetupDbContextFactory contextFactory)
 {
     public async Task<SetupEntity?> GetBySha256Async(
@@ -41,6 +49,32 @@ public sealed class SetupQueryService(ISetupDbContextFactory contextFactory)
                 cancellationToken),
             await context.Setups.Where(item => item.Status != SetupStatus.FichierManquant).Select(item => item.Provider).Distinct().CountAsync(cancellationToken),
             downloadDates.Count == 0 ? null : downloadDates.Max());
+    }
+
+    public async Task<DashboardBreakdown> GetDashboardBreakdownAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var context = contextFactory.Create();
+        var providerGroups = await context.Setups.AsNoTracking()
+            .Where(item => item.Status != SetupStatus.FichierManquant)
+            .GroupBy(item => item.Provider)
+            .Select(group => new { Label = group.Key, Count = group.Count() })
+            .ToListAsync(cancellationToken);
+        var statusGroups = await context.Setups.AsNoTracking()
+            .GroupBy(item => item.Status)
+            .Select(group => new { Status = group.Key, Count = group.Count() })
+            .ToListAsync(cancellationToken);
+
+        var providers = providerGroups
+            .Select(item => new DashboardCount(item.Label, item.Count))
+            .OrderByDescending(item => item.Count)
+            .ThenBy(item => item.Label)
+            .ToList();
+        var statuses = statusGroups
+            .Select(item => new DashboardStatusCount(item.Status, item.Count))
+            .ToList();
+
+        return new DashboardBreakdown(providers, statuses);
     }
 
     public async Task<IReadOnlyList<SetupEntity>> GetAllAsync(

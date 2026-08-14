@@ -97,7 +97,25 @@ public sealed partial class IracingCopyPage : Page
         SeasonFilter.SelectedIndex = 0;
         CarFilter.SelectedIndex = 0;
         TrackFilter.SelectedIndex = 0;
-        CopyStatusFilter.SelectedIndex = 0;
+        CopyStatusFilter.SelectedIndex = 2;
+        filtersReady = true;
+        ApplyFilters();
+    }
+
+    private void OnRemoveFilter(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string key }) return;
+        filtersReady = false;
+        switch (key)
+        {
+            case "search": SearchBox.Text = string.Empty; break;
+            case "provider": ProviderFilter.SelectedIndex = 0; break;
+            case "category": CategoryFilter.SelectedIndex = 0; break;
+            case "season": SeasonFilter.SelectedIndex = 0; break;
+            case "car": CarFilter.SelectedIndex = 0; break;
+            case "track": TrackFilter.SelectedIndex = 0; break;
+            case "copy-status": CopyStatusFilter.SelectedIndex = 2; break;
+        }
         filtersReady = true;
         ApplyFilters();
     }
@@ -247,6 +265,21 @@ public sealed partial class IracingCopyPage : Page
         SelectionSummary.Text = previewMode
             ? $"Aperçu : {rows.Count}/{allRows.Count} fichier(s), {rows.Count(item => item.HasConflict)} conflit(s) affiché(s)"
             : $"{rows.Count}/{allRows.Count} setup(s) validé(s) affiché(s)";
+        ResultCountText.Text = $"{rows.Count} résultat{(rows.Count > 1 ? "s" : string.Empty)} sur {allRows.Count}";
+        var active = new List<(string Key, string Label)>();
+        if (!string.IsNullOrWhiteSpace(search)) active.Add(("search", $"Recherche : {search}"));
+        AddActive(active, "provider", "Fournisseur", ProviderFilter.SelectedItem as string);
+        AddActive(active, "category", "Catégorie", CategoryFilter.SelectedItem as string);
+        AddActive(active, "season", "Saison", SeasonFilter.SelectedItem as string);
+        AddActive(active, "car", "Voiture", CarFilter.SelectedItem as string);
+        AddActive(active, "track", "Circuit", TrackFilter.SelectedItem as string);
+        AddActive(active, "copy-status", "État", CopyStatusFilter.SelectedItem as string);
+        FilterPresentation.Rebuild(ActiveFiltersPanel, active, OnRemoveFilter);
+    }
+
+    private static void AddActive(List<(string Key, string Label)> filters, string key, string label, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && value != "Tous") filters.Add((key, $"{label} : {value}"));
     }
 
     private static bool MatchesSelection(string value, ComboBox filter) =>

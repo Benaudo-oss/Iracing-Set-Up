@@ -251,8 +251,18 @@ public sealed partial class ReviewPage : Page
         UpdateEmptyState();
     }
 
-    private void UpdateEmptyState() =>
+    private void UpdateEmptyState()
+    {
         EmptyState.Visibility = _visibleSetups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        ResultCountText.Text = $"{_visibleSetups.Count} résultat{(_visibleSetups.Count > 1 ? "s" : string.Empty)} sur {_setups.Count}";
+        var active = new List<(string Key, string Label)>();
+        if (!string.IsNullOrWhiteSpace(SearchBox.Text)) active.Add(("search", $"Recherche : {SearchBox.Text.Trim()}"));
+        AddActive(active, "provider", "Fournisseur", ProviderFilter.SelectedItem as string);
+        AddActive(active, "category", "Catégorie", CategoryFilter.SelectedItem as string);
+        AddActive(active, "car", "Voiture", CarFilter.SelectedItem as string);
+        AddActive(active, "track", "Circuit", TrackFilter.SelectedItem as string);
+        FilterPresentation.Rebuild(ActiveFiltersPanel, active, OnRemoveFilter);
+    }
 
     private void OnSearchChanged(object sender, TextChangedEventArgs e) => ApplyFilters();
     private void OnFilterChanged(object sender, SelectionChangedEventArgs e) => ApplyFilters();
@@ -264,6 +274,20 @@ public sealed partial class ReviewPage : Page
         CategoryFilter.SelectedItem = null;
         CarFilter.SelectedItem = null;
         TrackFilter.SelectedItem = null;
+        ApplyFilters();
+    }
+
+    private void OnRemoveFilter(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string key }) return;
+        switch (key)
+        {
+            case "search": SearchBox.Text = string.Empty; break;
+            case "provider": ProviderFilter.SelectedItem = null; break;
+            case "category": CategoryFilter.SelectedItem = null; break;
+            case "car": CarFilter.SelectedItem = null; break;
+            case "track": TrackFilter.SelectedItem = null; break;
+        }
         ApplyFilters();
     }
 
@@ -303,6 +327,11 @@ public sealed partial class ReviewPage : Page
         var index = 0;
         while (index < target.Count && StringComparer.CurrentCultureIgnoreCase.Compare(target[index], value) < 0) index++;
         target.Insert(index, value);
+    }
+
+    private static void AddActive(List<(string Key, string Label)> filters, string key, string label, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value)) filters.Add((key, $"{label} : {value}"));
     }
 
     private static bool TryGetSetupId(object sender, out Guid setupId)

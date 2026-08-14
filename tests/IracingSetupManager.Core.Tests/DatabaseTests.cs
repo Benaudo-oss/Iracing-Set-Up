@@ -76,6 +76,39 @@ public sealed class DatabaseTests
     }
 
     [Fact]
+    public async Task DashboardBreakdownGroupsProvidersAndStatuses()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var repository = new SetupRepository(environment.Factory);
+        var first = CreateSetup();
+        first.Provider = "VRS";
+        first.Status = SetupStatus.Valide;
+        var second = CreateSetup();
+        second.Id = Guid.NewGuid();
+        second.Sha256 = new string('b', 64);
+        second.Provider = "VRS";
+        second.Status = SetupStatus.AVerifier;
+        var missing = CreateSetup();
+        missing.Id = Guid.NewGuid();
+        missing.Sha256 = new string('c', 64);
+        missing.Provider = "HYMO";
+        missing.Status = SetupStatus.FichierManquant;
+
+        await repository.AddAsync(first);
+        await repository.AddAsync(second);
+        await repository.AddAsync(missing);
+
+        var breakdown = await new SetupQueryService(environment.Factory).GetDashboardBreakdownAsync();
+
+        var provider = Assert.Single(breakdown.Providers);
+        Assert.Equal("VRS", provider.Label);
+        Assert.Equal(2, provider.Count);
+        Assert.Contains(breakdown.Statuses, item => item.Status == SetupStatus.Valide && item.Count == 1);
+        Assert.Contains(breakdown.Statuses, item => item.Status == SetupStatus.AVerifier && item.Count == 1);
+        Assert.Contains(breakdown.Statuses, item => item.Status == SetupStatus.FichierManquant && item.Count == 1);
+    }
+
+    [Fact]
     public async Task LegacyGarage61UploadSchemaIsRemovedWithoutLosingTheSetup()
     {
         await using var environment = await TestEnvironment.CreateAsync();

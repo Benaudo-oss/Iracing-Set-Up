@@ -4,6 +4,7 @@ using IracingSetupManager.Infrastructure.Files.Monitoring;
 using IracingSetupManager.Infrastructure.Settings;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace IracingSetupManager.App.Views;
 
@@ -118,6 +119,23 @@ public sealed partial class SynchronizationPage : Page
 
     private void OnOpenSettings(object sender, RoutedEventArgs e) => Frame.Navigate(typeof(SettingsPage));
 
+    private void OnSelectAllProviders(object sender, RoutedEventArgs e) => SetProviderSelection(true);
+    private void OnClearProviders(object sender, RoutedEventArgs e) => SetProviderSelection(false);
+    private void OnSelectAllCategories(object sender, RoutedEventArgs e) => SetCategorySelection(true);
+    private void OnClearCategories(object sender, RoutedEventArgs e) => SetCategorySelection(false);
+
+    private void SetProviderSelection(bool selected)
+    {
+        foreach (var button in new[] { HymoProvider, GoProvider, GngProvider, VrsProvider, SrsProvider, P1DoksProvider, CdaProvider })
+            button.IsChecked = selected;
+    }
+
+    private void SetCategorySelection(bool selected)
+    {
+        foreach (var button in new[] { Gt3Category, Gt4Category, GteCategory, Lmp2Category, Lmp3Category, GtpCategory, PcupCategory })
+            button.IsChecked = selected;
+    }
+
     private void OnProgressChanged(object? sender, SynchronizationProgress progress) =>
         DispatcherQueue.TryEnqueue(() => ApplyProgress(progress));
 
@@ -197,10 +215,10 @@ public sealed partial class SynchronizationPage : Page
             (GtpCategory, "GTP"), (PcupCategory, "PCUP"));
     }
 
-    private static IReadOnlyList<string> SelectedValues(params (CheckBox Box, string Value)[] items) =>
+    private static IReadOnlyList<string> SelectedValues(params (ToggleButton Box, string Value)[] items) =>
         items.Where(item => item.Box.IsChecked == true).Select(item => item.Value).ToList();
 
-    private static void SetChecked(IReadOnlyList<string> selected, params (CheckBox Box, string Value)[] items)
+    private static void SetChecked(IReadOnlyList<string> selected, params (ToggleButton Box, string Value)[] items)
     {
         var values = selected.ToHashSet(StringComparer.Ordinal);
         foreach (var item in items) item.Box.IsChecked = values.Contains(item.Value);

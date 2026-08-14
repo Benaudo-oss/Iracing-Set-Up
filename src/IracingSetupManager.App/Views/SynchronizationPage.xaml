@@ -4,33 +4,135 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Loaded="OnLoaded"
     Unloaded="OnUnloaded">
+    <Page.Resources>
+        <Style x:Key="SelectionTileStyle" TargetType="ToggleButton">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="MinHeight" Value="48" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Background" Value="#FF252A32" />
+            <Setter Property="BorderBrush" Value="#FF343A45" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="TileBorder"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{TemplateBinding CornerRadius}">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="26" />
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter VerticalAlignment="Center"
+                                                  FontWeight="SemiBold"
+                                                  Content="{TemplateBinding Content}" />
+                                <Border x:Name="SelectionMark"
+                                        Grid.Column="1"
+                                        Width="22"
+                                        Height="22"
+                                        VerticalAlignment="Center"
+                                        Background="#FF39B7F2"
+                                        CornerRadius="11"
+                                        Opacity="0">
+                                    <FontIcon FontSize="11" Glyph="&#xE73E;" Foreground="White" />
+                                </Border>
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters>
+                                                <Setter Target="TileBorder.Background" Value="#FF2A303A" />
+                                                <Setter Target="TileBorder.BorderBrush" Value="#FF46505E" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed" />
+                                        <VisualState x:Name="Disabled" />
+                                    </VisualStateGroup>
+                                    <VisualStateGroup x:Name="CheckStates">
+                                        <VisualState x:Name="Unchecked" />
+                                        <VisualState x:Name="Checked">
+                                            <VisualState.Setters>
+                                                <Setter Target="SelectionMark.Opacity" Value="1" />
+                                                <Setter Target="TileBorder.Background" Value="#FF17354A" />
+                                                <Setter Target="TileBorder.BorderBrush" Value="#FF39B7F2" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Indeterminate" />
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="CardActionButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#FF8ED8FA" />
+        </Style>
+    </Page.Resources>
     <ScrollViewer>
         <StackPanel Padding="32" Spacing="20">
             <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Synchronisation" /><TextBlock Opacity="0.65" Text="Importe les fichiers .sto et les archives qui contiennent des setups .sto" /></StackPanel>
             <InfoBar IsOpen="True" IsClosable="False" Severity="Informational" Title="Fichiers acceptés" Message="Seuls les fichiers .sto, ainsi que les archives .zip ou .rar contenant au moins un fichier .sto, sont importés. Le dossier iRacing n’est jamais surveillé." />
             <Grid ColumnSpacing="20">
                 <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                <Border Padding="20" Background="#FF20242B" CornerRadius="10">
-                    <StackPanel Spacing="14">
-                        <TextBlock FontSize="20" FontWeight="SemiBold" Text="Fournisseurs" />
-                        <CheckBox x:Name="HymoProvider" Content="HYMO" />
-                        <CheckBox x:Name="GoProvider" Content="GO Setups" />
-                        <CheckBox x:Name="GngProvider" Content="Grid &amp; Go" />
-                        <CheckBox x:Name="VrsProvider" Content="VRS" />
-                        <CheckBox x:Name="SrsProvider" Content="SRS" />
-                        <CheckBox x:Name="P1DoksProvider" Content="P1Doks" />
-                        <CheckBox x:Name="CdaProvider" Content="Coach Dave Academy (CDA)" />
+                <Border Padding="20" Background="#FF20242B" BorderBrush="#FF303640" BorderThickness="1" CornerRadius="12">
+                    <StackPanel Spacing="16">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel Spacing="3">
+                                <TextBlock FontSize="20" FontWeight="SemiBold" Text="Fournisseurs" />
+                                <TextBlock Opacity="0.62" Text="Choisissez les sources à surveiller" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
+                                <Button Content="Tout sélectionner" Style="{StaticResource CardActionButtonStyle}" Click="OnSelectAllProviders" />
+                                <Button Content="Tout désélectionner" Style="{StaticResource CardActionButtonStyle}" Click="OnClearProviders" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnSpacing="10" RowSpacing="10">
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                            <ToggleButton x:Name="HymoProvider" Content="HYMO" Style="{StaticResource SelectionTileStyle}" />
+                            <ToggleButton x:Name="GoProvider" Grid.Column="1" Content="GO Setups" Style="{StaticResource SelectionTileStyle}" />
+                            <ToggleButton x:Name="GngProvider" Grid.Row="1" Content="Grid &amp; Go" Style="{StaticResource SelectionTileStyle}" />
+                            <ToggleButton x:Name="VrsProvider" Grid.Row="1" Grid.Column="1" Content="VRS" Style="{StaticResource SelectionTileStyle}" />
+                            <ToggleButton x:Name="SrsProvider" Grid.Row="2" Content="SRS" Style="{StaticResource SelectionTileStyle}" />
+                            <ToggleButton x:Name="P1DoksProvider" Grid.Row="2" Grid.Column="1" Content="P1Doks" Style="{StaticResource SelectionTileStyle}" />
+                            <ToggleButton x:Name="CdaProvider" Grid.Row="3" Grid.ColumnSpan="2" Content="Coach Dave Academy (CDA)" Style="{StaticResource SelectionTileStyle}" />
+                        </Grid>
                     </StackPanel>
                 </Border>
-                <Border Grid.Column="1" Padding="20" Background="#FF20242B" CornerRadius="10">
-                    <StackPanel Spacing="14">
-                        <TextBlock FontSize="20" FontWeight="SemiBold" Text="Catégories" />
-                        <Grid ColumnSpacing="16" RowSpacing="8">
+                <Border Grid.Column="1" Padding="20" Background="#FF20242B" BorderBrush="#FF303640" BorderThickness="1" CornerRadius="12">
+                    <StackPanel Spacing="16">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel Spacing="3">
+                                <TextBlock FontSize="20" FontWeight="SemiBold" Text="Catégories" />
+                                <TextBlock Opacity="0.62" Text="Choisissez les classes à importer" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
+                                <Button Content="Tout sélectionner" Style="{StaticResource CardActionButtonStyle}" Click="OnSelectAllCategories" />
+                                <Button Content="Tout désélectionner" Style="{StaticResource CardActionButtonStyle}" Click="OnClearCategories" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnSpacing="10" RowSpacing="10">
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                             <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
-                            <CheckBox x:Name="Gt3Category" Content="GT3" /><CheckBox x:Name="Gt4Category" Grid.Column="1" Content="GT4" /><CheckBox x:Name="GteCategory" Grid.Column="2" Content="GTE" />
-                            <CheckBox x:Name="Lmp2Category" Grid.Row="1" Content="LMP2" /><CheckBox x:Name="Lmp3Category" Grid.Row="1" Grid.Column="1" Content="LMP3" /><CheckBox x:Name="GtpCategory" Grid.Row="1" Grid.Column="2" Content="GTP" />
-                            <CheckBox x:Name="PcupCategory" Grid.Row="2" Content="PCUP" />
+                            <ToggleButton x:Name="Gt3Category" Content="GT3" Style="{StaticResource SelectionTileStyle}" />
+                            <ToggleButton x:Name="Gt4Category" Grid.Column="1" Content="GT4" Style="{StaticResource SelectionTileStyle}" />
+                            <ToggleButton x:Name="GteCategory" Grid.Column="2" Content="GTE" Style="{StaticResource SelectionTileStyle}" />
+                            <ToggleButton x:Name="Lmp2Category" Grid.Row="1" Content="LMP2" Style="{StaticResource SelectionTileStyle}" />
+                            <ToggleButton x:Name="Lmp3Category" Grid.Row="1" Grid.Column="1" Content="LMP3" Style="{StaticResource SelectionTileStyle}" />
+                            <ToggleButton x:Name="GtpCategory" Grid.Row="1" Grid.Column="2" Content="GTP" Style="{StaticResource SelectionTileStyle}" />
+                            <ToggleButton x:Name="PcupCategory" Grid.Row="2" Grid.ColumnSpan="3" Content="PCUP" Style="{StaticResource SelectionTileStyle}" />
                         </Grid>
                     </StackPanel>
                 </Border>
