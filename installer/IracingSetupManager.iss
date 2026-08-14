@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "1.2.8.26"
+  #define AppVersion "1.2.8.27"
 #endif
 #ifndef PublishDir
   #define PublishDir "..\artifacts\publish\win-x64"
@@ -42,7 +42,9 @@ Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 Name: "{group}\iRacing Setup Manager"; Filename: "{app}\IracingSetupManager.App.exe"
-Name: "{autodesktop}\iRacing Setup Manager"; Filename: "{app}\IracingSetupManager.App.exe"; Tasks: desktopicon
+; Ne pas recréer un raccourci déjà présent pendant une mise à niveau : Windows
+; conserve ainsi sa position, son apparence et les réglages choisis par l'utilisateur.
+Name: "{autodesktop}\iRacing Setup Manager"; Filename: "{app}\IracingSetupManager.App.exe"; IconFilename: "{app}\IracingSetupManager.App.exe"; Tasks: desktopicon; Check: ShouldCreateDesktopShortcut
 
 [Tasks]
 Name: "desktopicon"; Description: "Créer un raccourci sur le Bureau"; GroupDescription: "Raccourcis supplémentaires :"; Flags: unchecked
@@ -52,6 +54,11 @@ Filename: "{app}\IracingSetupManager.App.exe"; Description: "Lancer iRacing Setu
 Filename: "{app}\IracingSetupManager.App.exe"; Flags: nowait; Check: ShouldRelaunchApplication
 
 [Code]
+function ShouldCreateDesktopShortcut(): Boolean;
+begin
+  Result := not FileExists(ExpandConstant('{autodesktop}\iRacing Setup Manager.lnk'));
+end;
+
 function ShouldRelaunchApplication(): Boolean;
 begin
   Result := CompareText(ExpandConstant('{param:RELAUNCHAPP|0}'), '1') = 0;

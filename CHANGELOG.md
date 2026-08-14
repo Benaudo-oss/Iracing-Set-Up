@@ -5,6 +5,13 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.2.8.27
+
+- Conserve le raccourci du Bureau existant pendant une mise à jour afin de ne
+  plus réinitialiser sa position, son apparence ou les choix de l'utilisateur.
+- Utilise explicitement l'icône intégrée à l'application lors de la création
+  d'un nouveau raccourci.
+
 # 1.2.8.26
 
 - Affiche la progression réelle et le volume téléchargé pendant une mise à jour.
