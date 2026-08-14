@@ -8,6 +8,34 @@ namespace IracingSetupManager.Core.Tests;
 
 public sealed class FileClassificationAndHashTests
 {
+    [Fact]
+    public void AnalyzerRecognizesVrsVantageGt4CompactAlias()
+    {
+        var analyzer = new SetupMetadataAnalyzer();
+
+        var metadata = analyzer.Analyze("VRS_26S1_JA_Spa_VantageGT4_R1_Wet.sto");
+
+        Assert.Equal("VRS", metadata.Provider);
+        Assert.Equal("GT4", metadata.Category);
+        Assert.Equal("Aston Martin Vantage GT4", metadata.Car);
+        Assert.Equal("Spa-Francorchamps", metadata.Track);
+    }
+
+    [Theory]
+    [InlineData("VRS_26S1_Spa_UnknownGT3_R.sto", "GT3")]
+    [InlineData("VRS_26S1_Spa_UnknownGT4_R.sto", "GT4")]
+    [InlineData("VRS_26S1_Spa_UnknownGTE_R.sto", "GTE")]
+    [InlineData("VRS_26S1_Spa_UnknownLMP2_R.sto", "LMP2")]
+    [InlineData("VRS_26S1_Spa_UnknownLMP3_R.sto", "LMP3")]
+    [InlineData("VRS_26S1_Spa_UnknownGTP_R.sto", "GTP")]
+    [InlineData("VRS_26S1_Spa_UnknownPCUP_R.sto", "PCUP")]
+    public void AnalyzerRecognizesEveryCompactCategoryMarker(string fileName, string expectedCategory)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal(expectedCategory, metadata.Category);
+    }
+
     public static TheoryData<string, string, string> OfficialIracingCarFolders => new()
     {
         { "GT3", "Acura NSX GT3 EVO 22", "acuransxevo22gt3" },

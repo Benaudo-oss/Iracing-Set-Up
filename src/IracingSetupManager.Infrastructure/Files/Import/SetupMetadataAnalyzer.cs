@@ -43,6 +43,7 @@ public sealed partial class SetupMetadataAnalyzer(
             ["M4GT3"] = ("BMW M4 GT3", "GT3"),
 
             ["amvantagegt4"] = ("Aston Martin Vantage GT4", "GT4"),
+            ["VantageGT4"] = ("Aston Martin Vantage GT4", "GT4"),
             ["bmwm4evogt4"] = ("BMW M4 G82 GT4", "GT4"),
             ["bmwm4gt4"] = ("BMW M4 GT4", "GT4"),
             ["fordmustanggt4"] = ("Ford Mustang GT4", "GT4"),
@@ -276,7 +277,7 @@ public sealed partial class SetupMetadataAnalyzer(
         var carMatch = learnedCarDefinition is null
             ? FindCar(filePath, tokens)
             : (Car: learnedCarDefinition.DisplayName, Category: learnedCarDefinition.Category);
-        var category = carMatch.Category ?? FindKnown(tokens, SetupCatalog.Categories) ?? defaults?.Category ?? Unknown;
+        var category = carMatch.Category ?? FindCategory(filePath, tokens) ?? defaults?.Category ?? Unknown;
         var setupType = FindSetupType(tokens) ?? defaults?.SetupType ?? Unknown;
         var car = carMatch.Car ?? EmptyAsNull(defaults?.Car) ?? Unknown;
         var catalogTrack = trackCatalog?.Find(filePath);
@@ -319,6 +320,18 @@ public sealed partial class SetupMetadataAnalyzer(
 
         var exact = tokens.Select(token => Cars.GetValueOrDefault(token)).FirstOrDefault(match => match.Car is not null);
         return exact.Car is null ? (null, null) : exact;
+    }
+
+    private static string? FindCategory(string filePath, IReadOnlyList<string> tokens)
+    {
+        var exact = FindKnown(tokens, SetupCatalog.Categories);
+        if (exact is not null) return exact;
+
+        var normalizedName = NormalizeAlias(Path.GetFileNameWithoutExtension(filePath));
+        return SetupCatalog.Categories
+            .OrderByDescending(category => category.Length)
+            .FirstOrDefault(category =>
+                normalizedName.Contains(NormalizeAlias(category), StringComparison.OrdinalIgnoreCase));
     }
 
     private static string? FindTrack(string filePath, IReadOnlyList<string> tokens)

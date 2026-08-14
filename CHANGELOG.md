@@ -5,6 +5,12 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.2.9.31
+
+- Reconnaissance des marqueurs de catégorie collés au nom de la voiture.
+- Prise en charge généralisée de GT3, GT4, GTE, LMP2, LMP3, GTP et PCUP.
+- Ajout de l’alias compact VantageGT4 pour l’Aston Martin Vantage GT4.
+
 # 1.2.9.30
 
 - Application stricte du filtre de catégories pendant les synchronisations manuelles et automatiques.
