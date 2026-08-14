@@ -11,9 +11,9 @@
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <WindowsAppSDKSelfContained Condition="'$(RuntimeIdentifier)' != ''">true</WindowsAppSDKSelfContained>
     <SatelliteResourceLanguages>fr-FR</SatelliteResourceLanguages>
-    <Version>1.2.9.27</Version>
-    <AssemblyVersion>1.2.9.27</AssemblyVersion>
-    <FileVersion>1.2.9.27</FileVersion>
+    <Version>1.2.9.28</Version>
+    <AssemblyVersion>1.2.9.28</AssemblyVersion>
+    <FileVersion>1.2.9.28</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="Assets\AppLogo.ico" CopyToOutputDirectory="PreserveNewest" />

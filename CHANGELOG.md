@@ -5,6 +5,11 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.2.9.28
+
+- Rétablissement d’un témoin de sélection visible pour chaque fournisseur et chaque catégorie.
+- Affichage d’un cercle vide pour les options désélectionnées et d’une coche bleue pour les options actives.
+
 # 1.2.9.27
 
 - Modernisation du tableau de bord avec cartes, graphiques et chronologie.
