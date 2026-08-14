@@ -36,6 +36,43 @@ public sealed class FileClassificationAndHashTests
         Assert.Equal(expectedCategory, metadata.Category);
     }
 
+    [Theory]
+    [InlineData("VRS_26S1_Spa_ARXGTP_R.sto")]
+    [InlineData("26S3-W09-GnG-Daytona-ARXGTP-Endu-Safe.sto")]
+    public void AnalyzerRecognizesArxGtpCompactAlias(string fileName)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal("GTP", metadata.Category);
+        Assert.Equal("Acura ARX-06 GTP", metadata.Car);
+    }
+
+    [Theory]
+    [InlineData("VRS_26S1_Spa_CadillacGTP_R.sto", "Cadillac V-Series.R GTP", "GTP")]
+    [InlineData("VRS_26S1_Spa_PorscheGTP_R.sto", "Porsche 963 GTP", "GTP")]
+    [InlineData("VRS_26S1_Spa_FerrariGTP_R.sto", "Ferrari 499P", "GTP")]
+    [InlineData("VRS_26S1_Spa_BMWGT3_R.sto", "BMW M4 GT3", "GT3")]
+    [InlineData("VRS_26S1_Spa_AstonGT4_R.sto", "Aston Martin Vantage GT4", "GT4")]
+    [InlineData("VRS_26S1_Spa_PorschePCUP_R.sto", "Porsche 911 Cup (992.2)", "PCUP")]
+    public void AnalyzerUsesManufacturerAndCategoryRule(string fileName, string expectedCar, string expectedCategory)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal(expectedCategory, metadata.Category);
+        Assert.Equal(expectedCar, metadata.Car);
+    }
+
+    [Theory]
+    [InlineData("VRS_26S1_Spa_963GTP_R.sto")]
+    [InlineData("26S3-W09-GnG-Daytona-963GTP-Endu-Safe.sto")]
+    public void AnalyzerRecognizesPorsche963CompactModel(string fileName)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal("GTP", metadata.Category);
+        Assert.Equal("Porsche 963 GTP", metadata.Car);
+    }
+
     public static TheoryData<string, string, string> OfficialIracingCarFolders => new()
     {
         { "GT3", "Acura NSX GT3 EVO 22", "acuransxevo22gt3" },

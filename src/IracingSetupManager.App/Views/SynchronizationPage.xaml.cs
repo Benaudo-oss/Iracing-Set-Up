@@ -142,8 +142,9 @@ public sealed partial class SynchronizationPage : Page
     {
         var row = SynchronizationResultRow.From(progress);
         var existing = results.FirstOrDefault(item => item.FullPath.Equals(progress.FilePath, StringComparison.OrdinalIgnoreCase));
-        if (existing is null) results.Insert(0, row);
+        if (existing is null) results.Add(row);
         else results[results.IndexOf(existing)] = row;
+        SynchronizationResultsList.ScrollIntoView(row);
         EmptyResultsText.Visibility = Visibility.Collapsed;
         ProgressText.Text = progress.Automatic ? "Synchronisation automatique" : "Synchronisation manuelle";
         if (progress.Total > 0)

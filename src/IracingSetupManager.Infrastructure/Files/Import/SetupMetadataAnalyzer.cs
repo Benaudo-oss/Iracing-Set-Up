@@ -80,8 +80,10 @@ public sealed partial class SetupMetadataAnalyzer(
             ["ferrari499p"] = ("Ferrari 499P", "GTP"),
             ["nissangtpzxt"] = ("Nissan GTP ZX-T", "GTP"),
             ["porsche963gtp"] = ("Porsche 963 GTP", "GTP"),
+            ["963GTP"] = ("Porsche 963 GTP", "GTP"),
             ["ARX"] = ("Acura ARX-06 GTP", "GTP"),
             ["ARX06"] = ("Acura ARX-06 GTP", "GTP"),
+            ["ARXGTP"] = ("Acura ARX-06 GTP", "GTP"),
             ["BMWGTP"] = ("BMW M Hybrid V8", "GTP"),
 
             ["porsche911cup"] = ("Porsche 911 GT3 Cup", "PCUP"),
@@ -319,7 +321,26 @@ public sealed partial class SetupMetadataAnalyzer(
         if (aliasMatch is not null) return aliasMatch.Value;
 
         var exact = tokens.Select(token => Cars.GetValueOrDefault(token)).FirstOrDefault(match => match.Car is not null);
-        return exact.Car is null ? (null, null) : exact;
+        if (exact.Car is not null) return exact;
+
+        var category = SetupCatalog.Categories
+            .OrderByDescending(value => value.Length)
+            .FirstOrDefault(value => normalizedName.Contains(NormalizeAlias(value), StringComparison.OrdinalIgnoreCase));
+        if (category is null) return (null, null);
+
+        var catalogMatches = SetupCatalog.Cars
+            .Where(car => car.Category.Equals(category, StringComparison.OrdinalIgnoreCase))
+            .Where(car =>
+            {
+                var manufacturer = car.DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0];
+                return NormalizeAlias(manufacturer).Length >= 3 &&
+                       normalizedName.Contains(NormalizeAlias(manufacturer), StringComparison.OrdinalIgnoreCase);
+            })
+            .ToList();
+
+        return catalogMatches.Count == 1
+            ? (catalogMatches[0].DisplayName, catalogMatches[0].Category)
+            : (null, null);
     }
 
     private static string? FindCategory(string filePath, IReadOnlyList<string> tokens)

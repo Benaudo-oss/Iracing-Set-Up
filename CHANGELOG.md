@@ -5,6 +5,14 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.2.9.32
+
+- Comparaison des noms de fichiers avec le catalogue central des voitures iRacing.
+- Reconnaissance de ARXGTP, CadillacGTP, PorscheGTP, FerrariGTP et 963GTP.
+- Détection par constructeur et catégorie lorsque la correspondance est unique.
+- Ajout des nouvelles lignes à la fin des tableaux Synchronisation, Bibliothèque et À vérifier.
+- Défilement automatique vers la dernière ligne ajoutée sans réinitialiser les filtres.
+
 # 1.2.9.31
 
 - Reconnaissance des marqueurs de catégorie collés au nom de la voiture.

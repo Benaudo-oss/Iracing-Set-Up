@@ -227,7 +227,7 @@ public sealed partial class ReviewPage : Page
     {
         var existing = _setups.FirstOrDefault(item => item.Id == setup.Id);
         if (existing is not null) _setups[_setups.IndexOf(existing)] = setup;
-        else _setups.Insert(0, setup);
+        else _setups.Add(setup);
 
         AddOption(_providers, setup.Provider);
         AddOption(_categories, setup.Category);
@@ -238,7 +238,11 @@ public sealed partial class ReviewPage : Page
         var matches = MatchesCurrentFilters(setup);
         if (visible is not null && matches) _visibleSetups[_visibleSetups.IndexOf(visible)] = setup;
         else if (visible is not null) _visibleSetups.Remove(visible);
-        else if (matches) _visibleSetups.Insert(0, setup);
+        else if (matches)
+        {
+            _visibleSetups.Add(setup);
+            ReviewList.ScrollIntoView(setup);
+        }
         UpdateEmptyState();
     }
 

@@ -91,7 +91,7 @@ public sealed partial class LibraryPage : Page
     {
         var existingIndex = _setups.FindIndex(item => item.Id == setup.Id);
         if (existingIndex >= 0) _setups[existingIndex] = setup;
-        else _setups.Insert(0, setup);
+        else _setups.Add(setup);
 
         AddOption(_providers, setup.Provider);
         AddOption(_categories, setup.Category);
@@ -103,8 +103,13 @@ public sealed partial class LibraryPage : Page
         var isVisible = MatchesCurrentFilters(setup);
         if (visibleIndex >= 0 && isVisible) _visibleSetups[visibleIndex] = CreateRow(setup, visibleIndex);
         else if (visibleIndex >= 0) _visibleSetups.RemoveAt(visibleIndex);
-        else if (isVisible) _visibleSetups.Insert(0, CreateRow(setup, 0));
+        else if (isVisible) _visibleSetups.Add(CreateRow(setup, _visibleSetups.Count));
         RefreshRowAppearance();
+        if (visibleIndex < 0 && isVisible)
+        {
+            var addedRow = _visibleSetups.FirstOrDefault(item => item.Setup.Id == setup.Id);
+            if (addedRow is not null) SetupList.ScrollIntoView(addedRow);
+        }
         UpdateEmptyState();
     }
 
