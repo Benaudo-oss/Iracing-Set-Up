@@ -5,6 +5,11 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.2.10.34
+
+- Ajout d’un espacement plus lisible entre les informations des setups à vérifier.
+- Affichage de la voiture, du circuit et de la saison dans des badges colorés distincts.
+
 # 1.2.10.33
 
 - Virtualisation explicite des tableaux Synchronisation, Bibliothèque et À vérifier.

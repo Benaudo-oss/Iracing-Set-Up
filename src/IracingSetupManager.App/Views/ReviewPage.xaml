@@ -35,10 +35,12 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <StackPanel Spacing="7">
                                     <TextBlock FontWeight="SemiBold" Text="{Binding OriginalFileName}" />
-                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <StackPanel Orientation="Horizontal" Spacing="14">
                                         <Border Padding="10,4" Background="#FF173847" BorderBrush="#FF245A70" BorderThickness="1" CornerRadius="12"><TextBlock Foreground="#FFA9DDF5" FontWeight="SemiBold" Text="{Binding Provider}" /></Border>
                                         <Border Padding="10,4" Background="#FF34294E" BorderBrush="#FF544377" BorderThickness="1" CornerRadius="12"><TextBlock Foreground="#FFD5C4FF" FontWeight="SemiBold" Text="{Binding Category}" /></Border>
-                                        <TextBlock VerticalAlignment="Center" Opacity="0.75"><Run Text="Voiture : " /><Run Text="{Binding Car}" /><Run Text=" · Circuit : " /><Run Text="{Binding Track}" /><Run Text=" · Saison : " /><Run Text="{Binding Season}" /></TextBlock>
+                                        <Border Padding="10,4" Background="#FF1F3B2F" BorderBrush="#FF35634D" BorderThickness="1" CornerRadius="12"><TextBlock Foreground="#FFB7E8CC"><Run FontWeight="SemiBold" Text="Voiture : " /><Run Text="{Binding Car}" /></TextBlock></Border>
+                                        <Border Padding="10,4" Background="#FF3F2A2A" BorderBrush="#FF6D4646" BorderThickness="1" CornerRadius="12"><TextBlock Foreground="#FFFFC4C0"><Run FontWeight="SemiBold" Text="Circuit : " /><Run Text="{Binding Track}" /></TextBlock></Border>
+                                        <Border Padding="10,4" Background="#FF27344A" BorderBrush="#FF40577B" BorderThickness="1" CornerRadius="12"><TextBlock Foreground="#FFC3D7FF"><Run FontWeight="SemiBold" Text="Saison : " /><Run Text="{Binding Season}" /></TextBlock></Border>
                                         <Border Padding="10,4" Background="#FF493313" BorderBrush="#FF78541C" BorderThickness="1" CornerRadius="12">
                                             <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon VerticalAlignment="Center" FontSize="11" Foreground="#FFFFD18A" Glyph="&#xE823;" /><TextBlock VerticalAlignment="Center" Foreground="#FFFFD18A" FontWeight="SemiBold" Text="À vérifier" /></StackPanel>
                                         </Border>
