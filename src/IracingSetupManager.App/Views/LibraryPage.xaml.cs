@@ -105,11 +105,6 @@ public sealed partial class LibraryPage : Page
         else if (visibleIndex >= 0) _visibleSetups.RemoveAt(visibleIndex);
         else if (isVisible) _visibleSetups.Add(CreateRow(setup, _visibleSetups.Count));
         RefreshRowAppearance();
-        if (visibleIndex < 0 && isVisible)
-        {
-            var addedRow = _visibleSetups.FirstOrDefault(item => item.Setup.Id == setup.Id);
-            if (addedRow is not null) SetupList.ScrollIntoView(addedRow);
-        }
         UpdateEmptyState();
     }
 

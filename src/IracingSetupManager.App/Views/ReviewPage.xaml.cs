@@ -69,6 +69,29 @@ public sealed partial class ReviewPage : Page
 
     private void OnSelectAll(object sender, RoutedEventArgs e) => ReviewList.SelectAll();
 
+    private void OnSelectIdentified(object sender, RoutedEventArgs e)
+    {
+        ReviewList.SelectedItems.Clear();
+        foreach (var setup in _visibleSetups.Where(IsFullyIdentified))
+            ReviewList.SelectedItems.Add(setup);
+
+        var excluded = _visibleSetups.Count - ReviewList.SelectedItems.Count;
+        ShowSuccess($"{ReviewList.SelectedItems.Count} setup(s) complètement identifié(s) sélectionné(s). " +
+                    $"{excluded} setup(s) à identifier laissé(s) de côté.");
+    }
+
+    private static bool IsFullyIdentified(SetupEntity setup) =>
+        IsIdentified(setup.Provider) &&
+        IsIdentified(setup.Category) &&
+        IsIdentified(setup.Car) &&
+        IsIdentified(setup.Track) &&
+        IsIdentified(setup.Season) &&
+        IsIdentified(setup.SetupType);
+
+    private static bool IsIdentified(string? value) =>
+        !string.IsNullOrWhiteSpace(value) &&
+        !value.Equals("À identifier", StringComparison.OrdinalIgnoreCase);
+
     private async void OnCorrectOne(object sender, RoutedEventArgs e) =>
         await UiOperation.RunAsync(() => CorrectOneAsync(sender), "La correction a échoué", ReviewInfo);
 
@@ -241,7 +264,6 @@ public sealed partial class ReviewPage : Page
         else if (matches)
         {
             _visibleSetups.Add(setup);
-            ReviewList.ScrollIntoView(setup);
         }
         UpdateEmptyState();
     }

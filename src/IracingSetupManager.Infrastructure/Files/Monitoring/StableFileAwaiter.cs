@@ -2,15 +2,24 @@ namespace IracingSetupManager.Infrastructure.Files.Monitoring;
 
 public sealed class StableFileAwaiter(
     TimeSpan? probeInterval = null,
-    int requiredStableProbes = 3,
-    TimeSpan? timeout = null)
+    int requiredStableProbes = 2,
+    TimeSpan? timeout = null,
+    TimeSpan? alreadyStableAge = null)
 {
-    private readonly TimeSpan _probeInterval = probeInterval ?? TimeSpan.FromSeconds(1);
+    private readonly TimeSpan _probeInterval = probeInterval ?? TimeSpan.FromMilliseconds(500);
     private readonly TimeSpan _timeout = timeout ?? TimeSpan.FromMinutes(2);
+    private readonly TimeSpan _alreadyStableAge = alreadyStableAge ?? TimeSpan.FromSeconds(5);
 
     public async Task<bool> WaitAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        if (File.Exists(path))
+        {
+            var existing = new FileInfo(path);
+            if (DateTime.UtcNow - existing.LastWriteTimeUtc >= _alreadyStableAge && CanRead(path))
+                return true;
+        }
+
         var startedAt = DateTimeOffset.UtcNow;
         long? previousLength = null;
         DateTime? previousWriteTime = null;
@@ -62,4 +71,3 @@ public sealed class StableFileAwaiter(
         }
     }
 }
-

@@ -9,6 +9,7 @@
         <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="À vérifier" /><TextBlock Opacity="0.65" Text="Contrôlez chaque setup avant validation ou envoi" /></StackPanel>
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
             <Button Content="Tout sélectionner" Click="OnSelectAll" />
+            <Button Content="Sélectionner les identifiés" Click="OnSelectIdentified" ToolTipService.ToolTip="Sélectionne uniquement les setups ne contenant aucun champ À identifier" />
             <Button Content="Valider la sélection" Style="{StaticResource AccentButtonStyle}" Click="OnValidateSelection" />
             <Button Content="Refuser la sélection" Click="OnRefuseSelection" />
         </StackPanel>
@@ -28,7 +29,7 @@
                         <DataTemplate>
                             <Grid Padding="8" ColumnSpacing="12">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <StackPanel Spacing="3"><TextBlock FontWeight="SemiBold" Text="{Binding OriginalFileName}" /><TextBlock Opacity="0.65"><Run Text="{Binding Provider}" /><Run Text=" · " /><Run Text="{Binding Car}" /><Run Text=" · " /><Run Text="{Binding Track}" /></TextBlock></StackPanel>
+                                <StackPanel Spacing="3"><TextBlock FontWeight="SemiBold" Text="{Binding OriginalFileName}" /><TextBlock Opacity="0.65"><Run Text="Fournisseur : " /><Run Text="{Binding Provider}" /><Run Text=" · Catégorie : " /><Run Text="{Binding Category}" /><Run Text=" · Voiture : " /><Run Text="{Binding Car}" /><Run Text=" · Circuit : " /><Run Text="{Binding Track}" /></TextBlock></StackPanel>
                                 <Button Grid.Column="1" Tag="{Binding Id}" Content="Corriger" Click="OnCorrectOne" />
                                 <Button Grid.Column="2" Tag="{Binding Id}" Content="Valider" Style="{StaticResource AccentButtonStyle}" Click="OnValidateOne" />
                                 <Button Grid.Column="3" Tag="{Binding Id}" Content="Refuser" Click="OnRefuseOne" />

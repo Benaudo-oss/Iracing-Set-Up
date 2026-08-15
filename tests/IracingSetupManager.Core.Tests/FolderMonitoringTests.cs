@@ -52,6 +52,28 @@ public sealed class FolderMonitoringTests
     }
 
     [Fact]
+    public async Task AlreadyOldReadableFileDoesNotWaitForStabilityProbes()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var path = Path.Combine(root, "existing.sto");
+            await File.WriteAllTextAsync(path, "complete");
+            File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddMinutes(-1));
+            var awaiter = new StableFileAwaiter(
+                TimeSpan.FromSeconds(1),
+                requiredStableProbes: 3,
+                TimeSpan.FromMilliseconds(50));
+
+            Assert.True(await awaiter.WaitAsync(path));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task ResumesDownloadAfterTemporaryFileIsRenamedAndAfterRestart()
     {
         var root = CreateTemporaryDirectory();

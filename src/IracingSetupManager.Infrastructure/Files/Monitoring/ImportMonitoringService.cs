@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using System.Collections.Concurrent;
 using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Files.Import;
 using IracingSetupManager.Infrastructure.Settings;
@@ -15,6 +16,7 @@ public sealed class ImportMonitoringService(
 {
     private readonly Channel<DetectedImportFile> queue = Channel.CreateUnbounded<DetectedImportFile>(
         new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
+    private readonly ConcurrentDictionary<string, byte> queuedFiles = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim manualScanLock = new(1, 1);
     private readonly SemaphoreSlim processingLock = new(1, 1);
     private CancellationTokenSource? cancellation;
@@ -39,7 +41,7 @@ public sealed class ImportMonitoringService(
         worker = RunAsync(cancellation.Token);
         periodicScanner = RunPeriodicScanAsync(cancellation.Token);
         foreach (var file in await folderMonitor.ScanAsync(folders, cancellationToken))
-            await queue.Writer.WriteAsync(file, cancellationToken);
+            QueueIfNeeded(file);
     }
 
     public async Task<SynchronizationSummary> ImportNowAsync(CancellationToken cancellationToken = default)
@@ -106,6 +108,7 @@ public sealed class ImportMonitoringService(
         try { await Task.WhenAll(worker, periodicScanner ?? Task.CompletedTask); }
         catch (OperationCanceledException) { }
         cancellation?.Dispose();
+        queuedFiles.Clear();
         cancellation = null; worker = null; periodicScanner = null;
     }
 
@@ -118,7 +121,13 @@ public sealed class ImportMonitoringService(
         processingLock.Dispose();
     }
 
-    private void OnFileDetected(object? sender, DetectedImportFile file) => queue.Writer.TryWrite(file);
+    private void OnFileDetected(object? sender, DetectedImportFile file) => QueueIfNeeded(file);
+
+    private void QueueIfNeeded(DetectedImportFile file)
+    {
+        if (!queuedFiles.TryAdd(file.FullPath, 0)) return;
+        if (!queue.Writer.TryWrite(file)) queuedFiles.TryRemove(file.FullPath, out _);
+    }
 
     private async Task RunAsync(CancellationToken cancellationToken)
     {
@@ -131,6 +140,7 @@ public sealed class ImportMonitoringService(
                 ImportFailed?.Invoke(this, exception);
                 Raise(file.FullPath, SynchronizationFileState.Error, exception.Message, 0, 0, true);
             }
+            finally { queuedFiles.TryRemove(file.FullPath, out _); }
         }
     }
 
@@ -174,9 +184,15 @@ public sealed class ImportMonitoringService(
     private async Task RunPeriodicScanAsync(CancellationToken cancellationToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromMinutes(5));
+        var lastScanUtc = DateTime.UtcNow;
         while (await timer.WaitForNextTickAsync(cancellationToken))
-            foreach (var file in await folderMonitor.ScanAsync(folders, cancellationToken))
-                await queue.Writer.WriteAsync(file, cancellationToken);
+        {
+            var scanStartedUtc = DateTime.UtcNow;
+            foreach (var file in (await folderMonitor.ScanAsync(folders, cancellationToken))
+                         .Where(item => File.GetLastWriteTimeUtc(item.FullPath) >= lastScanUtc))
+                QueueIfNeeded(file);
+            lastScanUtc = scanStartedUtc;
+        }
     }
 
     private void Raise(string path, SynchronizationFileState state, string message, int completed, int total, bool automatic, SetupImportResult? result = null) =>

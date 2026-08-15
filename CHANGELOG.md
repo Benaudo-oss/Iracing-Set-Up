@@ -5,6 +5,14 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.2.9.33
+
+- Analyse immédiate des fichiers anciens et contrôle prudent accéléré des nouveaux téléchargements.
+- Suppression des remises en file inutiles pendant la surveillance et les analyses périodiques.
+- Conservation de la position des tableaux lors de l’ajout de nouvelles lignes.
+- Affichage explicite des champs fournisseur, catégorie, voiture et circuit dans À vérifier.
+- Nouvelle sélection groupée limitée aux setups entièrement identifiés.
+
 # 1.2.9.32
 
 - Comparaison des noms de fichiers avec le catalogue central des voitures iRacing.
