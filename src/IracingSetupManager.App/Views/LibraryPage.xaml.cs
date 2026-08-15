@@ -15,7 +15,9 @@ namespace IracingSetupManager.App.Views;
 public sealed partial class LibraryPage : Page
 {
     private readonly List<SetupEntity> _setups = [];
+    private readonly HashSet<Guid> _setupIds = [];
     private readonly ObservableCollection<LibrarySetupRow> _visibleSetups = [];
+    private readonly HashSet<Guid> _visibleSetupIds = [];
     private readonly ObservableCollection<string> _providers = [];
     private readonly ObservableCollection<string> _categories = [];
     private readonly ObservableCollection<string> _cars = [];
@@ -79,6 +81,8 @@ public sealed partial class LibraryPage : Page
     {
         _setups.Clear();
         _setups.AddRange(await App.Services.QueryService.GetAllAsync());
+        _setupIds.Clear();
+        foreach (var setup in _setups) _setupIds.Add(setup.Id);
         ResetOptions(_providers, Distinct(item => item.Provider));
         ResetOptions(_categories, Distinct(item => item.Category));
         ResetOptions(_cars, Distinct(item => item.Car));
@@ -89,9 +93,12 @@ public sealed partial class LibraryPage : Page
 
     private void AddOrUpdateSetup(SetupEntity setup)
     {
-        var existingIndex = _setups.FindIndex(item => item.Id == setup.Id);
-        if (existingIndex >= 0) _setups[existingIndex] = setup;
-        else _setups.Add(setup);
+        if (_setupIds.Add(setup.Id)) _setups.Add(setup);
+        else
+        {
+            var existingIndex = _setups.FindIndex(item => item.Id == setup.Id);
+            if (existingIndex >= 0) _setups[existingIndex] = setup;
+        }
 
         AddOption(_providers, setup.Provider);
         AddOption(_categories, setup.Category);
@@ -99,12 +106,17 @@ public sealed partial class LibraryPage : Page
         AddOption(_tracks, setup.Track);
         AddOption(_statuses, setup.StatusDisplay);
 
-        var visibleIndex = IndexOf(_visibleSetups.Select(item => item.Setup), setup.Id);
         var isVisible = MatchesCurrentFilters(setup);
+        var wasVisible = _visibleSetupIds.Contains(setup.Id);
+        var visibleIndex = wasVisible ? IndexOf(_visibleSetups.Select(item => item.Setup), setup.Id) : -1;
         if (visibleIndex >= 0 && isVisible) _visibleSetups[visibleIndex] = CreateRow(setup, visibleIndex);
-        else if (visibleIndex >= 0) _visibleSetups.RemoveAt(visibleIndex);
+        else if (visibleIndex >= 0)
+        {
+            _visibleSetups.RemoveAt(visibleIndex);
+            _visibleSetupIds.Remove(setup.Id);
+        }
         else if (isVisible) _visibleSetups.Add(CreateRow(setup, _visibleSetups.Count));
-        RefreshRowAppearance();
+        if (isVisible) _visibleSetupIds.Add(setup.Id);
         UpdateEmptyState();
     }
 
@@ -131,8 +143,13 @@ public sealed partial class LibraryPage : Page
         foreach (var id in selected)
         {
             _setups.RemoveAll(item => item.Id == id);
+            _setupIds.Remove(id);
             var index = IndexOf(_visibleSetups.Select(item => item.Setup), id);
-            if (index >= 0) _visibleSetups.RemoveAt(index);
+            if (index >= 0)
+            {
+                _visibleSetups.RemoveAt(index);
+                _visibleSetupIds.Remove(id);
+            }
         }
         RefreshRowAppearance();
         UpdateEmptyState();
@@ -170,8 +187,12 @@ public sealed partial class LibraryPage : Page
     private void ApplyFilters()
     {
         _visibleSetups.Clear();
+        _visibleSetupIds.Clear();
         foreach (var setup in _setups.Where(MatchesCurrentFilters))
+        {
             _visibleSetups.Add(CreateRow(setup, _visibleSetups.Count));
+            _visibleSetupIds.Add(setup.Id);
+        }
         UpdateEmptyState();
     }
 

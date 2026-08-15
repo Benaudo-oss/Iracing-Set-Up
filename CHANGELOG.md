@@ -5,6 +5,17 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.2.10.33
+
+- Virtualisation explicite des tableaux Synchronisation, Bibliothèque et À vérifier.
+- Conservation de la position de lecture pendant l’ajout de nouvelles lignes.
+- Suppression des recalculs complets de la Bibliothèque à chaque import.
+- Ajout d’index rapides pour les tableaux Bibliothèque, Synchronisation et À vérifier.
+- Actualisation du tableau de bord regroupée à une fois par seconde au maximum.
+- Harmonisation des couleurs des fournisseurs, catégories et statuts entre les tableaux.
+- Ajout du filtre Identification et de la sélection des setups entièrement identifiés.
+- Un setup est identifié lorsque fournisseur, catégorie, voiture, circuit et saison sont reconnus.
+
 # 1.2.9.33
 
 - Analyse immédiate des fichiers anciens et contrôle prudent accéléré des nouveaux téléchargements.

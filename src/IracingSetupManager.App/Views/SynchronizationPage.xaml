@@ -103,6 +103,9 @@
                     </Grid>
                     <ProgressBar x:Name="ScanProgress" Minimum="0" Maximum="1" Value="0" />
                     <ListView x:Name="SynchronizationResultsList" SelectionMode="None" MaxHeight="360">
+                        <ListView.ItemsPanel>
+                            <ItemsPanelTemplate><ItemsStackPanel ItemsUpdatingScrollMode="KeepItemsInView" /></ItemsPanelTemplate>
+                        </ListView.ItemsPanel>
                         <ListView.ItemTemplate>
                             <DataTemplate>
                                 <Grid Padding="7" ColumnSpacing="12">

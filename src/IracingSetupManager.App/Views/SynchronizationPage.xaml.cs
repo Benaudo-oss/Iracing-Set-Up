@@ -11,6 +11,7 @@ public sealed partial class SynchronizationPage : Page
 {
     private static SynchronizationSelection? sessionSelection;
     private readonly ObservableCollection<SynchronizationResultRow> results = [];
+    private readonly Dictionary<string, int> resultIndexes = new(StringComparer.OrdinalIgnoreCase);
     private bool listening;
 
     public SynchronizationPage()
@@ -73,6 +74,7 @@ public sealed partial class SynchronizationPage : Page
         }
         App.Services.SynchronizationActivity.Clear();
         results.Clear();
+        resultIndexes.Clear();
         EmptyResultsText.Visibility = Visibility.Visible;
         SetRunningState(true);
         ProgressText.Text = "Recherche des fichiers…";
@@ -110,6 +112,7 @@ public sealed partial class SynchronizationPage : Page
         if (App.Services.Monitoring.IsManualScanRunning) return;
         App.Services.SynchronizationActivity.Clear();
         results.Clear();
+        resultIndexes.Clear();
         EmptyResultsText.Visibility = Visibility.Visible;
         ProgressText.Text = "Aucune synchronisation en cours";
         ProgressCountersText.Text = string.Empty;
@@ -141,9 +144,12 @@ public sealed partial class SynchronizationPage : Page
     private void ApplyProgress(SynchronizationProgress progress)
     {
         var row = SynchronizationResultRow.From(progress);
-        var existing = results.FirstOrDefault(item => item.FullPath.Equals(progress.FilePath, StringComparison.OrdinalIgnoreCase));
-        if (existing is null) results.Add(row);
-        else results[results.IndexOf(existing)] = row;
+        if (resultIndexes.TryGetValue(progress.FilePath, out var index)) results[index] = row;
+        else
+        {
+            resultIndexes[progress.FilePath] = results.Count;
+            results.Add(row);
+        }
         EmptyResultsText.Visibility = Visibility.Collapsed;
         ProgressText.Text = progress.Automatic ? "Synchronisation automatique" : "Synchronisation manuelle";
         if (progress.Total > 0)
@@ -163,8 +169,12 @@ public sealed partial class SynchronizationPage : Page
     private void ReloadStoredResults()
     {
         results.Clear();
+        resultIndexes.Clear();
         foreach (var progress in App.Services.SynchronizationActivity.Snapshot())
+        {
+            resultIndexes[progress.FilePath] = results.Count;
             results.Add(SynchronizationResultRow.From(progress));
+        }
         EmptyResultsText.Visibility = results.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 

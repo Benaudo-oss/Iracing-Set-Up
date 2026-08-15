@@ -13,7 +13,9 @@ namespace IracingSetupManager.App.Views;
 public sealed partial class ReviewPage : Page
 {
     private readonly List<SetupEntity> _setups = [];
+    private readonly HashSet<Guid> _setupIds = [];
     private readonly ObservableCollection<SetupEntity> _visibleSetups = [];
+    private readonly HashSet<Guid> _visibleSetupIds = [];
     private readonly ObservableCollection<string> _providers = [];
     private readonly ObservableCollection<string> _categories = [];
     private readonly ObservableCollection<string> _cars = [];
@@ -28,6 +30,8 @@ public sealed partial class ReviewPage : Page
         CategoryFilter.ItemsSource = _categories;
         CarFilter.ItemsSource = _cars;
         TrackFilter.ItemsSource = _tracks;
+        IdentificationFilter.ItemsSource = new[] { "Tous", "À identifier", "Identifiés" };
+        IdentificationFilter.SelectedIndex = 0;
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e) =>
@@ -85,8 +89,7 @@ public sealed partial class ReviewPage : Page
         IsIdentified(setup.Category) &&
         IsIdentified(setup.Car) &&
         IsIdentified(setup.Track) &&
-        IsIdentified(setup.Season) &&
-        IsIdentified(setup.SetupType);
+        IsIdentified(setup.Season);
 
     private static bool IsIdentified(string? value) =>
         !string.IsNullOrWhiteSpace(value) &&
@@ -236,6 +239,8 @@ public sealed partial class ReviewPage : Page
     {
         _setups.Clear();
         _setups.AddRange(await App.Services.QueryService.GetToReviewAsync());
+        _setupIds.Clear();
+        foreach (var setup in _setups) _setupIds.Add(setup.Id);
         ResetOptions(_providers, Distinct(item => item.Provider));
         ResetOptions(_categories, Distinct(item => item.Category));
         ResetOptions(_cars, Distinct(item => item.Car));
@@ -248,22 +253,31 @@ public sealed partial class ReviewPage : Page
 
     private void AddOrUpdateSetup(SetupEntity setup)
     {
-        var existing = _setups.FirstOrDefault(item => item.Id == setup.Id);
-        if (existing is not null) _setups[_setups.IndexOf(existing)] = setup;
-        else _setups.Add(setup);
+        if (_setupIds.Add(setup.Id)) _setups.Add(setup);
+        else
+        {
+            var existingIndex = _setups.FindIndex(item => item.Id == setup.Id);
+            if (existingIndex >= 0) _setups[existingIndex] = setup;
+        }
 
         AddOption(_providers, setup.Provider);
         AddOption(_categories, setup.Category);
         AddOption(_cars, setup.Car);
         AddOption(_tracks, setup.Track);
 
-        var visible = _visibleSetups.FirstOrDefault(item => item.Id == setup.Id);
         var matches = MatchesCurrentFilters(setup);
+        var wasVisible = _visibleSetupIds.Contains(setup.Id);
+        var visible = wasVisible ? _visibleSetups.FirstOrDefault(item => item.Id == setup.Id) : null;
         if (visible is not null && matches) _visibleSetups[_visibleSetups.IndexOf(visible)] = setup;
-        else if (visible is not null) _visibleSetups.Remove(visible);
+        else if (visible is not null)
+        {
+            _visibleSetups.Remove(visible);
+            _visibleSetupIds.Remove(setup.Id);
+        }
         else if (matches)
         {
             _visibleSetups.Add(setup);
+            _visibleSetupIds.Add(setup.Id);
         }
         UpdateEmptyState();
     }
@@ -271,9 +285,17 @@ public sealed partial class ReviewPage : Page
     private void RemoveSetup(Guid id)
     {
         var setup = _setups.FirstOrDefault(item => item.Id == id);
-        if (setup is not null) _setups.Remove(setup);
+        if (setup is not null)
+        {
+            _setups.Remove(setup);
+            _setupIds.Remove(id);
+        }
         var visible = _visibleSetups.FirstOrDefault(item => item.Id == id);
-        if (visible is not null) _visibleSetups.Remove(visible);
+        if (visible is not null)
+        {
+            _visibleSetups.Remove(visible);
+            _visibleSetupIds.Remove(id);
+        }
         UpdateEmptyState();
     }
 
@@ -287,6 +309,9 @@ public sealed partial class ReviewPage : Page
         AddActive(active, "category", "Catégorie", CategoryFilter.SelectedItem as string);
         AddActive(active, "car", "Voiture", CarFilter.SelectedItem as string);
         AddActive(active, "track", "Circuit", TrackFilter.SelectedItem as string);
+        var identification = IdentificationFilter.SelectedItem as string;
+        if (!string.IsNullOrWhiteSpace(identification) && identification != "Tous")
+            active.Add(("identification", $"Identification : {identification}"));
         FilterPresentation.Rebuild(ActiveFiltersPanel, active, OnRemoveFilter);
     }
 
@@ -300,6 +325,7 @@ public sealed partial class ReviewPage : Page
         CategoryFilter.SelectedItem = null;
         CarFilter.SelectedItem = null;
         TrackFilter.SelectedItem = null;
+        IdentificationFilter.SelectedIndex = 0;
         ApplyFilters();
     }
 
@@ -313,6 +339,7 @@ public sealed partial class ReviewPage : Page
             case "category": CategoryFilter.SelectedItem = null; break;
             case "car": CarFilter.SelectedItem = null; break;
             case "track": TrackFilter.SelectedItem = null; break;
+            case "identification": IdentificationFilter.SelectedIndex = 0; break;
         }
         ApplyFilters();
     }
@@ -320,13 +347,24 @@ public sealed partial class ReviewPage : Page
     private void ApplyFilters()
     {
         _visibleSetups.Clear();
-        foreach (var setup in _setups.Where(MatchesCurrentFilters)) _visibleSetups.Add(setup);
+        _visibleSetupIds.Clear();
+        foreach (var setup in _setups.Where(MatchesCurrentFilters))
+        {
+            _visibleSetups.Add(setup);
+            _visibleSetupIds.Add(setup.Id);
+        }
         UpdateEmptyState();
     }
 
     private bool MatchesCurrentFilters(SetupEntity setup)
     {
-        return SetupListFilter.Matches(new SetupListItem(
+        var matchesIdentification = IdentificationFilter.SelectedItem switch
+        {
+            "À identifier" => !IsFullyIdentified(setup),
+            "Identifiés" => IsFullyIdentified(setup),
+            _ => true
+        };
+        return matchesIdentification && SetupListFilter.Matches(new SetupListItem(
                 setup.OriginalFileName, setup.Provider, setup.Category, setup.Car, setup.Track,
                 setup.TrackConfiguration, setup.Season, setup.SetupType, setup.StatusDisplay),
             new SetupFilterCriteria(

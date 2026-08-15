@@ -15,6 +15,8 @@ namespace IracingSetupManager.App.Views;
 public sealed partial class DashboardPage : Page
 {
     private readonly SemaphoreSlim refreshLock = new(1, 1);
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? refreshTimer;
+    private volatile bool dashboardRefreshPending;
     private bool activitySubscribed;
 
     public DashboardPage() => InitializeComponent();
@@ -27,6 +29,15 @@ public sealed partial class DashboardPage : Page
             activitySubscribed = true;
         }
 
+        if (refreshTimer is null)
+        {
+            refreshTimer = DispatcherQueue.CreateTimer();
+            refreshTimer.Interval = TimeSpan.FromSeconds(1);
+            refreshTimer.IsRepeating = true;
+            refreshTimer.Tick += OnRefreshTimerTick;
+        }
+        refreshTimer.Start();
+
         await UiOperation.RunAsync(LoadDashboardAsync, "Impossible d’actualiser le tableau de bord", DashboardInfo);
     }
 
@@ -35,14 +46,22 @@ public sealed partial class DashboardPage : Page
         if (!activitySubscribed) return;
         App.Services.SynchronizationActivity.Changed -= OnSynchronizationActivityChanged;
         activitySubscribed = false;
+        dashboardRefreshPending = false;
+        refreshTimer?.Stop();
     }
 
     private async void OnRefreshClicked(object sender, RoutedEventArgs e) =>
         await UiOperation.RunAsync(LoadDashboardAsync, "Impossible d’actualiser le tableau de bord", DashboardInfo);
 
     private void OnSynchronizationActivityChanged(object? sender, SynchronizationProgress progress) =>
-        DispatcherQueue.TryEnqueue(async () =>
-            await UiOperation.RunAsync(LoadDashboardAsync, "Impossible d’actualiser le tableau de bord", DashboardInfo));
+        dashboardRefreshPending = true;
+
+    private async void OnRefreshTimerTick(Microsoft.UI.Dispatching.DispatcherQueueTimer sender, object args)
+    {
+        if (!dashboardRefreshPending) return;
+        dashboardRefreshPending = false;
+        await UiOperation.RunAsync(LoadDashboardAsync, "Impossible d’actualiser le tableau de bord", DashboardInfo);
+    }
 
     private async Task LoadDashboardAsync()
     {
