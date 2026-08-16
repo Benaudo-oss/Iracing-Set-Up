@@ -62,6 +62,7 @@ public sealed partial class IracingCopyPage : Page
             .ToList();
         allRows = setups.Select(setup => CopyRow.FromSetup(setup, isTeam)).ToList();
         previewMode = false;
+        UpdatePreviewActions();
         PopulateFilters();
         ApplyFilters();
     }
@@ -171,10 +172,27 @@ public sealed partial class IracingCopyPage : Page
         var sourceRows = selected.ToDictionary(item => item.Id);
         allRows = plan.Select(item => CopyRow.FromPlan(item, sourceRows[item.SetupId])).ToList();
         previewMode = true;
+        UpdatePreviewActions();
         PopulateFilters();
         ApplyFilters();
         SetupList.SelectAll();
         Show("Aperçu prêt. Vérifiez les destinations et résolvez les conflits.", InfoBarSeverity.Informational);
+    }
+
+    private async void OnExitPreview(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(ExitPreviewAsync, "Impossible de quitter l’aperçu", ActionInfo);
+
+    private async Task ExitPreviewAsync()
+    {
+        await LoadValidatedAsync();
+        Show("Aperçu fermé. Vous pouvez modifier votre sélection.", InfoBarSeverity.Informational);
+    }
+
+    private void UpdatePreviewActions()
+    {
+        PreviewButton.Visibility = previewMode ? Visibility.Collapsed : Visibility.Visible;
+        CopyButton.Visibility = previewMode ? Visibility.Visible : Visibility.Collapsed;
+        ExitPreviewButton.Visibility = previewMode ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async void OnCopy(object sender, RoutedEventArgs e)

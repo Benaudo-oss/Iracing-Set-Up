@@ -26,7 +26,7 @@
     <ScrollViewer>
         <StackPanel Padding="32" Spacing="20">
             <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Synchronisation" /><TextBlock Opacity="0.65" Text="Importe les fichiers .sto et les archives qui contiennent des setups .sto" /></StackPanel>
-            <InfoBar IsOpen="True" IsClosable="False" Severity="Informational" Title="Fichiers acceptés" Message="Seuls les fichiers .sto, ainsi que les archives .zip ou .rar contenant au moins un fichier .sto, sont importés. Le dossier iRacing n’est jamais surveillé." />
+            <InfoBar IsOpen="True" IsClosable="False" Severity="Informational" Title="Fichiers acceptés" Message="Seuls les fichiers .sto, ainsi que les archives .zip ou .rar contenant au moins un fichier .sto, sont importés. Dans iRacing, seuls les dossiers Track Titan des voitures appartenant aux catégories sélectionnées sont surveillés pour HYMO." />
             <Grid ColumnSpacing="20">
                 <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                 <Border Padding="20" Background="#FF20242B" BorderBrush="#FF303640" BorderThickness="1" CornerRadius="12">

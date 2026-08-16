@@ -27,6 +27,7 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
         setup.Property(item => item.Track).HasMaxLength(256).IsRequired();
         setup.Property(item => item.TrackConfiguration).HasMaxLength(256);
         setup.Property(item => item.Season).HasMaxLength(128);
+        setup.Property(item => item.Week);
         setup.Property(item => item.SetupType).HasMaxLength(128).IsRequired();
         setup.Property(item => item.Sha256).HasMaxLength(64).IsFixedLength().IsRequired();
         setup.Property(item => item.ArchivePath).HasMaxLength(2048).IsRequired();
@@ -40,6 +41,7 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
         setup.HasIndex(item => item.OriginalFileName);
         setup.HasIndex(item => new { item.Provider, item.Category, item.Status });
         setup.HasIndex(item => new { item.Car, item.Track, item.Season });
+        setup.HasIndex(item => new { item.Season, item.Week });
 
         var history = modelBuilder.Entity<SetupChangeHistoryEntity>();
         history.ToTable("SetupChangeHistory");

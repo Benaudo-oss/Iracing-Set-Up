@@ -26,7 +26,8 @@ public sealed class SetupMetadataRefreshService(
                     setup.Track,
                     setup.TrackConfiguration,
                     setup.Season,
-                    setup.SetupType));
+                    setup.SetupType,
+                    setup.Week));
 
             var changed = false;
             changed |= AssignKnown(metadata.Provider, setup.Provider, value => setup.Provider = value);
@@ -35,6 +36,11 @@ public sealed class SetupMetadataRefreshService(
             changed |= AssignKnown(metadata.Track, setup.Track, value => setup.Track = value);
             changed |= AssignKnown(metadata.TrackConfiguration, setup.TrackConfiguration, value => setup.TrackConfiguration = value);
             changed |= AssignKnown(metadata.Season, setup.Season, value => setup.Season = value);
+            if (setup.Week is null && metadata.Week is not null)
+            {
+                setup.Week = metadata.Week;
+                changed = true;
+            }
             changed |= AssignKnown(metadata.SetupType, setup.SetupType, value => setup.SetupType = value);
             if (changed)
                 updated++;

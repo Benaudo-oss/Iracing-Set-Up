@@ -12,13 +12,15 @@ public sealed class ImportMonitoringService(
     StableFileAwaiter stableFileAwaiter,
     LibraryImportService importService,
     Func<CancellationToken, Task<string?>> getArchivePath,
-    SynchronizationSelectionSettingsService selectionSettings) : IAsyncDisposable
+    SynchronizationSelectionSettingsService selectionSettings,
+    TrackTitanFolderResolver trackTitanFolders) : IAsyncDisposable
 {
     private readonly Channel<DetectedImportFile> queue = Channel.CreateUnbounded<DetectedImportFile>(
         new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
     private readonly ConcurrentDictionary<string, byte> queuedFiles = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim manualScanLock = new(1, 1);
     private readonly SemaphoreSlim processingLock = new(1, 1);
+    private readonly SemaphoreSlim folderRefreshLock = new(1, 1);
     private CancellationTokenSource? cancellation;
     private CancellationTokenSource? manualScanCancellation;
     private Task? worker;
@@ -34,7 +36,7 @@ public sealed class ImportMonitoringService(
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         if (worker is not null) return;
-        folders = await settingsService.GetAsync(cancellationToken);
+        folders = await ResolveFoldersAsync(cancellationToken);
         cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         folderMonitor.FileDetected += OnFileDetected;
         folderMonitor.Start(folders);
@@ -55,7 +57,7 @@ public sealed class ImportMonitoringService(
         manualScanCancellation = linked;
         try
         {
-            files = await folderMonitor.ScanAsync(await settingsService.GetAsync(linked.Token), linked.Token);
+            files = await folderMonitor.ScanAsync(await ResolveFoldersAsync(linked.Token), linked.Token);
             foreach (var file in files) Raise(file.FullPath, SynchronizationFileState.Detected, "Détecté", 0, files.Count, false);
             var completed = 0;
             foreach (var file in files)
@@ -119,6 +121,19 @@ public sealed class ImportMonitoringService(
         folderMonitor.Dispose();
         manualScanLock.Dispose();
         processingLock.Dispose();
+        folderRefreshLock.Dispose();
+    }
+
+    public async Task RefreshFoldersAsync(CancellationToken cancellationToken = default)
+    {
+        if (worker is null) return;
+        await folderRefreshLock.WaitAsync(cancellationToken);
+        try
+        {
+            folders = await ResolveFoldersAsync(cancellationToken);
+            folderMonitor.Start(folders);
+        }
+        finally { folderRefreshLock.Release(); }
     }
 
     private void OnFileDetected(object? sender, DetectedImportFile file) => QueueIfNeeded(file);
@@ -188,11 +203,24 @@ public sealed class ImportMonitoringService(
         while (await timer.WaitForNextTickAsync(cancellationToken))
         {
             var scanStartedUtc = DateTime.UtcNow;
+            folders = await ResolveFoldersAsync(cancellationToken);
             foreach (var file in (await folderMonitor.ScanAsync(folders, cancellationToken))
                          .Where(item => File.GetLastWriteTimeUtc(item.FullPath) >= lastScanUtc))
                 QueueIfNeeded(file);
             lastScanUtc = scanStartedUtc;
         }
+    }
+
+    private async Task<IReadOnlyList<MonitoredFolder>> ResolveFoldersAsync(CancellationToken cancellationToken)
+    {
+        var configured = await settingsService.GetAsync(cancellationToken);
+        var selection = await selectionSettings.GetAsync(cancellationToken);
+        return configured
+            .Where(folder => !(folder.Kind == ImportFolderKind.OfficialProviderApplication &&
+                               string.Equals(folder.Provider, "HYMO", StringComparison.OrdinalIgnoreCase)))
+            .Concat(trackTitanFolders.Resolve(selection))
+            .DistinctBy(folder => folder.Path, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private void Raise(string path, SynchronizationFileState state, string message, int completed, int total, bool automatic, SetupImportResult? result = null) =>

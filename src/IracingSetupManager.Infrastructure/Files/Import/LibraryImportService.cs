@@ -164,6 +164,7 @@ public sealed class LibraryImportService(
             Track = metadata.Track,
             TrackConfiguration = metadata.TrackConfiguration,
             Season = metadata.Season,
+            Week = metadata.Week,
             SetupType = metadata.SetupType,
             SizeInBytes = fileInfo.Length,
             Sha256 = sha256,
@@ -211,6 +212,7 @@ public sealed class LibraryImportService(
         existing.Track = metadata.Track;
         existing.TrackConfiguration = metadata.TrackConfiguration;
         existing.Season = metadata.Season;
+        existing.Week = metadata.Week;
         existing.SetupType = metadata.SetupType;
         existing.SizeInBytes = fileInfo.Length;
         existing.ArchivePath = archivePath;

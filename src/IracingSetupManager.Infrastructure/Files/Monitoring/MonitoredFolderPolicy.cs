@@ -1,5 +1,6 @@
 namespace IracingSetupManager.Infrastructure.Files.Monitoring;
 
+using IracingSetupManager.Core.Catalog;
 using IracingSetupManager.Infrastructure.Files;
 
 public sealed class MonitoredFolderPolicy(string? documentsPath = null)
@@ -18,6 +19,11 @@ public sealed class MonitoredFolderPolicy(string? documentsPath = null)
         var normalizedPath = Normalize(folder.Path);
         if (IsSameOrChildOf(normalizedPath, _iracingSetupsPath))
         {
+            if (folder.Kind == ImportFolderKind.TrackTitan && IsAllowedTrackTitanPath(normalizedPath, folder.Provider))
+            {
+                return normalizedPath;
+            }
+
             throw new InvalidOperationException(
                 "Le dossier Documents\\iRacing\\setups et ses sous-dossiers ne peuvent pas être surveillés.");
         }
@@ -30,6 +36,15 @@ public sealed class MonitoredFolderPolicy(string? documentsPath = null)
         }
 
         return normalizedPath;
+    }
+
+    private bool IsAllowedTrackTitanPath(string path, string? provider)
+    {
+        if (!string.Equals(provider, "HYMO", StringComparison.OrdinalIgnoreCase)) return false;
+
+        return SetupCatalog.Cars.Any(car => path.Equals(
+            Normalize(Path.Combine(_iracingSetupsPath, car.IracingFolder, "Track Titan")),
+            StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsSameOrChildOf(string candidate, string parent) =>

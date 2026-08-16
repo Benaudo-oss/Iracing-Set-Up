@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
 {
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 6;
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -56,6 +56,9 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
             );
             """,
             cancellationToken);
+        // Repair required columns from their physical schema instead of trusting only
+        // the migration ledger. This also heals databases created by an interrupted update.
+        await RepairRequiredSchemaAsync(context, cancellationToken);
         await ApplyPendingMigrationsAsync(context, cancellationToken);
     }
 
@@ -112,7 +115,39 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
         if (version < 4)
         {
             await RunMigrationAsync(context, 4, () => Task.CompletedTask, cancellationToken);
+            version = 4;
         }
+
+        if (version < 5)
+        {
+            await RunMigrationAsync(context, 5, async () =>
+            {
+                await EnsureSetupColumnAsync(context, "Week", "INTEGER NULL", cancellationToken);
+                await context.Database.ExecuteSqlRawAsync(
+                    "CREATE INDEX IF NOT EXISTS \"IX_Setups_Season_Week\" ON \"Setups\" (\"Season\", \"Week\");",
+                    cancellationToken);
+            }, cancellationToken);
+            version = 5;
+        }
+
+        if (version < 6)
+        {
+            await RunMigrationAsync(
+                context,
+                6,
+                () => RepairRequiredSchemaAsync(context, cancellationToken),
+                cancellationToken);
+        }
+    }
+
+    private static async Task RepairRequiredSchemaAsync(
+        SetupDbContext context,
+        CancellationToken cancellationToken)
+    {
+        await EnsureSetupColumnAsync(context, "Week", "INTEGER NULL", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_Setups_Season_Week\" ON \"Setups\" (\"Season\", \"Week\");",
+            cancellationToken);
     }
 
     private static async Task RunMigrationAsync(

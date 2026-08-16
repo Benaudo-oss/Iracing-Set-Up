@@ -7,5 +7,5 @@ public sealed record SetupMetadata(
     string Track,
     string? TrackConfiguration,
     string? Season,
-    string SetupType);
-
+    string SetupType,
+    int? Week = null);

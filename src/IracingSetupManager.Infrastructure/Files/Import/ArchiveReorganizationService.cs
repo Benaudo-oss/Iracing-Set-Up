@@ -30,7 +30,8 @@ public sealed class ArchiveReorganizationService(
                 setup.Track,
                 setup.TrackConfiguration,
                 setup.Season,
-                setup.SetupType);
+                setup.SetupType,
+                setup.Week);
             var destinationDirectory = pathBuilder.BuildDirectory(root, metadata);
             var destination = SecurePath.EnsureChildOf(
                 Path.Combine(destinationDirectory, setup.OriginalFileName),

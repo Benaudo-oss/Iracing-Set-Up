@@ -53,6 +53,7 @@ public sealed partial class SynchronizationPage : Page
     {
         sessionSelection = ReadSelection();
         await App.Services.SynchronizationSelection.SaveAsync(sessionSelection);
+        await App.Services.Monitoring.RefreshFoldersAsync();
     }
 
     private async void OnScanNow(object sender, RoutedEventArgs e) =>
@@ -67,6 +68,7 @@ public sealed partial class SynchronizationPage : Page
         }
         sessionSelection = ReadSelection();
         await App.Services.SynchronizationSelection.SaveAsync(sessionSelection);
+        await App.Services.Monitoring.RefreshFoldersAsync();
         if (string.IsNullOrWhiteSpace(await App.Services.ArchivePaths.GetAsync()))
         {
             ShowWarning("Choisissez d’abord le dossier d’archive dans les paramètres.");

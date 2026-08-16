@@ -32,7 +32,18 @@ public sealed partial class SettingsPage : Page
         var folders = await App.Services.MonitoredFolders.GetAsync();
         DownloadsPathBox.Text = folders.FirstOrDefault(item => item.Kind == ImportFolderKind.Downloads)?.Path
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
-        SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "HYMO"));
+        HymoPathBox.Text = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "iRacing", "setups", "<voiture>", "Track Titan");
+        var synchronizationSelection = await App.Services.SynchronizationSelection.GetAsync();
+        var hymoActive = synchronizationSelection.Providers.Contains("HYMO", StringComparer.OrdinalIgnoreCase)
+            && synchronizationSelection.Categories.Count > 0;
+        HymoModeText.Text = hymoActive
+            ? $"Automatique · {synchronizationSelection.Categories.Count} catégorie(s)"
+            : "Inactif dans Synchronisation";
+        HymoModeText.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(hymoActive
+            ? Windows.UI.Color.FromArgb(255, 102, 187, 106)
+            : Windows.UI.Color.FromArgb(255, 170, 178, 188));
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "GO Setups"));
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "Grid & Go"));
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "VRS"));
@@ -270,7 +281,6 @@ public sealed partial class SettingsPage : Page
             folders.Add(new MonitoredFolder(DownloadsPathBox.Text, ImportFolderKind.Downloads));
         }
 
-        AddProviderIfEnabled(folders, HymoToggle, HymoPathBox, "HYMO");
         AddProviderIfEnabled(folders, GoToggle, GoPathBox, "GO Setups");
         AddProviderIfEnabled(folders, GngToggle, GngPathBox, "Grid & Go");
         AddProviderIfEnabled(folders, VrsToggle, VrsPathBox, "VRS");
@@ -367,7 +377,6 @@ public sealed partial class SettingsPage : Page
 
         var (textBox, toggle) = folder.Provider switch
         {
-            "HYMO" => (HymoPathBox, HymoToggle),
             "GO Setups" => (GoPathBox, GoToggle),
             "Grid & Go" => (GngPathBox, GngToggle),
             "VRS" => (VrsPathBox, VrsToggle),

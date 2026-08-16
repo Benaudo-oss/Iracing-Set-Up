@@ -67,7 +67,8 @@ public sealed class AppServices
             new StableFileAwaiter(),
             importer,
             ArchivePaths.GetAsync,
-            SynchronizationSelection);
+            SynchronizationSelection,
+            new TrackTitanFolderResolver());
         SynchronizationActivity = new SynchronizationActivityStore();
         SynchronizationActivity.Attach(Monitoring);
         Monitoring.ImportFailed += (_, exception) =>

@@ -122,12 +122,12 @@ public sealed class FileClassificationAndHashTests
     }
 
     [Fact]
-    public void ClassificationUsesSeasonTrackCarAndProvider()
+    public void ClassificationUsesSeasonWeekTrackCarAndProvider()
     {
         var root = Path.Combine(Path.GetTempPath(), "archive");
-        var metadata = new SetupMetadata("HYMO", "GT3", "Porsche 911 GT3 R", "Spa", "Grand Prix", "2026 S3", "Race");
+        var metadata = new SetupMetadata("HYMO", "GT3", "Porsche 911 GT3 R", "Spa", "Grand Prix", "2026 S3", "Race", 5);
         var result = new ArchivePathBuilder().BuildDirectory(root, metadata);
-        Assert.Equal(Path.Combine(Path.GetFullPath(root), "2026_S3", "Spa", "porsche911rgt3", "HYMO"), result);
+        Assert.Equal(Path.Combine(Path.GetFullPath(root), "2026_S3", "Week 05", "Spa", "porsche911rgt3", "HYMO"), result);
     }
 
     [Theory]
@@ -184,6 +184,27 @@ public sealed class FileClassificationAndHashTests
     }
 
     [Theory]
+    [InlineData("26S3-W05-GNG-Porsche-Virginia-Endu.sto", 5)]
+    [InlineData(@"C:\Track Titan\Week_9\HYMO_IMSA_26S3_ARX06_Fuji_WR.sto", 9)]
+    [InlineData(@"C:\Track Titan\Week-13\HYMO_IMSA_26S3_ARX06_Fuji_WR.sto", 13)]
+    public void MetadataAnalyzerReadsWeekFromNameOrFolder(string path, int expectedWeek)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(path);
+
+        Assert.Equal(expectedWeek, metadata.Week);
+    }
+
+    [Fact]
+    public void ClassificationUsesUnknownWeekFolderWhenWeekIsMissing()
+    {
+        var metadata = new SetupMetadata("VRS", "GT3", "BMW M4 GT3", "Le Mans", null, "2026 S3", "Race");
+
+        var result = new ArchivePathBuilder().BuildDirectory(Path.GetTempPath(), metadata);
+
+        Assert.Contains(Path.Combine("2026_S3", "Week inconnue", "Le Mans"), result);
+    }
+
+    [Theory]
     [InlineData("GO_26S3_GTS_720SGT3_LeMans_R_Safe.sto", "GO Setups", "McLaren 720S GT3 EVO", "GT3", "Le Mans", "Race Safe")]
     [InlineData("VRS_26S3PG_M4GT3_LeMans_R1_V2.sto", "VRS", "BMW M4 GT3", "GT3", "Le Mans", "Race V2")]
     [InlineData("HYMO_IMSA_26S3_ARX06_Fuji_WR.sto", "HYMO", "Acura ARX-06 GTP", "GTP", "Fuji", "Wet Race")]
@@ -210,6 +231,57 @@ public sealed class FileClassificationAndHashTests
         Assert.Equal(category, metadata.Category);
         Assert.Equal(track, metadata.Track);
         Assert.Equal(setupType, metadata.SetupType);
+    }
+
+    [Theory]
+    [InlineData("26S3-W05-GNG-Acura-Virginia-Endu.sto", "Acura NSX GT3 EVO 22")]
+    [InlineData("26S3-W05-GNG-Aston-Virginia-Endu.sto", "Aston Martin Vantage GT3 EVO")]
+    [InlineData("26S3-W05-GNG-AstonMartin-Virginia-Endu.sto", "Aston Martin Vantage GT3 EVO")]
+    [InlineData("26S3-W05-GNG-Porsche-Virginia-Endu.sto", "Porsche 911 GT3 R (992)")]
+    [InlineData("26S3-W05-GNG-Ford-Virginia-Endu.sto", "Ford Mustang GT3")]
+    [InlineData("26S3-W05-GNG-Audi-Virginia-Endu.sto", "Audi R8 LMS EVO II GT3")]
+    [InlineData("26S3-W05-GNG-BMW-Virginia-Endu.sto", "BMW M4 GT3")]
+    [InlineData("26S3-W05-GNG-Chevrolet-Virginia-Endu.sto", "Chevrolet Corvette Z06 GT3.R")]
+    [InlineData("26S3-W05-GNG-Corvette-Virginia-Endu.sto", "Chevrolet Corvette Z06 GT3.R")]
+    [InlineData("26S3-W05-GNG-Ferrari-Virginia-Endu.sto", "Ferrari 296 GT3")]
+    [InlineData("26S3-W05-GNG-Lamborghini-Virginia-Endu.sto", "Lamborghini Huracán GT3 EVO")]
+    [InlineData("26S3-W05-GNG-Lambo-Virginia-Endu.sto", "Lamborghini Huracán GT3 EVO")]
+    [InlineData("26S3-W05-GNG-McLaren-Virginia-Endu.sto", "McLaren 720S GT3 EVO")]
+    [InlineData("26S3-W05-GNG-Mercedes-Virginia-Endu.sto", "Mercedes-AMG GT3 2020")]
+    [InlineData("26S3-W05-GNG-MercedesAMG-Virginia-Endu.sto", "Mercedes-AMG GT3 2020")]
+    public void MetadataAnalyzerTreatsBareGngBrandsAsGt3(string fileName, string expectedCar)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal("Grid & Go", metadata.Provider);
+        Assert.Equal(expectedCar, metadata.Car);
+        Assert.Equal("GT3", metadata.Category);
+    }
+
+    [Theory]
+    [InlineData("26S3-W05-GNG-Porsche963GTP-Virginia-Endu.sto", "Porsche 963 GTP", "GTP")]
+    [InlineData("26S3-W05-GNG-FordGT4-Virginia-Endu.sto", "Ford Mustang GT4", "GT4")]
+    [InlineData("26S3-W05-GNG-BMWGTP-Virginia-Endu.sto", "BMW M Hybrid V8", "GTP")]
+    [InlineData("26S3-W05-GNG-Ferrari499P-Virginia-Endu.sto", "Ferrari 499P", "GTP")]
+    [InlineData("26S3-W05-GNG-CorvetteC8R-Virginia-Endu.sto", "Chevrolet Corvette C8.R GTE", "GTE")]
+    public void MetadataAnalyzerKeepsExplicitGngModelsAheadOfBareBrands(
+        string fileName,
+        string expectedCar,
+        string expectedCategory)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal(expectedCar, metadata.Car);
+        Assert.Equal(expectedCategory, metadata.Category);
+    }
+
+    [Fact]
+    public void MetadataAnalyzerDoesNotApplyBareBrandRuleOutsideGng()
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze("VRS_26S3_Porsche_Virginia_Endu.sto");
+
+        Assert.Equal("À identifier", metadata.Car);
+        Assert.Equal("À identifier", metadata.Category);
     }
 
     [Theory]

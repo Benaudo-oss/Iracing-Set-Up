@@ -12,6 +12,25 @@ public sealed partial class SetupMetadataAnalyzer(
 
     private static readonly string[] SetupTypes =
         ["Endurance", "Aggressive", "Qualifying", "Quali", "Sprint", "Race", "Wet", "Safe"];
+    private static readonly IReadOnlyDictionary<string, (string Car, string Category)> GngGt3Brands =
+        new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Acura"] = ("Acura NSX GT3 EVO 22", "GT3"),
+            ["Aston"] = ("Aston Martin Vantage GT3 EVO", "GT3"),
+            ["AstonMartin"] = ("Aston Martin Vantage GT3 EVO", "GT3"),
+            ["Porsche"] = ("Porsche 911 GT3 R (992)", "GT3"),
+            ["Ford"] = ("Ford Mustang GT3", "GT3"),
+            ["Audi"] = ("Audi R8 LMS EVO II GT3", "GT3"),
+            ["BMW"] = ("BMW M4 GT3", "GT3"),
+            ["Chevrolet"] = ("Chevrolet Corvette Z06 GT3.R", "GT3"),
+            ["Corvette"] = ("Chevrolet Corvette Z06 GT3.R", "GT3"),
+            ["Ferrari"] = ("Ferrari 296 GT3", "GT3"),
+            ["Lamborghini"] = ("Lamborghini Huracán GT3 EVO", "GT3"),
+            ["Lambo"] = ("Lamborghini Huracán GT3 EVO", "GT3"),
+            ["McLaren"] = ("McLaren 720S GT3 EVO", "GT3"),
+            ["Mercedes"] = ("Mercedes-AMG GT3 2020", "GT3"),
+            ["MercedesAMG"] = ("Mercedes-AMG GT3 2020", "GT3")
+        };
     private static readonly IReadOnlyDictionary<string, (string Car, string Category)> Cars =
         new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase)
         {
@@ -277,7 +296,7 @@ public sealed partial class SetupMetadataAnalyzer(
         var learnedCarDefinition = SetupCatalog.Cars.FirstOrDefault(item =>
             item.DisplayName.Equals(learnedCar, StringComparison.OrdinalIgnoreCase));
         var carMatch = learnedCarDefinition is null
-            ? FindCar(filePath, tokens)
+            ? FindCar(filePath, tokens, provider)
             : (Car: learnedCarDefinition.DisplayName, Category: learnedCarDefinition.Category);
         var category = carMatch.Category ?? FindCategory(filePath, tokens) ?? defaults?.Category ?? Unknown;
         var setupType = FindSetupType(tokens) ?? defaults?.SetupType ?? Unknown;
@@ -291,6 +310,7 @@ public sealed partial class SetupMetadataAnalyzer(
         var season = seasonMatch is not null
             ? $"{NormalizeYear(seasonMatch.Groups["year"].Value)} S{seasonMatch.Groups["season"].Value}"
             : defaults?.Season;
+        var week = FindWeek(filePath) ?? defaults?.Week;
 
         var trackConfiguration = FindTrackConfiguration(filePath, tokens, track)
             ?? catalogTrack?.Configuration ?? defaults?.TrackConfiguration;
@@ -302,7 +322,14 @@ public sealed partial class SetupMetadataAnalyzer(
             track,
             trackConfiguration,
             season,
-            setupType.Equals("Quali", StringComparison.OrdinalIgnoreCase) ? "Qualifying" : setupType);
+            setupType.Equals("Quali", StringComparison.OrdinalIgnoreCase) ? "Qualifying" : setupType,
+            week);
+    }
+
+    private static int? FindWeek(string filePath)
+    {
+        var match = WeekRegex().Match(filePath);
+        return match.Success && int.TryParse(match.Groups["week"].Value, out var week) ? week : null;
     }
 
     private static IReadOnlyList<string> Tokenize(string path) =>
@@ -310,7 +337,10 @@ public sealed partial class SetupMetadataAnalyzer(
             [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar, '_', '-', '.', ' '],
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    private static (string? Car, string? Category) FindCar(string filePath, IReadOnlyList<string> tokens)
+    private static (string? Car, string? Category) FindCar(
+        string filePath,
+        IReadOnlyList<string> tokens,
+        string provider)
     {
         var normalizedName = NormalizeAlias(Path.GetFileNameWithoutExtension(filePath));
         var aliasMatch = Cars
@@ -326,7 +356,7 @@ public sealed partial class SetupMetadataAnalyzer(
         var category = SetupCatalog.Categories
             .OrderByDescending(value => value.Length)
             .FirstOrDefault(value => normalizedName.Contains(NormalizeAlias(value), StringComparison.OrdinalIgnoreCase));
-        if (category is null) return (null, null);
+        if (category is null) return FindGngGt3Brand(tokens, provider);
 
         var catalogMatches = SetupCatalog.Cars
             .Where(car => car.Category.Equals(category, StringComparison.OrdinalIgnoreCase))
@@ -338,9 +368,21 @@ public sealed partial class SetupMetadataAnalyzer(
             })
             .ToList();
 
-        return catalogMatches.Count == 1
+        var catalogMatch = catalogMatches.Count == 1
             ? (catalogMatches[0].DisplayName, catalogMatches[0].Category)
             : (null, null);
+        return catalogMatch.Item1 is not null ? catalogMatch : FindGngGt3Brand(tokens, provider);
+    }
+
+    private static (string? Car, string? Category) FindGngGt3Brand(
+        IReadOnlyList<string> tokens,
+        string provider)
+    {
+        if (!provider.Equals("Grid & Go", StringComparison.OrdinalIgnoreCase)) return (null, null);
+
+        return tokens
+            .Select(token => GngGt3Brands.GetValueOrDefault(token))
+            .FirstOrDefault(match => match.Car is not null);
     }
 
     private static string? FindCategory(string filePath, IReadOnlyList<string> tokens)
@@ -521,4 +563,7 @@ public sealed partial class SetupMetadataAnalyzer(
 
     [GeneratedRegex(@"^V(?<version>\d+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex VersionRegex();
+
+    [GeneratedRegex(@"(?:^|[\\/_\- ])(?:Week[ _\-]*|W)0?(?<week>[1-9]|1[0-3])(?:[\\/_\- .]|$)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex WeekRegex();
 }

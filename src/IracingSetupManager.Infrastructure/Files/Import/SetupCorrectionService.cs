@@ -32,7 +32,7 @@ public sealed class SetupCorrectionService(
             ?? throw new InvalidOperationException("Le dossier d’archive n’est pas configuré.");
 
         var metadata = new SetupMetadata(correction.Provider, correction.Category, correction.Car, correction.Track,
-            EmptyAsNull(correction.TrackConfiguration), EmptyAsNull(correction.Season), correction.SetupType);
+            EmptyAsNull(correction.TrackConfiguration), EmptyAsNull(correction.Season), correction.SetupType, setup.Week);
         var destinationDirectory = pathBuilder.BuildDirectory(archiveRoot, metadata);
         Directory.CreateDirectory(destinationDirectory);
         var oldPath = setup.ArchivePath;

@@ -73,7 +73,7 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
         return setups.Select(setup =>
         {
             var isTeamCopy = !string.IsNullOrWhiteSpace(teamName);
-            var week = ReadWeek(setup.OriginalFileName);
+            var week = setup.Week ?? ReadWeek(setup.OriginalFileName);
             if (weekOverrides?.TryGetValue(setup.Id, out var overriddenWeek) == true)
             {
                 if (overriddenWeek is < 1 or > 13) throw new ArgumentOutOfRangeException(nameof(weekOverrides), "La semaine doit être comprise entre 1 et 13.");

@@ -21,6 +21,8 @@ public sealed class SetupEntity
 
     public string? Season { get; set; }
 
+    public int? Week { get; set; }
+
     public required string SetupType { get; set; }
 
     public long SizeInBytes { get; set; }

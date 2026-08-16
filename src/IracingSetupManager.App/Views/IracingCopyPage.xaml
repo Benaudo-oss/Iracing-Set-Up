@@ -16,7 +16,6 @@
         </Grid>
         <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10">
             <Button Content="Tout sélectionner" Click="OnSelectAll" />
-            <Button Content="Afficher les fichiers à copier" Style="{StaticResource AccentButtonStyle}" Click="OnCreatePreview" />
             <TextBlock x:Name="SelectionSummary" VerticalAlignment="Center" Opacity="0.7" />
         </StackPanel>
         <Grid Grid.Row="3" ColumnSpacing="8">
@@ -47,7 +46,11 @@
         </ListView>
         <Grid Grid.Row="6">
             <InfoBar x:Name="ActionInfo" HorizontalAlignment="Left" IsOpen="False" IsClosable="True" />
-            <Button HorizontalAlignment="Right" Content="Copier les fichiers affichés" Style="{StaticResource AccentButtonStyle}" Click="OnCopy" />
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="10">
+                <Button x:Name="ExitPreviewButton" Content="Quitter l’aperçu" Visibility="Collapsed" Click="OnExitPreview" />
+                <Button x:Name="PreviewButton" Content="Afficher les fichiers à copier" Style="{StaticResource AccentButtonStyle}" Click="OnCreatePreview" />
+                <Button x:Name="CopyButton" Content="Copier les fichiers affichés" Style="{StaticResource AccentButtonStyle}" Visibility="Collapsed" Click="OnCopy" />
+            </StackPanel>
         </Grid>
     </Grid>
 </Page>

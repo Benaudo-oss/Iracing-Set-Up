@@ -5,6 +5,24 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.2.10.37
+
+- Réparation automatique des bases dont la migration Week était enregistrée sans que la colonne existe réellement.
+- Vérification physique du schéma SQLite à chaque démarrage avant les lectures du tableau de bord.
+- Affichage du chemin dynamique Track Titan de HYMO dans les paramètres, sans sélection manuelle trompeuse.
+
+# 1.2.10.36
+
+- Ajout de la Week dans la base locale et dans l’arborescence générale des archives.
+- Détection des semaines 1 à 13 dans les noms de fichiers et les dossiers sources.
+- Ajout d’OP1 : surveillance limitée aux dossiers `Track Titan` des voitures appartenant aux catégories sélectionnées.
+- Attribution automatique à HYMO, sans surveiller les autres dossiers iRacing, Garage61 ou Team.
+
+# 1.2.10.35
+
+- Reconnaissance des marques seules comme leur modèle GT3 pour les fichiers Grid & Go uniquement.
+- Conservation de la priorité des modèles explicites GT4, GTE, GTP et PCUP.
+
 # 1.2.10.34
 
 - Ajout d’un espacement plus lisible entre les informations des setups à vérifier.

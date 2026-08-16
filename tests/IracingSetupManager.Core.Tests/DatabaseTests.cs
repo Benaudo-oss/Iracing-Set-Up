@@ -23,6 +23,7 @@ public sealed class DatabaseTests
         Assert.NotNull(stored);
         Assert.Equal("HYMO", stored.Provider);
         Assert.Equal("Spa-Francorchamps", stored.Track);
+        Assert.Equal(setup.Week, stored.Week);
     }
 
     [Fact]
@@ -171,6 +172,31 @@ public sealed class DatabaseTests
         var versions = await context.Database.SqlQueryRaw<int>(
             "SELECT \"Version\" AS \"Value\" FROM \"SchemaMigrations\" ORDER BY \"Version\"").ToListAsync();
         Assert.Equal(Enumerable.Range(1, SetupDatabase.CurrentSchemaVersion), versions);
+    }
+
+    [Fact]
+    public async Task InitializationRepairsWeekColumnEvenWhenMigrationLedgerClaimsItExists()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        await using (var context = environment.Factory.Create())
+        {
+            await context.Database.ExecuteSqlRawAsync("DROP INDEX IF EXISTS \"IX_Setups_Season_Week\";");
+            await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Setups\" DROP COLUMN \"Week\";");
+        }
+
+        await new SetupDatabase(environment.Factory).InitializeAsync();
+
+        await using var repairedContext = environment.Factory.Create();
+        var connection = repairedContext.Database.GetDbConnection();
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA table_info(\"Setups\");";
+        await using var reader = await command.ExecuteReaderAsync();
+        var columns = new List<string>();
+        while (await reader.ReadAsync()) columns.Add(reader.GetString(1));
+        Assert.Contains("Week", columns);
+        Assert.Equal(SetupDatabase.CurrentSchemaVersion,
+            await new SetupDatabase(environment.Factory).GetSchemaVersionAsync());
     }
 
     [Fact]
