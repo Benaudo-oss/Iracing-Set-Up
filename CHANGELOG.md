@@ -5,6 +5,11 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.2.10.38
+
+- Lecture de l’année et de la saison depuis les dossiers HYMO Track Titan, par exemple `2026/Season 3`.
+- Priorité donnée à la saison de l’arborescence Track Titan sur celle éventuellement présente dans le nom du setup.
+
 # 1.2.10.37
 
 - Réparation automatique des bases dont la migration Week était enregistrée sans que la colonne existe réellement.

@@ -194,6 +194,26 @@ public sealed class FileClassificationAndHashTests
         Assert.Equal(expectedWeek, metadata.Week);
     }
 
+    [Theory]
+    [InlineData(@"C:\iRacing\setups\amvantageevogt3\Track Titan\2026\Season 3\Week 5\Le Mans\race.sto", "2026 S3")]
+    [InlineData(@"C:\iRacing\setups\amvantageevogt3\Track Titan\2025\Season_12\Week NEC\Spa\race.sto", "2025 S12")]
+    [InlineData(@"C:\iRacing\setups\amvantageevogt3\Track Titan\2027S5\Week 2\Fuji\race.sto", "2027 S5")]
+    public void MetadataAnalyzerReadsTrackTitanSeasonFromFolders(string path, string expectedSeason)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(path);
+
+        Assert.Equal(expectedSeason, metadata.Season);
+    }
+
+    [Fact]
+    public void TrackTitanFolderSeasonTakesPriorityOverFileName()
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(
+            @"C:\iRacing\setups\amvantageevogt3\Track Titan\2026\Season 3\Week 5\Le Mans\HYMO_25S2_race.sto");
+
+        Assert.Equal("2026 S3", metadata.Season);
+    }
+
     [Fact]
     public void ClassificationUsesUnknownWeekFolderWhenWeekIsMissing()
     {

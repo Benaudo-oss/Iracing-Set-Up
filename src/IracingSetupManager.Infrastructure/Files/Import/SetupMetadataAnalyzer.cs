@@ -307,9 +307,10 @@ public sealed partial class SetupMetadataAnalyzer(
             ?? catalogTrack?.TrackName ?? EmptyAsNull(defaults?.Track) ?? Unknown;
         var seasonMatch = tokens.Select(token => SeasonRegex().Match(token))
             .FirstOrDefault(match => match.Success);
-        var season = seasonMatch is not null
-            ? $"{NormalizeYear(seasonMatch.Groups["year"].Value)} S{seasonMatch.Groups["season"].Value}"
-            : defaults?.Season;
+        var season = FindTrackTitanSeason(filePath)
+            ?? (seasonMatch is not null
+                ? $"{NormalizeYear(seasonMatch.Groups["year"].Value)} S{seasonMatch.Groups["season"].Value}"
+                : defaults?.Season);
         var week = FindWeek(filePath) ?? defaults?.Week;
 
         var trackConfiguration = FindTrackConfiguration(filePath, tokens, track)
@@ -330,6 +331,40 @@ public sealed partial class SetupMetadataAnalyzer(
     {
         var match = WeekRegex().Match(filePath);
         return match.Success && int.TryParse(match.Groups["week"].Value, out var week) ? week : null;
+    }
+
+    private static string? FindTrackTitanSeason(string filePath)
+    {
+        var directory = Path.GetDirectoryName(filePath);
+        if (string.IsNullOrWhiteSpace(directory)) return null;
+
+        var folders = directory.Split(
+            [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var trackTitanIndex = Array.FindIndex(folders, folder =>
+            folder.Equals("Track Titan", StringComparison.OrdinalIgnoreCase));
+        if (trackTitanIndex < 0) return null;
+
+        string? year = null;
+        string? seasonNumber = null;
+        foreach (var folder in folders.Skip(trackTitanIndex + 1))
+        {
+            var combined = SeasonRegex().Match(folder);
+            if (combined.Success)
+                return $"{NormalizeYear(combined.Groups["year"].Value)} S{combined.Groups["season"].Value}";
+
+            if (year is null && YearFolderRegex().IsMatch(folder))
+                year = folder;
+
+            var season = SeasonFolderRegex().Match(folder);
+            if (season.Success)
+                seasonNumber = season.Groups["season"].Value;
+
+            if (year is not null && seasonNumber is not null)
+                return $"{year} S{seasonNumber}";
+        }
+
+        return null;
     }
 
     private static IReadOnlyList<string> Tokenize(string path) =>
@@ -557,6 +592,12 @@ public sealed partial class SetupMetadataAnalyzer(
 
     [GeneratedRegex(@"(?<year>(?:20)?\d{2})[ _-]*S(?<season>[1-9]\d*)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SeasonRegex();
+
+    [GeneratedRegex(@"^20\d{2}$", RegexOptions.CultureInvariant)]
+    private static partial Regex YearFolderRegex();
+
+    [GeneratedRegex(@"^Season[ _-]*(?<season>[1-9]\d*)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex SeasonFolderRegex();
 
     [GeneratedRegex(@"^R\d*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex RaceRegex();
