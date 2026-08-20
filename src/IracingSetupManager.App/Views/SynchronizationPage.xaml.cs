@@ -4,6 +4,7 @@ using IracingSetupManager.Infrastructure.Files.Monitoring;
 using IracingSetupManager.Infrastructure.Settings;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using IracingSetupManager.Core.Setups;
 
 namespace IracingSetupManager.App.Views;
 
@@ -12,12 +13,19 @@ public sealed partial class SynchronizationPage : Page
     private static SynchronizationSelection? sessionSelection;
     private readonly ObservableCollection<SynchronizationResultRow> results = [];
     private readonly Dictionary<string, int> resultIndexes = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, SynchronizationResultRow> allResultRows = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<string> resultOrder = [];
     private bool listening;
 
     public SynchronizationPage()
     {
         InitializeComponent();
         SynchronizationResultsList.ItemsSource = results;
+        WeekFilter.ItemsSource = new[] { "Toutes les Weeks" }
+            .Concat(Enumerable.Range(1, 13).Select(week => $"Week {week:00}"))
+            .Concat(["Week NEC", "Week inconnue", "Sans Week"])
+            .ToList();
+        WeekFilter.SelectedIndex = 0;
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e) =>
@@ -26,9 +34,17 @@ public sealed partial class SynchronizationPage : Page
     private async Task LoadPageAsync()
     {
         ApplySelection(sessionSelection ?? await App.Services.SynchronizationSelection.GetAsync());
-        SynchronizationModeText.Text = await App.Services.AutomaticMonitoring.IsEnabledAsync()
-            ? "Automatique : les nouveaux fichiers sont traités en arrière-plan. Vous pouvez aussi lancer une analyse manuelle."
-            : "Manuelle uniquement : aucun dossier n’est surveillé en arrière-plan.";
+        var automatic = await App.Services.AutomaticMonitoring.IsEnabledAsync();
+        var configuredFolders = await App.Services.MonitoredFolders.GetAsync();
+        var selection = sessionSelection ?? await App.Services.SynchronizationSelection.GetAsync();
+        var hymoActive = await App.Services.HymoMonitoring.IsEnabledAsync()
+            && selection.Providers.Contains("HYMO", StringComparer.OrdinalIgnoreCase)
+            && selection.Categories.Count > 0;
+        SynchronizationModeText.Text = !automatic
+            ? "Manuelle uniquement : aucun dossier n’est surveillé en arrière-plan."
+            : configuredFolders.Count == 0 && !hymoActive
+                ? "Surveillance automatique désactivée : aucune source n’est active."
+                : "Automatique : les nouveaux fichiers sont traités en arrière-plan. Vous pouvez aussi lancer une analyse manuelle.";
         ReloadStoredResults();
         if (!listening)
         {
@@ -77,6 +93,8 @@ public sealed partial class SynchronizationPage : Page
         App.Services.SynchronizationActivity.Clear();
         results.Clear();
         resultIndexes.Clear();
+        allResultRows.Clear();
+        resultOrder.Clear();
         EmptyResultsText.Visibility = Visibility.Visible;
         SetRunningState(true);
         ProgressText.Text = "Recherche des fichiers…";
@@ -101,7 +119,7 @@ public sealed partial class SynchronizationPage : Page
             CloseButtonText = "Continuer",
             DefaultButton = ContentDialogButton.Close
         };
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (await dialog.ApplyActionStyles().ShowAsync() == ContentDialogResult.Primary)
         {
             App.Services.Monitoring.CancelImportNow();
             StopScanButton.IsEnabled = false;
@@ -115,6 +133,8 @@ public sealed partial class SynchronizationPage : Page
         App.Services.SynchronizationActivity.Clear();
         results.Clear();
         resultIndexes.Clear();
+        allResultRows.Clear();
+        resultOrder.Clear();
         EmptyResultsText.Visibility = Visibility.Visible;
         ProgressText.Text = "Aucune synchronisation en cours";
         ProgressCountersText.Text = string.Empty;
@@ -146,12 +166,18 @@ public sealed partial class SynchronizationPage : Page
     private void ApplyProgress(SynchronizationProgress progress)
     {
         var row = SynchronizationResultRow.From(progress);
-        if (resultIndexes.TryGetValue(progress.FilePath, out var index)) results[index] = row;
-        else
+        if (!allResultRows.ContainsKey(progress.FilePath)) resultOrder.Add(progress.FilePath);
+        allResultRows[progress.FilePath] = row;
+        if (MatchesWeek(row))
         {
-            resultIndexes[progress.FilePath] = results.Count;
-            results.Add(row);
+            if (resultIndexes.TryGetValue(progress.FilePath, out var index)) results[index] = row;
+            else
+            {
+                resultIndexes[progress.FilePath] = results.Count;
+                results.Add(row);
+            }
         }
+        else if (resultIndexes.ContainsKey(progress.FilePath)) RebuildVisibleResults();
         EmptyResultsText.Visibility = Visibility.Collapsed;
         ProgressText.Text = progress.Automatic ? "Synchronisation automatique" : "Synchronisation manuelle";
         if (progress.Total > 0)
@@ -172,10 +198,33 @@ public sealed partial class SynchronizationPage : Page
     {
         results.Clear();
         resultIndexes.Clear();
+        allResultRows.Clear();
+        resultOrder.Clear();
         foreach (var progress in App.Services.SynchronizationActivity.Snapshot())
         {
-            resultIndexes[progress.FilePath] = results.Count;
-            results.Add(SynchronizationResultRow.From(progress));
+            var row = SynchronizationResultRow.From(progress);
+            allResultRows[progress.FilePath] = row;
+            resultOrder.Add(progress.FilePath);
+        }
+        RebuildVisibleResults();
+        EmptyResultsText.Visibility = results.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnWeekFilterChanged(object sender, SelectionChangedEventArgs e) => RebuildVisibleResults();
+
+    private bool MatchesWeek(SynchronizationResultRow row) =>
+        WeekFilter.SelectedItem is not string selected || selected == "Toutes les Weeks" ||
+        row.WeekDisplay.Equals(selected, StringComparison.OrdinalIgnoreCase);
+
+    private void RebuildVisibleResults()
+    {
+        results.Clear();
+        resultIndexes.Clear();
+        foreach (var path in resultOrder)
+        {
+            if (!allResultRows.TryGetValue(path, out var row) || !MatchesWeek(row)) continue;
+            resultIndexes[path] = results.Count;
+            results.Add(row);
         }
         EmptyResultsText.Visibility = results.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
@@ -235,11 +284,13 @@ public sealed partial class SynchronizationPage : Page
         foreach (var item in items) item.Box.IsChecked = values.Contains(item.Value);
     }
 
-    private sealed record SynchronizationResultRow(string FullPath, string FileName, string State, string Message)
+    private sealed record SynchronizationResultRow(string FullPath, string FileName, string WeekDisplay, SetupWeekKind WeekKind, string State, string Message)
     {
         public static SynchronizationResultRow From(SynchronizationProgress progress) => new(
             progress.FilePath,
             Path.GetFileName(progress.FilePath),
+            progress.Result?.WeekDisplay ?? "—",
+            progress.Result?.WeekKind ?? SetupWeekKind.Unknown,
             progress.State switch
             {
                 SynchronizationFileState.Detected => "Détecté",

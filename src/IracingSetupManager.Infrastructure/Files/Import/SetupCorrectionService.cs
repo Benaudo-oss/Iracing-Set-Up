@@ -1,4 +1,5 @@
 using IracingSetupManager.Core.Catalog;
+using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Database;
 using IracingSetupManager.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -14,13 +15,51 @@ public sealed record SetupCorrection(
     string? Season,
     string SetupType,
     string? CarAlias = null,
-    string? TrackAlias = null);
+    string? TrackAlias = null,
+    int? Week = null,
+    SetupWeekKind? WeekKind = null);
+
+public sealed record SetupBatchCorrection(
+    string? Provider = null,
+    string? Category = null,
+    string? Car = null,
+    string? Track = null,
+    string? Season = null,
+    string? SetupType = null,
+    int? Week = null,
+    SetupWeekKind? WeekKind = null);
 
 public sealed class SetupCorrectionService(
     ISetupDbContextFactory contextFactory,
     ArchivePathBuilder pathBuilder,
     RecognitionAliasService recognitionAliases)
 {
+    public async Task CorrectManyAsync(
+        IReadOnlyCollection<Guid> setupIds,
+        SetupBatchCorrection correction,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(correction);
+        foreach (var setupId in setupIds.Distinct())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await using var context = contextFactory.Create();
+            var setup = await context.Setups.AsNoTracking()
+                .SingleOrDefaultAsync(item => item.Id == setupId, cancellationToken)
+                ?? throw new KeyNotFoundException("Un setup sélectionné n’existe plus.");
+            await CorrectAsync(setupId, new SetupCorrection(
+                correction.Provider ?? setup.Provider,
+                correction.Category ?? setup.Category,
+                correction.Car ?? setup.Car,
+                correction.Track ?? setup.Track,
+                setup.TrackConfiguration,
+                correction.Season ?? setup.Season,
+                correction.SetupType ?? setup.SetupType,
+                Week: correction.WeekKind.HasValue ? correction.Week : setup.Week,
+                WeekKind: correction.WeekKind ?? setup.WeekKind), cancellationToken);
+        }
+    }
+
     public async Task CorrectAsync(Guid setupId, SetupCorrection correction, CancellationToken cancellationToken = default)
     {
         await using var context = contextFactory.Create();
@@ -31,8 +70,10 @@ public sealed class SetupCorrectionService(
             .Select(item => item.Value).SingleOrDefaultAsync(cancellationToken)
             ?? throw new InvalidOperationException("Le dossier d’archive n’est pas configuré.");
 
+        var correctedWeek = correction.WeekKind.HasValue ? correction.Week : setup.Week;
+        var correctedWeekKind = correction.WeekKind ?? setup.WeekKind;
         var metadata = new SetupMetadata(correction.Provider, correction.Category, correction.Car, correction.Track,
-            EmptyAsNull(correction.TrackConfiguration), EmptyAsNull(correction.Season), correction.SetupType, setup.Week);
+            EmptyAsNull(correction.TrackConfiguration), EmptyAsNull(correction.Season), correction.SetupType, correctedWeek, correctedWeekKind);
         var destinationDirectory = pathBuilder.BuildDirectory(archiveRoot, metadata);
         Directory.CreateDirectory(destinationDirectory);
         var oldPath = setup.ArchivePath;
@@ -54,6 +95,8 @@ public sealed class SetupCorrectionService(
             setup.TrackConfiguration = EmptyAsNull(correction.TrackConfiguration);
             setup.Season = EmptyAsNull(correction.Season);
             setup.SetupType = correction.SetupType;
+            setup.Week = correctedWeek;
+            setup.WeekKind = correctedWeekKind;
             setup.ArchivePath = newPath;
             context.SetupChangeHistory.Add(new SetupChangeHistoryEntity
             {

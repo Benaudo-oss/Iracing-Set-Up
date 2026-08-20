@@ -5,6 +5,17 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.3.11.38
+
+- Gestion complète des Weeks numériques, de Week NEC, de Sans Week et de Week inconnue dans SQLite.
+- Affichage et filtrage des Weeks dans la bibliothèque, la validation, la synchronisation et les copies iRacing.
+- Choix conditionnel d’une Week pour les setups inconnus, sans remplacer les Weeks déjà connues.
+- Lecture enrichie de l’arborescence HYMO Track Titan et nouveaux alias HYMO GTE.
+- Activation indépendante et persistante des sources Téléchargements et HYMO.
+- Correction groupée avec aperçu, confirmation et historique individuel.
+- Harmonisation des boutons, de leurs couleurs et de leurs états interactifs.
+- Déplacement de l’onglet « À vérifier » sous « Synchronisation ».
+
 # 1.2.10.38
 
 - Lecture de l’année et de la saison depuis les dossiers HYMO Track Titan, par exemple `2026/Season 3`.

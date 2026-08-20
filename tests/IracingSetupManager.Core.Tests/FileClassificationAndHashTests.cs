@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Files;
 using IracingSetupManager.Infrastructure.Files.Import;
 using Xunit;
@@ -185,6 +186,10 @@ public sealed class FileClassificationAndHashTests
 
     [Theory]
     [InlineData("26S3-W05-GNG-Porsche-Virginia-Endu.sto", 5)]
+    [InlineData("HYMO_26S3_Week 5_Fuji.sto", 5)]
+    [InlineData("HYMO_26S3_Week_5_Fuji.sto", 5)]
+    [InlineData("HYMO_26S3_Week-05_Fuji.sto", 5)]
+    [InlineData("HYMO_26S3_W05_Fuji.sto", 5)]
     [InlineData(@"C:\Track Titan\Week_9\HYMO_IMSA_26S3_ARX06_Fuji_WR.sto", 9)]
     [InlineData(@"C:\Track Titan\Week-13\HYMO_IMSA_26S3_ARX06_Fuji_WR.sto", 13)]
     public void MetadataAnalyzerReadsWeekFromNameOrFolder(string path, int expectedWeek)
@@ -192,6 +197,28 @@ public sealed class FileClassificationAndHashTests
         var metadata = new SetupMetadataAnalyzer().Analyze(path);
 
         Assert.Equal(expectedWeek, metadata.Week);
+        Assert.Equal(SetupWeekKind.Numeric, metadata.EffectiveWeekKind);
+    }
+
+    [Theory]
+    [InlineData("HYMO_26S3_Week NEC_Fuji.sto")]
+    [InlineData(@"C:\Track Titan\2026\Season 3\Week_NEC\Fuji\setup.sto")]
+    public void MetadataAnalyzerRecognizesWeekNec(string path)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(path);
+
+        Assert.Null(metadata.Week);
+        Assert.Equal(SetupWeekKind.Nec, metadata.EffectiveWeekKind);
+        Assert.Equal("Week NEC", SetupWeekPresentation.Display(metadata.Week, metadata.EffectiveWeekKind));
+    }
+
+    [Fact]
+    public void WeekPresentationDistinguishesEveryState()
+    {
+        Assert.Equal("Week 05", SetupWeekPresentation.Display(5, SetupWeekKind.Unknown));
+        Assert.Equal("Week NEC", SetupWeekPresentation.Display(null, SetupWeekKind.Nec));
+        Assert.Equal("Week inconnue", SetupWeekPresentation.Display(null, SetupWeekKind.Unknown));
+        Assert.Equal("Sans Week", SetupWeekPresentation.Display(null, SetupWeekKind.NoWeek));
     }
 
     [Theory]
@@ -215,6 +242,17 @@ public sealed class FileClassificationAndHashTests
     }
 
     [Fact]
+    public void MetadataAnalyzerReadsCompleteTrackTitanHierarchyBeforeFileName()
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(
+            @"C:\iRacing\setups\amvantageevogt3\Track Titan\2026\Season 3\Week 5\Le Mans\HYMO_25S2_W02_Spa_race.sto");
+
+        Assert.Equal("2026 S3", metadata.Season);
+        Assert.Equal(5, metadata.Week);
+        Assert.Equal("Le Mans", metadata.Track);
+    }
+
+    [Fact]
     public void ClassificationUsesUnknownWeekFolderWhenWeekIsMissing()
     {
         var metadata = new SetupMetadata("VRS", "GT3", "BMW M4 GT3", "Le Mans", null, "2026 S3", "Race");
@@ -222,6 +260,21 @@ public sealed class FileClassificationAndHashTests
         var result = new ArchivePathBuilder().BuildDirectory(Path.GetTempPath(), metadata);
 
         Assert.Contains(Path.Combine("2026_S3", "Week inconnue", "Le Mans"), result);
+    }
+
+    [Theory]
+    [InlineData(5, SetupWeekKind.Numeric, "Week 05")]
+    [InlineData(null, SetupWeekKind.Nec, "Week NEC")]
+    [InlineData(null, SetupWeekKind.NoWeek, "Sans Week")]
+    [InlineData(null, SetupWeekKind.Unknown, "Week inconnue")]
+    public void ArchiveUsesExactWeekFolderNames(int? week, SetupWeekKind kind, string expectedFolder)
+    {
+        var metadata = new SetupMetadata(
+            "VRS", "GT3", "BMW M4 GT3", "Le Mans", null, "2026 S3", "Race", week, kind);
+
+        var result = new ArchivePathBuilder().BuildDirectory(Path.GetTempPath(), metadata);
+
+        Assert.Contains(Path.Combine("2026_S3", expectedFolder, "Le Mans"), result);
     }
 
     [Theory]
@@ -251,6 +304,20 @@ public sealed class FileClassificationAndHashTests
         Assert.Equal(category, metadata.Category);
         Assert.Equal(track, metadata.Track);
         Assert.Equal(setupType, metadata.SetupType);
+    }
+
+    [Theory]
+    [InlineData("HYMO_GTEsprint_26S3_RSRGTE_RedbullRing_CEND.sto", "Porsche 911 RSR")]
+    [InlineData("HYMO_GTEsprint_26S3_FERRARIGTE_RedbullRing_CQ.sto", "Ferrari 488 GTE")]
+    public void MetadataAnalyzerRecognizesHymoGteAliases(string fileName, string expectedCar)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal("HYMO", metadata.Provider);
+        Assert.Equal("GTE", metadata.Category);
+        Assert.Equal("2026 S3", metadata.Season);
+        Assert.Equal(expectedCar, metadata.Car);
+        Assert.Equal("Red Bull Ring", metadata.Track);
     }
 
     [Theory]

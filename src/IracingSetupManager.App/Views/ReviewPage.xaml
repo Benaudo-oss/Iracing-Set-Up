@@ -10,19 +10,21 @@
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
             <Button Content="Tout sélectionner" Click="OnSelectAll" />
             <Button Content="Sélectionner les identifiés" Click="OnSelectIdentified" ToolTipService.ToolTip="Sélectionne uniquement les setups ne contenant aucun champ À identifier" />
-            <Button Content="Valider la sélection" Style="{StaticResource AccentButtonStyle}" Click="OnValidateSelection" />
-            <Button Content="Refuser la sélection" Click="OnRefuseSelection" />
+            <Button Content="Corriger la sélection" Style="{StaticResource GraySecondaryButtonStyle}" Click="OnCorrectSelection" />
+            <Button Content="Valider la sélection" Style="{StaticResource BlueActionButtonStyle}" Click="OnValidateSelection" />
+            <Button Content="Refuser la sélection" Style="{StaticResource RedDangerButtonStyle}" Click="OnRefuseSelection" />
         </StackPanel>
         <Grid Grid.Row="2" ColumnSpacing="12">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
             <Grid><TextBox x:Name="SearchBox" Height="40" Padding="34,0,8,0" PlaceholderText="Rechercher un fichier…" TextChanged="OnSearchChanged" /><FontIcon Margin="11,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE721;" /></Grid>
             <Grid Grid.Column="1"><ComboBox x:Name="ProviderFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Fournisseur" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="13" Glyph="&#xE77B;" /></Grid>
             <Grid Grid.Column="2"><ComboBox x:Name="CategoryFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Catégorie" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE80F;" /></Grid>
             <Grid Grid.Column="3"><ComboBox x:Name="CarFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Voiture" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE806;" /></Grid>
             <Grid Grid.Column="4"><ComboBox x:Name="TrackFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Circuit" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE707;" /></Grid>
             <Grid Grid.Column="5"><ComboBox x:Name="IdentificationFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Identification" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE9D5;" /></Grid>
+            <Grid Grid.Column="6"><ComboBox x:Name="WeekFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Week" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE787;" /></Grid>
         </Grid>
-        <Grid Grid.Row="3" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled"><StackPanel x:Name="ActiveFiltersPanel" Orientation="Horizontal" Spacing="8" /></ScrollViewer><TextBlock x:Name="ResultCountText" Grid.Column="1" VerticalAlignment="Center" Opacity="0.7" Text="0 résultat" /><Button Grid.Column="2" Padding="10,6" Click="OnClearFilters" ToolTipService.ToolTip="Effacer tous les filtres"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="13" Glyph="&#xE711;" /><TextBlock Text="Effacer" /></StackPanel></Button></Grid>
+        <Grid Grid.Row="3" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled"><StackPanel x:Name="ActiveFiltersPanel" Orientation="Horizontal" Spacing="8" /></ScrollViewer><TextBlock x:Name="ResultCountText" Grid.Column="1" VerticalAlignment="Center" Opacity="0.7" Text="0 résultat" /><Button Grid.Column="2" Padding="10,6" Style="{StaticResource GraySecondaryButtonStyle}" Click="OnClearFilters" ToolTipService.ToolTip="Effacer tous les filtres"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="13" Glyph="&#xE711;" /><TextBlock Text="Effacer" /></StackPanel></Button></Grid>
         <Border Grid.Row="4" Padding="12" Background="#FF20242B" CornerRadius="10">
             <Grid>
                 <ListView x:Name="ReviewList" SelectionMode="Multiple" SelectionChanged="OnSelectionChanged">
@@ -41,14 +43,15 @@
                                         <Border Padding="10,4" Background="#FF1F3B2F" BorderBrush="#FF35634D" BorderThickness="1" CornerRadius="12"><TextBlock Foreground="#FFB7E8CC"><Run FontWeight="SemiBold" Text="Voiture : " /><Run Text="{Binding Car}" /></TextBlock></Border>
                                         <Border Padding="10,4" Background="#FF3F2A2A" BorderBrush="#FF6D4646" BorderThickness="1" CornerRadius="12"><TextBlock Foreground="#FFFFC4C0"><Run FontWeight="SemiBold" Text="Circuit : " /><Run Text="{Binding Track}" /></TextBlock></Border>
                                         <Border Padding="10,4" Background="#FF27344A" BorderBrush="#FF40577B" BorderThickness="1" CornerRadius="12"><TextBlock Foreground="#FFC3D7FF"><Run FontWeight="SemiBold" Text="Saison : " /><Run Text="{Binding Season}" /></TextBlock></Border>
+                                        <Border Padding="10,4" Background="{Binding WeekKind, Converter={StaticResource WeekBadgeBrushConverter}}" BorderBrush="{Binding WeekKind, Converter={StaticResource WeekBadgeBrushConverter}, ConverterParameter=Border}" BorderThickness="1" CornerRadius="12"><TextBlock Foreground="{Binding WeekKind, Converter={StaticResource WeekBadgeBrushConverter}, ConverterParameter=Foreground}" FontWeight="SemiBold" Text="{Binding WeekDisplay}" /></Border>
                                         <Border Padding="10,4" Background="#FF493313" BorderBrush="#FF78541C" BorderThickness="1" CornerRadius="12">
                                             <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon VerticalAlignment="Center" FontSize="11" Foreground="#FFFFD18A" Glyph="&#xE823;" /><TextBlock VerticalAlignment="Center" Foreground="#FFFFD18A" FontWeight="SemiBold" Text="À vérifier" /></StackPanel>
                                         </Border>
                                     </StackPanel>
                                 </StackPanel>
-                                <Button Grid.Column="1" Tag="{Binding Id}" Content="Corriger" Click="OnCorrectOne" />
-                                <Button Grid.Column="2" Tag="{Binding Id}" Content="Valider" Style="{StaticResource AccentButtonStyle}" Click="OnValidateOne" />
-                                <Button Grid.Column="3" Tag="{Binding Id}" Content="Refuser" Click="OnRefuseOne" />
+                                <Button Grid.Column="1" Tag="{Binding Id}" Content="Corriger" Style="{StaticResource GraySecondaryButtonStyle}" Click="OnCorrectOne" />
+                                <Button Grid.Column="2" Tag="{Binding Id}" Content="Valider" Style="{StaticResource BlueActionButtonStyle}" Click="OnValidateOne" />
+                                <Button Grid.Column="3" Tag="{Binding Id}" Content="Refuser" Style="{StaticResource RedDangerButtonStyle}" Click="OnRefuseOne" />
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>
@@ -61,7 +64,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="160" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <NumberBox x:Name="RatingBox" Header="Note personnelle / 5" Minimum="1" Maximum="5" SpinButtonPlacementMode="Compact" />
                 <TextBox x:Name="CommentBox" Grid.Column="1" Header="Commentaire" PlaceholderText="Ajoutez vos observations…" MaxLength="4000" />
-                <Button Grid.Column="2" VerticalAlignment="Bottom" Content="Enregistrer" Click="OnSaveNotes" />
+                <Button Grid.Column="2" VerticalAlignment="Bottom" Content="Enregistrer" Style="{StaticResource BlueActionButtonStyle}" Click="OnSaveNotes" />
             </Grid>
         </Border>
         <InfoBar x:Name="ReviewInfo" Grid.Row="6" IsOpen="False" IsClosable="True" />

@@ -1,3 +1,5 @@
+using IracingSetupManager.Core.Setups;
+
 namespace IracingSetupManager.Infrastructure.Files.Import;
 
 public sealed record SetupMetadata(
@@ -8,4 +10,8 @@ public sealed record SetupMetadata(
     string? TrackConfiguration,
     string? Season,
     string SetupType,
-    int? Week = null);
+    int? Week = null,
+    SetupWeekKind WeekKind = SetupWeekKind.Unknown)
+{
+    public SetupWeekKind EffectiveWeekKind => SetupWeekPresentation.EffectiveKind(Week, WeekKind);
+}

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using IracingSetupManager.Core.Catalog;
+using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Database.Entities;
 
 namespace IracingSetupManager.Infrastructure.Files.Import;
@@ -82,8 +83,10 @@ public sealed partial class SetupMetadataAnalyzer(
             ["c7vettedp"] = ("Chevrolet Corvette C7 Daytona Prototype", "DP"),
             ["corvettec7dp"] = ("Chevrolet Corvette C7 Daytona Prototype", "DP"),
             ["ferrari488gte"] = ("Ferrari 488 GTE", "GTE"),
+            ["FERRARIGTE"] = ("Ferrari 488 GTE", "GTE"),
             ["fordgt2017"] = ("Ford GTE", "GTE"),
             ["porsche991rsr"] = ("Porsche 911 RSR", "GTE"),
+            ["RSRGTE"] = ("Porsche 911 RSR", "GTE"),
 
             ["dallarap217"] = ("Dallara P217", "LMP2"),
             ["hpdarx01c"] = ("HPD ARX-01c", "LMP2"),
@@ -290,6 +293,7 @@ public sealed partial class SetupMetadataAnalyzer(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         var tokens = Tokenize(filePath);
+        var trackTitanFolders = GetTrackTitanFolders(filePath);
 
         var provider = FindProvider(tokens) ?? defaults?.Provider ?? Unknown;
         var learnedCar = recognitionAliases?.Find(RecognitionAliasKind.Car, Path.GetFileNameWithoutExtension(filePath));
@@ -301,17 +305,21 @@ public sealed partial class SetupMetadataAnalyzer(
         var category = carMatch.Category ?? FindCategory(filePath, tokens) ?? defaults?.Category ?? Unknown;
         var setupType = FindSetupType(tokens) ?? defaults?.SetupType ?? Unknown;
         var car = carMatch.Car ?? EmptyAsNull(defaults?.Car) ?? Unknown;
+        var trackTitanTrack = FindTrackTitanTrack(trackTitanFolders);
         var catalogTrack = trackCatalog?.Find(filePath);
-        var track = recognitionAliases?.Find(RecognitionAliasKind.Track, Path.GetFileNameWithoutExtension(filePath))
+        var track = trackTitanTrack
+            ?? recognitionAliases?.Find(RecognitionAliasKind.Track, Path.GetFileNameWithoutExtension(filePath))
             ?? FindTrack(filePath, tokens)
             ?? catalogTrack?.TrackName ?? EmptyAsNull(defaults?.Track) ?? Unknown;
         var seasonMatch = tokens.Select(token => SeasonRegex().Match(token))
             .FirstOrDefault(match => match.Success);
-        var season = FindTrackTitanSeason(filePath)
+        var season = FindTrackTitanSeason(trackTitanFolders)
             ?? (seasonMatch is not null
                 ? $"{NormalizeYear(seasonMatch.Groups["year"].Value)} S{seasonMatch.Groups["season"].Value}"
                 : defaults?.Season);
-        var week = FindWeek(filePath) ?? defaults?.Week;
+        var detectedWeek = FindTrackTitanWeek(trackTitanFolders) ?? FindWeek(filePath);
+        var week = detectedWeek?.Number ?? defaults?.Week;
+        var weekKind = detectedWeek?.Kind ?? defaults?.EffectiveWeekKind ?? SetupWeekKind.Unknown;
 
         var trackConfiguration = FindTrackConfiguration(filePath, tokens, track)
             ?? catalogTrack?.Configuration ?? defaults?.TrackConfiguration;
@@ -324,30 +332,39 @@ public sealed partial class SetupMetadataAnalyzer(
             trackConfiguration,
             season,
             setupType.Equals("Quali", StringComparison.OrdinalIgnoreCase) ? "Qualifying" : setupType,
-            week);
+            week,
+            weekKind);
     }
 
-    private static int? FindWeek(string filePath)
+    private static DetectedWeek? FindWeek(string filePath)
     {
+        if (WeekNecRegex().IsMatch(filePath)) return new DetectedWeek(null, SetupWeekKind.Nec);
         var match = WeekRegex().Match(filePath);
-        return match.Success && int.TryParse(match.Groups["week"].Value, out var week) ? week : null;
+        return match.Success && int.TryParse(match.Groups["week"].Value, out var week)
+            ? new DetectedWeek(week, SetupWeekKind.Numeric)
+            : null;
     }
 
-    private static string? FindTrackTitanSeason(string filePath)
+    private static IReadOnlyList<string> GetTrackTitanFolders(string filePath)
     {
         var directory = Path.GetDirectoryName(filePath);
-        if (string.IsNullOrWhiteSpace(directory)) return null;
+        if (string.IsNullOrWhiteSpace(directory)) return [];
 
         var folders = directory.Split(
             [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var trackTitanIndex = Array.FindIndex(folders, folder =>
             folder.Equals("Track Titan", StringComparison.OrdinalIgnoreCase));
-        if (trackTitanIndex < 0) return null;
+        return trackTitanIndex < 0 ? [] : folders.Skip(trackTitanIndex + 1).ToArray();
+    }
+
+    private static string? FindTrackTitanSeason(IReadOnlyList<string> folders)
+    {
+        if (folders.Count == 0) return null;
 
         string? year = null;
         string? seasonNumber = null;
-        foreach (var folder in folders.Skip(trackTitanIndex + 1))
+        foreach (var folder in folders)
         {
             var combined = SeasonRegex().Match(folder);
             if (combined.Success)
@@ -362,6 +379,39 @@ public sealed partial class SetupMetadataAnalyzer(
 
             if (year is not null && seasonNumber is not null)
                 return $"{year} S{seasonNumber}";
+        }
+
+        return null;
+    }
+
+    private static DetectedWeek? FindTrackTitanWeek(IReadOnlyList<string> folders)
+    {
+        foreach (var folder in folders)
+        {
+            if (WeekNecFolderRegex().IsMatch(folder)) return new DetectedWeek(null, SetupWeekKind.Nec);
+            var match = WeekFolderRegex().Match(folder);
+            if (match.Success && int.TryParse(match.Groups["week"].Value, out var week))
+                return new DetectedWeek(week, SetupWeekKind.Numeric);
+        }
+
+        return null;
+    }
+
+    private string? FindTrackTitanTrack(IReadOnlyList<string> folders)
+    {
+        foreach (var folder in folders)
+        {
+            if (YearFolderRegex().IsMatch(folder) ||
+                SeasonFolderRegex().IsMatch(folder) ||
+                SeasonRegex().IsMatch(folder) ||
+                WeekFolderRegex().IsMatch(folder) ||
+                WeekNecFolderRegex().IsMatch(folder))
+                continue;
+
+            var track = recognitionAliases?.Find(RecognitionAliasKind.Track, folder)
+                ?? FindTrack(folder, Tokenize(folder))
+                ?? trackCatalog?.Find(folder)?.TrackName;
+            if (!string.IsNullOrWhiteSpace(track)) return track;
         }
 
         return null;
@@ -607,4 +657,15 @@ public sealed partial class SetupMetadataAnalyzer(
 
     [GeneratedRegex(@"(?:^|[\\/_\- ])(?:Week[ _\-]*|W)0?(?<week>[1-9]|1[0-3])(?:[\\/_\- .]|$)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex WeekRegex();
+
+    [GeneratedRegex(@"^(?:Week[ _\-]*|W)0?(?<week>[1-9]|1[0-3])$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex WeekFolderRegex();
+
+    [GeneratedRegex(@"(?:^|[\\/_\- ])Week[ _\-]*NEC(?:[\\/_\- .]|$)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex WeekNecRegex();
+
+    [GeneratedRegex(@"^Week[ _\-]*NEC$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex WeekNecFolderRegex();
+
+    private sealed record DetectedWeek(int? Number, SetupWeekKind Kind);
 }

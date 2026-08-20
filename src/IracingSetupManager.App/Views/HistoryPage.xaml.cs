@@ -37,7 +37,7 @@ public sealed partial class HistoryPage : Page
             DefaultButton = ContentDialogButton.Close
         };
 
-        if (await confirmation.ShowAsync() != ContentDialogResult.Primary) return;
+        if (await confirmation.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
 
         await App.Services.QueryService.ClearHistoryAsync();
         _history = [];

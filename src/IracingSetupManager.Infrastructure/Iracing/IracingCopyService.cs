@@ -29,10 +29,17 @@ public sealed record IracingCopyPlanItem(
     string SourcePath,
     string DestinationPath,
     int? Week,
+    SetupWeekKind WeekKind,
     bool HasConflict,
     IracingConflictChoice ConflictChoice = IracingConflictChoice.None);
 
 public sealed record IracingCopyResult(int Copied, int Skipped);
+public sealed record SetupWeekChoice(int? Week, SetupWeekKind Kind)
+{
+    public static SetupWeekChoice Numeric(int week) => new(week, SetupWeekKind.Numeric);
+    public static SetupWeekChoice Nec { get; } = new(null, SetupWeekKind.Nec);
+    public static SetupWeekChoice NoWeek { get; } = new(null, SetupWeekKind.NoWeek);
+}
 
 public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, IracingPathLayoutService? pathLayoutService = null)
 {
@@ -51,6 +58,7 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
         string iracingSetupsFolder,
         IReadOnlyDictionary<Guid, int>? weekOverrides = null,
         string? teamName = null,
+        IReadOnlyDictionary<Guid, SetupWeekChoice>? weekChoices = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(iracingSetupsFolder);
@@ -62,7 +70,7 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
         var layout = await pathLayout.GetAsync(cancellationToken);
 
         await using var context = contextFactory.Create();
-        var setups = (await context.Setups.AsNoTracking()
+        var setups = (await context.Setups
             .Where(item => ids.Contains(item.Id) && item.Status == SetupStatus.Valide)
             .ToListAsync(cancellationToken))
             .Where(item => IsIdentifiedCar(item.Car))
@@ -70,22 +78,44 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
             .ThenBy(item => item.OriginalFileName)
             .ToList();
 
+        var weekMetadataChanged = false;
+        foreach (var setup in setups)
+        {
+            var existingWeek = setup.Week ?? ReadWeek(setup.OriginalFileName);
+            if (SetupWeekPresentation.EffectiveKind(existingWeek, setup.WeekKind) != SetupWeekKind.Unknown) continue;
+            if (weekChoices?.TryGetValue(setup.Id, out var choice) != true || choice is null) continue;
+            if (choice.Kind == SetupWeekKind.Numeric && choice.Week is not (>= 1 and <= 13))
+                throw new ArgumentOutOfRangeException(nameof(weekChoices), "La Week numérique doit être comprise entre 1 et 13.");
+            if (choice.Kind is SetupWeekKind.Unknown || choice.Kind == SetupWeekKind.Numeric && choice.Week is null)
+                throw new ArgumentException("Le choix de Week est invalide.", nameof(weekChoices));
+            setup.Week = choice.Kind == SetupWeekKind.Numeric ? choice.Week : null;
+            setup.WeekKind = choice.Kind;
+            weekMetadataChanged = true;
+        }
+        if (weekMetadataChanged) await context.SaveChangesAsync(cancellationToken);
+
         return setups.Select(setup =>
         {
             var isTeamCopy = !string.IsNullOrWhiteSpace(teamName);
             var week = setup.Week ?? ReadWeek(setup.OriginalFileName);
-            if (weekOverrides?.TryGetValue(setup.Id, out var overriddenWeek) == true)
+            var weekKind = SetupWeekPresentation.EffectiveKind(week, setup.WeekKind);
+            if (weekKind == SetupWeekKind.Unknown && weekOverrides?.TryGetValue(setup.Id, out var overriddenWeek) == true)
             {
                 if (overriddenWeek is < 1 or > 13) throw new ArgumentOutOfRangeException(nameof(weekOverrides), "La semaine doit être comprise entre 1 et 13.");
                 week = overriddenWeek;
+                weekKind = SetupWeekKind.Numeric;
             }
 
             var carFolder = SetupMetadataAnalyzer.ResolveIracingFolderName(setup.Car, availableCarFolders)
                 ?? SanitizeSegment(setup.Car);
             var season = SanitizeSegment(setup.Season ?? "Saison inconnue").Replace(' ', '_');
-            var weekFolder = week is null
-                ? (isTeamCopy ? "week_inconnue" : "Week inconnue")
-                : (isTeamCopy ? $"week_{week}" : $"Week {week:00}");
+            var weekFolder = weekKind switch
+            {
+                SetupWeekKind.Numeric when week is not null => isTeamCopy ? $"week_{week}" : $"Week {week:00}",
+                SetupWeekKind.Nec => isTeamCopy ? "week_NEC" : "Week NEC",
+                SetupWeekKind.NoWeek => isTeamCopy ? "sans_week" : "Sans Week",
+                _ => isTeamCopy ? "week_inconnue" : "Week inconnue"
+            };
             var dynamicSegments = layout.Select(element => element switch
             {
                 "Season" => season,
@@ -109,6 +139,7 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
                 setup.ArchivePath,
                 destination,
                 week,
+                weekKind,
                 File.Exists(destination));
         }).ToList();
     }
@@ -129,7 +160,7 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
             throw new InvalidOperationException("Chaque conflit doit être résolu avant la copie.");
         }
 
-        if (plan.Any(item => item.Week is null))
+        if (plan.Any(item => item.WeekKind == SetupWeekKind.Unknown))
         {
             throw new InvalidOperationException("Indiquez une semaine comprise entre 1 et 13 pour chaque setup avant la copie.");
         }

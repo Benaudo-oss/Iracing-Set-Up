@@ -122,7 +122,8 @@ public sealed class LibraryImportService(
         var metadata = metadataAnalyzer.Analyze(setupPath, metadataDefaults);
         if (metadataFilter is not null && !metadataFilter(metadata))
         {
-            return new SetupImportResult(originalSourcePath ?? setupPath, SetupImportOutcome.Filtered);
+            return new SetupImportResult(originalSourcePath ?? setupPath, SetupImportOutcome.Filtered,
+                Week: metadata.Week, WeekKind: metadata.EffectiveWeekKind);
         }
 
         var sha256 = await sha256Calculator.CalculateAsync(setupPath, cancellationToken);
@@ -145,7 +146,9 @@ public sealed class LibraryImportService(
                 originalSourcePath ?? setupPath,
                 SetupImportOutcome.Duplicate,
                 existing.ArchivePath,
-                sha256);
+                sha256,
+                existing.Week,
+                existing.WeekKind);
         }
 
         var destinationDirectory = archivePathBuilder.BuildDirectory(archiveRoot, metadata);
@@ -165,6 +168,7 @@ public sealed class LibraryImportService(
             TrackConfiguration = metadata.TrackConfiguration,
             Season = metadata.Season,
             Week = metadata.Week,
+            WeekKind = metadata.EffectiveWeekKind,
             SetupType = metadata.SetupType,
             SizeInBytes = fileInfo.Length,
             Sha256 = sha256,
@@ -185,7 +189,9 @@ public sealed class LibraryImportService(
             originalSourcePath ?? setupPath,
             SetupImportOutcome.Imported,
             archivePath,
-            sha256);
+            sha256,
+            metadata.Week,
+            metadata.EffectiveWeekKind);
     }
 
     private async Task<SetupImportResult> RestoreMissingSetupAsync(
@@ -213,6 +219,7 @@ public sealed class LibraryImportService(
         existing.TrackConfiguration = metadata.TrackConfiguration;
         existing.Season = metadata.Season;
         existing.Week = metadata.Week;
+        existing.WeekKind = metadata.EffectiveWeekKind;
         existing.SetupType = metadata.SetupType;
         existing.SizeInBytes = fileInfo.Length;
         existing.ArchivePath = archivePath;
@@ -231,7 +238,9 @@ public sealed class LibraryImportService(
             originalSourcePath ?? setupPath,
             SetupImportOutcome.Imported,
             archivePath,
-            existing.Sha256);
+            existing.Sha256,
+            metadata.Week,
+            metadata.EffectiveWeekKind);
     }
 
     private static bool IsSupported(string extension) =>

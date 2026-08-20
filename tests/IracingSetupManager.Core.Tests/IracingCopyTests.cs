@@ -138,6 +138,60 @@ public sealed class IracingCopyTests
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => environment.Service.CreatePlanAsync([environment.ValidatedId], environment.Target, new Dictionary<Guid, int> { [environment.ValidatedId] = 14 }));
     }
 
+    [Theory]
+    [InlineData(SetupWeekKind.Nec, "Week NEC")]
+    [InlineData(SetupWeekKind.NoWeek, "Sans Week")]
+    public async Task SpecialWeekChoiceIsPersistedAndCanBeCopied(SetupWeekKind kind, string expectedFolder)
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var choice = kind == SetupWeekKind.Nec ? SetupWeekChoice.Nec : SetupWeekChoice.NoWeek;
+
+        var plan = await environment.Service.CreatePlanAsync(
+            [environment.ValidatedId], environment.Target,
+            weekChoices: new Dictionary<Guid, SetupWeekChoice> { [environment.ValidatedId] = choice });
+
+        Assert.Equal(kind, plan[0].WeekKind);
+        Assert.Contains(expectedFolder, plan[0].DestinationPath);
+        await using var context = environment.Factory.Create();
+        var stored = await context.Setups.FindAsync(environment.ValidatedId);
+        Assert.Equal(kind, stored!.WeekKind);
+    }
+
+    [Theory]
+    [InlineData(5, SetupWeekKind.Numeric, "week_5")]
+    [InlineData(null, SetupWeekKind.Nec, "week_NEC")]
+    [InlineData(null, SetupWeekKind.NoWeek, "sans_week")]
+    [InlineData(null, SetupWeekKind.Unknown, "week_inconnue")]
+    public async Task TeamCopyUsesExactWeekFolderNames(int? week, SetupWeekKind kind, string expectedFolder)
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        await using (var context = environment.Factory.Create())
+        {
+            var setup = await context.Setups.FindAsync(environment.ValidatedId);
+            setup!.Week = week;
+            setup.WeekKind = kind;
+            await context.SaveChangesAsync();
+        }
+
+        var plan = await environment.Service.CreatePlanAsync(
+            [environment.ValidatedId], environment.Target, teamName: "Team Test");
+
+        Assert.Contains(Path.DirectorySeparatorChar + expectedFolder + Path.DirectorySeparatorChar, plan[0].DestinationPath);
+    }
+
+    [Fact]
+    public async Task ARecognizedWeekIsNeverReplacedByAGroupedChoice()
+    {
+        await using var environment = await TestEnvironment.CreateAsync("26S3-W07-GnG-Monza-BMWGTP-R-Safe.sto");
+
+        var plan = await environment.Service.CreatePlanAsync(
+            [environment.ValidatedId], environment.Target,
+            weekChoices: new Dictionary<Guid, SetupWeekChoice> { [environment.ValidatedId] = SetupWeekChoice.Nec });
+
+        Assert.Equal(7, plan[0].Week);
+        Assert.Equal(SetupWeekKind.Numeric, plan[0].WeekKind);
+    }
+
     [Fact]
     public async Task WeekIsReadFromFileName()
     {

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
 {
-    public const int CurrentSchemaVersion = 6;
+    public const int CurrentSchemaVersion = 7;
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -137,6 +137,21 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
                 6,
                 () => RepairRequiredSchemaAsync(context, cancellationToken),
                 cancellationToken);
+            version = 6;
+        }
+
+        if (version < 7)
+        {
+            await RunMigrationAsync(context, 7, async () =>
+            {
+                await EnsureSetupColumnAsync(context, "WeekKind", "TEXT NOT NULL DEFAULT 'Unknown'", cancellationToken);
+                await context.Database.ExecuteSqlRawAsync(
+                    "UPDATE \"Setups\" SET \"WeekKind\" = 'Numeric' WHERE \"Week\" BETWEEN 1 AND 13;",
+                    cancellationToken);
+                await context.Database.ExecuteSqlRawAsync(
+                    "CREATE INDEX IF NOT EXISTS \"IX_Setups_WeekKind_Week\" ON \"Setups\" (\"WeekKind\", \"Week\");",
+                    cancellationToken);
+            }, cancellationToken);
         }
     }
 
@@ -145,8 +160,15 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
         CancellationToken cancellationToken)
     {
         await EnsureSetupColumnAsync(context, "Week", "INTEGER NULL", cancellationToken);
+        await EnsureSetupColumnAsync(context, "WeekKind", "TEXT NOT NULL DEFAULT 'Unknown'", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync(
+            "UPDATE \"Setups\" SET \"WeekKind\" = 'Numeric' WHERE \"Week\" BETWEEN 1 AND 13 AND \"WeekKind\" = 'Unknown';",
+            cancellationToken);
         await context.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_Setups_Season_Week\" ON \"Setups\" (\"Season\", \"Week\");",
+            cancellationToken);
+        await context.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_Setups_WeekKind_Week\" ON \"Setups\" (\"WeekKind\", \"Week\");",
             cancellationToken);
     }
 

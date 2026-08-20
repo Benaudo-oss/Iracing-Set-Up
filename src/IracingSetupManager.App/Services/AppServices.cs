@@ -46,6 +46,7 @@ public sealed class AppServices
         FolderPolicy = new MonitoredFolderPolicy();
         MonitoredFolders = new MonitoredFolderSettingsService(ContextFactory, FolderPolicy);
         AutomaticMonitoring = new AutomaticMonitoringSettingsService(ContextFactory);
+        HymoMonitoring = new HymoMonitoringSettingsService(ContextFactory);
         UpdatePreferences = new UpdatePreferenceService(ContextFactory);
         SynchronizationSelection = new SynchronizationSelectionSettingsService(ContextFactory);
         IracingTeam = new IracingTeamSettingsService(ContextFactory);
@@ -68,6 +69,7 @@ public sealed class AppServices
             importer,
             ArchivePaths.GetAsync,
             SynchronizationSelection,
+            HymoMonitoring,
             new TrackTitanFolderResolver());
         SynchronizationActivity = new SynchronizationActivityStore();
         SynchronizationActivity.Attach(Monitoring);
@@ -94,6 +96,7 @@ public sealed class AppServices
     public MonitoredFolderPolicy FolderPolicy { get; }
     public MonitoredFolderSettingsService MonitoredFolders { get; }
     public AutomaticMonitoringSettingsService AutomaticMonitoring { get; }
+    public HymoMonitoringSettingsService HymoMonitoring { get; }
     public ImportMonitoringService Monitoring { get; }
     public SynchronizationActivityStore SynchronizationActivity { get; }
     public UpdatePreferenceService UpdatePreferences { get; }

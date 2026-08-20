@@ -70,7 +70,7 @@ public sealed partial class UpdatesPage : Page
     {
         if (downloadedUpdate is null) return;
         var dialog = new ContentDialog { XamlRoot = XamlRoot, Title = "Installer la mise à jour", Content = "L’application va se fermer, installer la mise à jour puis redémarrer automatiquement.", PrimaryButtonText = "Installer", CloseButtonText = "Annuler", DefaultButton = ContentDialogButton.Close };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        if (await dialog.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
         if (!await TryCreateSafetyBackupAsync("avant-mise-a-jour")) return;
         await App.Services.UpdatePreferences.MarkInstallationPendingAsync(downloadedUpdate.Version);
         App.Services.UpdateInstaller.Launch(downloadedUpdate.InstallerPath);
@@ -102,7 +102,7 @@ public sealed partial class UpdatesPage : Page
     {
         if (rollbackInstaller is null) return;
         var dialog = new ContentDialog { XamlRoot = XamlRoot, Title = "Revenir à la version précédente", Content = Path.GetFileName(rollbackInstaller), PrimaryButtonText = "Réinstaller", CloseButtonText = "Annuler", DefaultButton = ContentDialogButton.Close };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        if (await dialog.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
         if (!await TryCreateSafetyBackupAsync("avant-retour-arriere")) return;
         App.Services.UpdateInstaller.Launch(rollbackInstaller);
         Application.Current.Exit();

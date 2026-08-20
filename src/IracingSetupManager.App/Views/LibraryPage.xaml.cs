@@ -22,6 +22,7 @@ public sealed partial class LibraryPage : Page
     private readonly ObservableCollection<string> _categories = [];
     private readonly ObservableCollection<string> _cars = [];
     private readonly ObservableCollection<string> _tracks = [];
+    private readonly ObservableCollection<string> _weeks = [];
     private readonly ObservableCollection<string> _statuses = [];
     private bool _isListeningForImports;
 
@@ -33,6 +34,7 @@ public sealed partial class LibraryPage : Page
         CategoryFilter.ItemsSource = _categories;
         CarFilter.ItemsSource = _cars;
         TrackFilter.ItemsSource = _tracks;
+        WeekFilter.ItemsSource = _weeks;
         StatusFilter.ItemsSource = _statuses;
     }
 
@@ -87,6 +89,7 @@ public sealed partial class LibraryPage : Page
         ResetOptions(_categories, Distinct(item => item.Category));
         ResetOptions(_cars, Distinct(item => item.Car));
         ResetOptions(_tracks, Distinct(item => item.Track));
+        ResetOptions(_weeks, Distinct(item => item.WeekDisplay));
         ResetOptions(_statuses, _setups.Select(item => item.StatusDisplay).Distinct().Order());
         ApplyFilters();
     }
@@ -104,6 +107,7 @@ public sealed partial class LibraryPage : Page
         AddOption(_categories, setup.Category);
         AddOption(_cars, setup.Car);
         AddOption(_tracks, setup.Track);
+        AddOption(_weeks, setup.WeekDisplay);
         AddOption(_statuses, setup.StatusDisplay);
 
         var isVisible = MatchesCurrentFilters(setup);
@@ -138,7 +142,7 @@ public sealed partial class LibraryPage : Page
             CloseButtonText = "Annuler",
             DefaultButton = ContentDialogButton.Close
         };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        if (await dialog.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
         await App.Services.LibraryIntegrity.RemoveMissingEntriesAsync(selected);
         foreach (var id in selected)
         {
@@ -165,6 +169,7 @@ public sealed partial class LibraryPage : Page
         CategoryFilter.SelectedItem = null;
         CarFilter.SelectedItem = null;
         TrackFilter.SelectedItem = null;
+        WeekFilter.SelectedItem = null;
         StatusFilter.SelectedItem = null;
         ApplyFilters();
     }
@@ -179,6 +184,7 @@ public sealed partial class LibraryPage : Page
             case "category": CategoryFilter.SelectedItem = null; break;
             case "car": CarFilter.SelectedItem = null; break;
             case "track": TrackFilter.SelectedItem = null; break;
+            case "week": WeekFilter.SelectedItem = null; break;
             case "status": StatusFilter.SelectedItem = null; break;
         }
         ApplyFilters();
@@ -227,7 +233,7 @@ public sealed partial class LibraryPage : Page
             Brush(background), Brush(border), Brush(foreground), glyph);
     }
 
-    private static SolidColorBrush Brush(string value) => new(Color.FromArgb(
+    internal static SolidColorBrush Brush(string value) => new(Color.FromArgb(
         Convert.ToByte(value.Substring(1, 2), 16),
         Convert.ToByte(value.Substring(3, 2), 16),
         Convert.ToByte(value.Substring(5, 2), 16),
@@ -241,6 +247,7 @@ public sealed partial class LibraryPage : Page
             CategoryFilter.SelectedItem as string,
             CarFilter.SelectedItem as string,
             TrackFilter.SelectedItem as string,
+            WeekFilter.SelectedItem as string,
             StatusFilter.SelectedItem as string));
     }
 
@@ -283,6 +290,7 @@ public sealed partial class LibraryPage : Page
         AddActive(active, "category", "Catégorie", CategoryFilter.SelectedItem as string);
         AddActive(active, "car", "Voiture", CarFilter.SelectedItem as string);
         AddActive(active, "track", "Circuit", TrackFilter.SelectedItem as string);
+        AddActive(active, "week", "Week", WeekFilter.SelectedItem as string);
         AddActive(active, "status", "Statut", StatusFilter.SelectedItem as string);
         FilterPresentation.Rebuild(ActiveFiltersPanel, active, OnRemoveFilter);
     }
@@ -294,7 +302,7 @@ public sealed partial class LibraryPage : Page
 
     private static SetupListItem ToListItem(SetupEntity item) => new(
         item.OriginalFileName, item.Provider, item.Category, item.Car, item.Track,
-        item.TrackConfiguration, item.Season, item.SetupType, item.StatusDisplay);
+        item.TrackConfiguration, item.Season, item.SetupType, item.StatusDisplay, item.WeekDisplay);
 }
 
 public sealed record LibrarySetupRow(
@@ -303,4 +311,21 @@ public sealed record LibrarySetupRow(
     SolidColorBrush StatusBackground,
     SolidColorBrush StatusBorder,
     SolidColorBrush StatusForeground,
-    string StatusGlyph);
+    string StatusGlyph)
+{
+    public SolidColorBrush WeekBackground => BrushFor(Setup.WeekKind, "background");
+    public SolidColorBrush WeekBorder => BrushFor(Setup.WeekKind, "border");
+    public SolidColorBrush WeekForeground => BrushFor(Setup.WeekKind, "foreground");
+
+    private SolidColorBrush BrushFor(SetupWeekKind kind, string part)
+    {
+        var colors = SetupWeekPresentation.EffectiveKind(Setup.Week, kind) switch
+        {
+            SetupWeekKind.Numeric => ("#FF173852", "#FF285D84", "#FFA9D8FF"),
+            SetupWeekKind.Nec => ("#FF34294E", "#FF544377", "#FFD5C4FF"),
+            SetupWeekKind.NoWeek => ("#FF303238", "#FF4A4E56", "#FFC4C7CC"),
+            _ => ("#FF493313", "#FF78541C", "#FFFFD18A")
+        };
+        return LibraryPage.Brush(part == "background" ? colors.Item1 : part == "border" ? colors.Item2 : colors.Item3);
+    }
+}

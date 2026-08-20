@@ -96,6 +96,7 @@ public sealed partial class IracingCopyPage : Page
         ProviderFilter.SelectedIndex = 0;
         CategoryFilter.SelectedIndex = 0;
         SeasonFilter.SelectedIndex = 0;
+        WeekFilter.SelectedIndex = 0;
         CarFilter.SelectedIndex = 0;
         TrackFilter.SelectedIndex = 0;
         CopyStatusFilter.SelectedIndex = 2;
@@ -113,6 +114,7 @@ public sealed partial class IracingCopyPage : Page
             case "provider": ProviderFilter.SelectedIndex = 0; break;
             case "category": CategoryFilter.SelectedIndex = 0; break;
             case "season": SeasonFilter.SelectedIndex = 0; break;
+            case "week": WeekFilter.SelectedIndex = 0; break;
             case "car": CarFilter.SelectedIndex = 0; break;
             case "track": TrackFilter.SelectedIndex = 0; break;
             case "copy-status": CopyStatusFilter.SelectedIndex = 2; break;
@@ -150,24 +152,25 @@ public sealed partial class IracingCopyPage : Page
             ids,
             FolderPathBox.Text,
             teamName: isTeam ? teamName : null);
-        var detectedWeeks = plan.Where(item => item.Week is not null).Select(item => item.Week!.Value).Distinct().ToList();
-        if (plan.Any(item => item.Week is null) || detectedWeeks.Count > 1)
+        var unknownIds = plan.Where(item => item.WeekKind == SetupWeekKind.Unknown)
+            .Select(item => item.SetupId).ToHashSet();
+        if (unknownIds.Count > 0)
         {
-            var description = plan.Count == 1
-                ? plan[0].OriginalFileName
-                : $"{plan.Count} setups sélectionnés";
-            var week = await AskWeekAsync(description);
-            if (week is null)
+            var description = unknownIds.Count == 1
+                ? plan.Single(item => unknownIds.Contains(item.SetupId)).OriginalFileName
+                : $"{unknownIds.Count} setups avec une Week inconnue";
+            var choice = await AskWeekAsync(description);
+            if (choice is null)
             {
-                Show("Aperçu annulé : choisissez une semaine commune pour tous les setups.", InfoBarSeverity.Warning);
+                Show("Aperçu annulé : aucun choix de Week n’a été confirmé.", InfoBarSeverity.Warning);
                 return;
             }
-            var weeks = plan.ToDictionary(item => item.SetupId, _ => week.Value);
+            var choices = unknownIds.ToDictionary(id => id, _ => choice);
             plan = await App.Services.IracingCopy.CreatePlanAsync(
                 ids,
                 FolderPathBox.Text,
-                weeks,
-                teamName: isTeam ? teamName : null);
+                teamName: isTeam ? teamName : null,
+                weekChoices: choices);
         }
         var sourceRows = selected.ToDictionary(item => item.Id);
         allRows = plan.Select(item => CopyRow.FromPlan(item, sourceRows[item.SetupId])).ToList();
@@ -219,7 +222,7 @@ public sealed partial class IracingCopyPage : Page
             CloseButtonText = "Annuler",
             DefaultButton = ContentDialogButton.Close
         };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        if (await dialog.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
 
         try
         {
@@ -249,6 +252,7 @@ public sealed partial class IracingCopyPage : Page
         FillFilter(ProviderFilter, allRows.Select(item => item.Provider));
         FillFilter(CategoryFilter, allRows.Select(item => item.Category));
         FillFilter(SeasonFilter, allRows.Select(item => item.Season));
+        FillFilter(WeekFilter, allRows.Select(item => item.WeekDisplay));
         FillFilter(CarFilter, allRows.Select(item => item.Car));
         FillFilter(TrackFilter, allRows.Select(item => item.Track));
         CopyStatusFilter.ItemsSource = new[] { "À copier", "Déjà copiés", "Tous" };
@@ -273,10 +277,11 @@ public sealed partial class IracingCopyPage : Page
             MatchesSelection(item.Provider, ProviderFilter) &&
             MatchesSelection(item.Category, CategoryFilter) &&
             MatchesSelection(item.Season, SeasonFilter) &&
+            MatchesSelection(item.WeekDisplay, WeekFilter) &&
             MatchesSelection(item.Car, CarFilter) &&
             MatchesSelection(item.Track, TrackFilter) &&
             MatchesCopyStatus(item) &&
-            (search.Length == 0 || new[] { item.OriginalFileName, item.Provider, item.Category, item.Season, item.Car, item.Track }
+            (search.Length == 0 || new[] { item.OriginalFileName, item.Provider, item.Category, item.Season, item.WeekDisplay, item.Car, item.Track }
                 .Any(value => value.Contains(search, StringComparison.CurrentCultureIgnoreCase))))
             .ToList();
         SetupList.ItemsSource = rows;
@@ -289,6 +294,7 @@ public sealed partial class IracingCopyPage : Page
         AddActive(active, "provider", "Fournisseur", ProviderFilter.SelectedItem as string);
         AddActive(active, "category", "Catégorie", CategoryFilter.SelectedItem as string);
         AddActive(active, "season", "Saison", SeasonFilter.SelectedItem as string);
+        AddActive(active, "week", "Week", WeekFilter.SelectedItem as string);
         AddActive(active, "car", "Voiture", CarFilter.SelectedItem as string);
         AddActive(active, "track", "Circuit", TrackFilter.SelectedItem as string);
         AddActive(active, "copy-status", "État", CopyStatusFilter.SelectedItem as string);
@@ -311,12 +317,12 @@ public sealed partial class IracingCopyPage : Page
             _ => true
         };
 
-    private async Task<int?> AskWeekAsync(string fileName)
+    private async Task<SetupWeekChoice?> AskWeekAsync(string fileName)
     {
-        int? selectedWeek = null;
+        SetupWeekChoice? selectedWeek = null;
         var weekButtons = new List<ToggleButton>();
         var weekGrid = new Grid { RowSpacing = 8, ColumnSpacing = 8 };
-        for (var column = 0; column < 7; column++)
+        for (var column = 0; column < 8; column++)
             weekGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         weekGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         weekGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -344,7 +350,7 @@ public sealed partial class IracingCopyPage : Page
             {
                 foreach (var candidate in weekButtons) candidate.IsChecked = false;
                 button.IsChecked = true;
-                selectedWeek = value;
+                selectedWeek = SetupWeekChoice.Numeric(value);
                 dialog.IsPrimaryButtonEnabled = true;
             };
             Grid.SetRow(button, (week - 1) / 7);
@@ -353,7 +359,26 @@ public sealed partial class IracingCopyPage : Page
             weekGrid.Children.Add(button);
         }
 
-        return await dialog.ShowAsync() == ContentDialogResult.Primary ? selectedWeek : null;
+        AddSpecialChoice("NEC", SetupWeekChoice.Nec, 0, 7);
+        AddSpecialChoice("Sans Week", SetupWeekChoice.NoWeek, 1, 7);
+
+        return await dialog.ApplyActionStyles().ShowAsync() == ContentDialogResult.Primary ? selectedWeek : null;
+
+        void AddSpecialChoice(string label, SetupWeekChoice choice, int row, int column)
+        {
+            var button = new ToggleButton { Content = label, MinWidth = 78, Height = 40 };
+            button.Click += (_, _) =>
+            {
+                foreach (var candidate in weekButtons) candidate.IsChecked = false;
+                button.IsChecked = true;
+                selectedWeek = choice;
+                dialog.IsPrimaryButtonEnabled = true;
+            };
+            Grid.SetRow(button, row);
+            Grid.SetColumn(button, column);
+            weekButtons.Add(button);
+            weekGrid.Children.Add(button);
+        }
     }
 
     private sealed class CopyRow
@@ -364,6 +389,8 @@ public sealed partial class IracingCopyPage : Page
         public required string Provider { get; init; }
         public required string Category { get; init; }
         public required string Season { get; init; }
+        public required string WeekDisplay { get; init; }
+        public SetupWeekKind WeekKind { get; init; }
         public required string Track { get; init; }
         public DateTimeOffset? LastCopiedAtUtc { get; init; }
         public int CopyCount { get; init; }
@@ -381,14 +408,14 @@ public sealed partial class IracingCopyPage : Page
         public static CopyRow FromSetup(SetupEntity setup, bool team) => new()
         {
             Id = setup.Id, OriginalFileName = setup.OriginalFileName, Car = setup.Car, Provider = setup.Provider,
-            Category = setup.Category, Season = setup.Season ?? string.Empty, Track = setup.Track,
+            Category = setup.Category, Season = setup.Season ?? string.Empty, WeekDisplay = setup.WeekDisplay, WeekKind = setup.WeekKind, Track = setup.Track,
             LastCopiedAtUtc = team ? setup.LastCopiedToIracingTeamAtUtc : setup.LastCopiedToIracingAtUtc,
             CopyCount = team ? setup.IracingTeamCopyCount : setup.IracingCopyCount
         };
         public static CopyRow FromPlan(IracingCopyPlanItem plan, CopyRow source) => new()
         {
             Id = plan.SetupId, OriginalFileName = plan.OriginalFileName, Car = plan.Car, Provider = source.Provider,
-            Category = source.Category, Season = source.Season, Track = source.Track,
+            Category = source.Category, Season = source.Season, WeekDisplay = SetupWeekPresentation.Display(plan.Week, plan.WeekKind), WeekKind = plan.WeekKind, Track = source.Track,
             LastCopiedAtUtc = source.LastCopiedAtUtc, CopyCount = source.CopyCount,
             Plan = plan, ConflictChoiceIndex = 0
         };

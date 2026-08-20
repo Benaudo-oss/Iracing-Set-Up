@@ -14,6 +14,7 @@ namespace IracingSetupManager.App.Views;
 public sealed partial class SettingsPage : Page
 {
     private readonly List<PathElementRow> pathLayout = [];
+    private readonly SemaphoreSlim sourceSettingsSaveLock = new(1, 1);
     private bool loadingSettings;
 
     public SettingsPage() => InitializeComponent();
@@ -30,20 +31,16 @@ public sealed partial class SettingsPage : Page
         IracingTeamNameBox.Text = await App.Services.IracingTeam.GetNameAsync() ?? string.Empty;
         AutomaticMonitoringToggle.IsOn = await App.Services.AutomaticMonitoring.IsEnabledAsync();
         var folders = await App.Services.MonitoredFolders.GetAsync();
-        DownloadsPathBox.Text = folders.FirstOrDefault(item => item.Kind == ImportFolderKind.Downloads)?.Path
+        var downloadsFolder = folders.FirstOrDefault(item => item.Kind == ImportFolderKind.Downloads);
+        DownloadsPathBox.Text = downloadsFolder?.Path
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+        DownloadsToggle.IsOn = downloadsFolder is not null;
         HymoPathBox.Text = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "iRacing", "setups", "<voiture>", "Track Titan");
         var synchronizationSelection = await App.Services.SynchronizationSelection.GetAsync();
-        var hymoActive = synchronizationSelection.Providers.Contains("HYMO", StringComparer.OrdinalIgnoreCase)
-            && synchronizationSelection.Categories.Count > 0;
-        HymoModeText.Text = hymoActive
-            ? $"Automatique · {synchronizationSelection.Categories.Count} catégorie(s)"
-            : "Inactif dans Synchronisation";
-        HymoModeText.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(hymoActive
-            ? Windows.UI.Color.FromArgb(255, 102, 187, 106)
-            : Windows.UI.Color.FromArgb(255, 170, 178, 188));
+        HymoToggle.IsOn = await App.Services.HymoMonitoring.IsEnabledAsync();
+        HymoModeText.Text = $"{synchronizationSelection.Categories.Count} catégorie(s)";
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "GO Setups"));
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "Grid & Go"));
         SetProviderFolder(folders.FirstOrDefault(item => item.Provider == "VRS"));
@@ -84,6 +81,44 @@ public sealed partial class SettingsPage : Page
             ? "La surveillance automatique est activée et mémorisée."
             : "La surveillance automatique est arrêtée et restera désactivée au prochain lancement.";
         SettingsInfo.IsOpen = true;
+    }
+
+    private async void OnSourceMonitoringToggled(object sender, RoutedEventArgs e)
+    {
+        if (loadingSettings) return;
+        await UiOperation.RunAsync(
+            SaveSourceMonitoringAsync,
+            "Impossible de modifier les dossiers surveillés",
+            SettingsInfo);
+    }
+
+    private async Task SaveSourceMonitoringAsync()
+    {
+        await sourceSettingsSaveLock.WaitAsync();
+        try
+        {
+            var folders = (await App.Services.MonitoredFolders.GetAsync())
+                .Where(folder => folder.Kind != ImportFolderKind.Downloads)
+                .ToList();
+            if (DownloadsToggle.IsOn)
+            {
+                folders.Add(new MonitoredFolder(
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"),
+                    ImportFolderKind.Downloads));
+            }
+
+            await App.Services.MonitoredFolders.SaveAsync(folders);
+            await App.Services.HymoMonitoring.SaveAsync(HymoToggle.IsOn);
+            await App.Services.Monitoring.RefreshFoldersAsync();
+
+            SettingsInfo.Severity = InfoBarSeverity.Success;
+            SettingsInfo.Message = "L’état des sources surveillées est enregistré.";
+            SettingsInfo.IsOpen = true;
+        }
+        finally
+        {
+            sourceSettingsSaveLock.Release();
+        }
     }
 
     private void RefreshRecognitionAliases()
@@ -137,7 +172,7 @@ public sealed partial class SettingsPage : Page
             CloseButtonText = "Annuler",
             DefaultButton = ContentDialogButton.Primary
         };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        if (await dialog.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
         if (canonical.SelectedItem is not string value) throw new InvalidOperationException("Choisissez une valeur reconnue.");
         await App.Services.RecognitionAliases.SaveAsync(
             kind.SelectedIndex == 0 ? RecognitionAliasKind.Car : RecognitionAliasKind.Track,
@@ -164,7 +199,7 @@ public sealed partial class SettingsPage : Page
             CloseButtonText = "Annuler",
             DefaultButton = ContentDialogButton.Close
         };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        if (await dialog.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
         await App.Services.RecognitionAliases.DeleteAsync(id);
         RefreshRecognitionAliases();
         SettingsInfo.Severity = InfoBarSeverity.Success;
@@ -207,7 +242,7 @@ public sealed partial class SettingsPage : Page
             CloseButtonText = "Annuler",
             DefaultButton = ContentDialogButton.Close
         };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        if (await dialog.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
         var moved = await App.Services.ArchiveReorganization.ReorganizeAsync(archive);
         SettingsInfo.Severity = InfoBarSeverity.Success;
         SettingsInfo.Message = $"Réorganisation terminée : {moved} fichier(s) déplacé(s).";
@@ -280,6 +315,8 @@ public sealed partial class SettingsPage : Page
         {
             folders.Add(new MonitoredFolder(DownloadsPathBox.Text, ImportFolderKind.Downloads));
         }
+
+        await App.Services.HymoMonitoring.SaveAsync(HymoToggle.IsOn);
 
         AddProviderIfEnabled(folders, GoToggle, GoPathBox, "GO Setups");
         AddProviderIfEnabled(folders, GngToggle, GngPathBox, "Grid & Go");

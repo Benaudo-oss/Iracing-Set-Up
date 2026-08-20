@@ -27,7 +27,8 @@ public sealed class SetupMetadataRefreshService(
                     setup.TrackConfiguration,
                     setup.Season,
                     setup.SetupType,
-                    setup.Week));
+                    setup.Week,
+                    setup.WeekKind));
 
             var changed = false;
             changed |= AssignKnown(metadata.Provider, setup.Provider, value => setup.Provider = value);
@@ -39,6 +40,13 @@ public sealed class SetupMetadataRefreshService(
             if (setup.Week is null && metadata.Week is not null)
             {
                 setup.Week = metadata.Week;
+                setup.WeekKind = metadata.EffectiveWeekKind;
+                changed = true;
+            }
+            else if (setup.Week is null && setup.WeekKind == IracingSetupManager.Core.Setups.SetupWeekKind.Unknown &&
+                     metadata.EffectiveWeekKind != IracingSetupManager.Core.Setups.SetupWeekKind.Unknown)
+            {
+                setup.WeekKind = metadata.EffectiveWeekKind;
                 changed = true;
             }
             changed |= AssignKnown(metadata.SetupType, setup.SetupType, value => setup.SetupType = value);

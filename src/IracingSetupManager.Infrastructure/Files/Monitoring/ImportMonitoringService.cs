@@ -13,6 +13,7 @@ public sealed class ImportMonitoringService(
     LibraryImportService importService,
     Func<CancellationToken, Task<string?>> getArchivePath,
     SynchronizationSelectionSettingsService selectionSettings,
+    HymoMonitoringSettingsService hymoMonitoringSettings,
     TrackTitanFolderResolver trackTitanFolders) : IAsyncDisposable
 {
     private readonly Channel<DetectedImportFile> queue = Channel.CreateUnbounded<DetectedImportFile>(
@@ -215,10 +216,11 @@ public sealed class ImportMonitoringService(
     {
         var configured = await settingsService.GetAsync(cancellationToken);
         var selection = await selectionSettings.GetAsync(cancellationToken);
+        var hymoEnabled = await hymoMonitoringSettings.IsEnabledAsync(cancellationToken);
         return configured
             .Where(folder => !(folder.Kind == ImportFolderKind.OfficialProviderApplication &&
                                string.Equals(folder.Provider, "HYMO", StringComparison.OrdinalIgnoreCase)))
-            .Concat(trackTitanFolders.Resolve(selection))
+            .Concat(hymoEnabled ? trackTitanFolders.Resolve(selection) : [])
             .DistinctBy(folder => folder.Path, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }

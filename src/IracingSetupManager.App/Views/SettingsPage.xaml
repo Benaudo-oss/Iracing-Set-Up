@@ -21,7 +21,7 @@
                     <Grid ColumnSpacing="10">
                         <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                         <TextBox x:Name="IracingTeamNameBox" Header="Nom exact de la Team sur Garage61" PlaceholderText="Exemple : BENAUDO Racing" KeyDown="OnTeamNameKeyDown" />
-                        <Button Grid.Column="1" VerticalAlignment="Bottom" Content="Enregistrer la Team" Style="{StaticResource AccentButtonStyle}" Click="OnSaveTeamName" />
+                        <Button Grid.Column="1" VerticalAlignment="Bottom" Content="Enregistrer la Team" Style="{StaticResource BlueActionButtonStyle}" Click="OnSaveTeamName" />
                     </Grid>
                 </StackPanel>
             </Border>
@@ -31,8 +31,8 @@
                     <ToggleSwitch x:Name="AutomaticMonitoringToggle" Header="Surveillance automatique" OnContent="Activée" OffContent="Désactivée" Toggled="OnAutomaticMonitoringToggled" />
                     <TextBlock Opacity="0.65" Text="Lorsqu’elle est désactivée, seuls les imports lancés manuellement depuis Synchronisation sont effectués." TextWrapping="Wrap" />
                     <InfoBar IsOpen="True" IsClosable="False" Severity="Warning" Title="Protection des setups privés" Message="Le dossier iRacing général reste interdit. Pour HYMO, seuls les dossiers Track Titan des voitures appartenant aux catégories sélectionnées sont surveillés." />
-                    <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Téléchargements" /><TextBox x:Name="DownloadsPathBox" Grid.Column="1" IsReadOnly="True" /><ToggleSwitch x:Name="DownloadsToggle" Grid.Column="2" IsOn="True" OnContent="Actif" OffContent="Inactif" /></Grid>
-                    <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="260" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="HYMO" /><TextBox x:Name="HymoPathBox" Grid.Column="1" IsReadOnly="True" /><TextBlock x:Name="HymoModeText" Grid.Column="2" VerticalAlignment="Center" Foreground="#FF66BB6A" Text="Automatique selon les catégories sélectionnées" TextWrapping="Wrap" /></Grid>
+                    <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Téléchargements" /><TextBox x:Name="DownloadsPathBox" Grid.Column="1" IsReadOnly="True" /><ToggleSwitch x:Name="DownloadsToggle" Grid.Column="2" OnContent="Actif" OffContent="Inactif" Toggled="OnSourceMonitoringToggled" /></Grid>
+                    <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="HYMO" /><TextBox x:Name="HymoPathBox" Grid.Column="1" IsReadOnly="True" /><TextBlock x:Name="HymoModeText" Grid.Column="2" VerticalAlignment="Center" Foreground="#FF66BB6A" Text="7 catégorie(s)" /><ToggleSwitch x:Name="HymoToggle" Grid.Column="3" OnContent="Actif" OffContent="Inactif" Toggled="OnSourceMonitoringToggled" /></Grid>
                     <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="GO Setups" /><TextBox x:Name="GoPathBox" Grid.Column="1" IsReadOnly="True" PlaceholderText="Dossier de GO Fast" /><ToggleSwitch x:Name="GoToggle" Grid.Column="2" OnContent="Actif" OffContent="Inactif" /><Button Grid.Column="3" Content="Choisir" Tag="GO Setups" Click="OnChooseProviderFolder" /></Grid>
                     <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Grid &amp; Go" /><TextBox x:Name="GngPathBox" Grid.Column="1" IsReadOnly="True" PlaceholderText="Dossier de Grid &amp; Go" /><ToggleSwitch x:Name="GngToggle" Grid.Column="2" OnContent="Actif" OffContent="Inactif" /><Button Grid.Column="3" Content="Choisir" Tag="Grid &amp; Go" Click="OnChooseProviderFolder" /></Grid>
                     <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="VRS" /><TextBox x:Name="VrsPathBox" Grid.Column="1" IsReadOnly="True" PlaceholderText="Dossier de l’application VRS" /><ToggleSwitch x:Name="VrsToggle" Grid.Column="2" OnContent="Actif" OffContent="Inactif" /><Button Grid.Column="3" Content="Choisir" Tag="VRS" Click="OnChooseProviderFolder" /></Grid>
@@ -76,7 +76,7 @@
                                     <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Alias}" />
                                     <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="{Binding CanonicalValue}" TextTrimming="CharacterEllipsis" />
                                     <Button Grid.Column="3" Tag="{Binding Id}" Content="Modifier" Click="OnEditRecognitionAlias" />
-                                    <Button Grid.Column="4" Tag="{Binding Id}" Content="Supprimer" Click="OnDeleteRecognitionAlias" />
+                                    <Button Grid.Column="4" Tag="{Binding Id}" Content="Supprimer" Style="{StaticResource RedDangerButtonStyle}" Click="OnDeleteRecognitionAlias" />
                                 </Grid>
                             </DataTemplate>
                         </ListView.ItemTemplate>
@@ -93,7 +93,7 @@
                 </StackPanel>
             </Border>
             <InfoBar x:Name="SettingsInfo" IsOpen="False" IsClosable="True" />
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Enregistrer les paramètres" Style="{StaticResource AccentButtonStyle}" Click="OnSave" /></StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Enregistrer les paramètres" Style="{StaticResource BlueActionButtonStyle}" Click="OnSave" /></StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>

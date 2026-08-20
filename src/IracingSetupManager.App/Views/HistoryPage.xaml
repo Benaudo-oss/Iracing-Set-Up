@@ -8,7 +8,7 @@
         <Grid ColumnSpacing="16">
             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Historique" /><TextBlock Opacity="0.65" Text="Imports, validations, refus, notes et copies" /></StackPanel>
-            <Button Grid.Column="1" VerticalAlignment="Center" Content="Effacer l’historique de l’application" Click="OnClearHistoryClick" />
+            <Button Grid.Column="1" VerticalAlignment="Center" Content="Effacer l’historique de l’application" Style="{StaticResource RedDangerButtonStyle}" Click="OnClearHistoryClick" />
         </Grid>
         <TextBox x:Name="HistorySearch" Grid.Row="1" PlaceholderText="Rechercher un fichier ou une action…" TextChanged="OnSearchChanged" />
         <InfoBar x:Name="HistoryInfo" Grid.Row="2" IsOpen="False" IsClosable="True" Severity="Error" />

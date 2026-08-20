@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using IracingSetupManager.Core.Setups;
 
 namespace IracingSetupManager.Infrastructure.Files.Import;
 
@@ -12,14 +13,12 @@ public sealed class ArchivePathBuilder
         return Path.Combine(
             Path.GetFullPath(archiveRoot),
             FormatSeasonFolder(metadata.Season),
-            FormatWeekFolder(metadata.Week),
+            SetupWeekPresentation.Display(metadata.Week, metadata.EffectiveWeekKind),
             SanitizeFolder(metadata.Track),
             SetupMetadataAnalyzer.ResolveIracingFolderName(metadata.Car, []) ?? SanitizeFolder(metadata.Car),
             SanitizeFolder(metadata.Provider));
     }
 
-    private static string FormatWeekFolder(int? week) =>
-        week is >= 1 and <= 13 ? $"Week {week:00}" : "Week inconnue";
 
     private static string FormatSeasonFolder(string? season)
     {

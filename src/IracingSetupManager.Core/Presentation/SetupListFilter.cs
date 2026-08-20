@@ -9,7 +9,8 @@ public sealed record SetupListItem(
     string? TrackConfiguration,
     string? Season,
     string SetupType,
-    string Status);
+    string Status,
+    string Week = "Week inconnue");
 
 public sealed record SetupFilterCriteria(
     string? Search = null,
@@ -17,6 +18,7 @@ public sealed record SetupFilterCriteria(
     string? Category = null,
     string? Car = null,
     string? Track = null,
+    string? Week = null,
     string? Status = null);
 
 public static class SetupListFilter
@@ -29,6 +31,7 @@ public static class SetupListFilter
                MatchesSelection(item.Category, criteria.Category) &&
                MatchesSelection(item.Car, criteria.Car) &&
                MatchesSelection(item.Track, criteria.Track) &&
+               MatchesSelection(item.Week, criteria.Week) &&
                MatchesSelection(item.Status, criteria.Status) &&
                MatchesSearch(item, criteria.Search);
     }
@@ -46,7 +49,7 @@ public static class SetupListFilter
         return new[]
         {
             item.FileName, item.Provider, item.Category, item.Car, item.Track,
-            item.TrackConfiguration, item.Season, item.SetupType, item.Status
+            item.TrackConfiguration, item.Season, item.Week, item.SetupType, item.Status
         }.Any(value => value?.Contains(search.Trim(), StringComparison.CurrentCultureIgnoreCase) == true);
     }
 

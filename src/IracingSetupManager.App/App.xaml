@@ -2,6 +2,7 @@
     x:Class="IracingSetupManager.App.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:services="using:IracingSetupManager.App.Services"
     RequestedTheme="Dark">
     <Application.Resources>
         <ResourceDictionary>
@@ -12,6 +13,48 @@
             <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#FF171A1F" />
             <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#FF171A1F" />
             <SolidColorBrush x:Key="NavigationViewTopPaneBackground" Color="#FF171A1F" />
+            <services:WeekBadgeBrushConverter x:Key="WeekBadgeBrushConverter" />
+
+            <Style x:Key="ActionButtonBaseStyle" TargetType="Button">
+                <Setter Property="MinHeight" Value="34" />
+                <Setter Property="Padding" Value="14,7" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="5" />
+            </Style>
+
+            <Style x:Key="BlueActionButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonBaseStyle}">
+                <Setter Property="Background" Value="#FF168BC2" />
+                <Setter Property="BorderBrush" Value="#FF39AFE5" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Root" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver"><VisualState.Setters><Setter Target="Root.Background" Value="#FF20A2DF" /><Setter Target="Root.BorderBrush" Value="#FF6AC8F1" /></VisualState.Setters></VisualState>
+                                        <VisualState x:Name="Pressed"><VisualState.Setters><Setter Target="Root.Background" Value="#FF0D6E9B" /><Setter Target="Root.BorderBrush" Value="#FF168BC2" /></VisualState.Setters></VisualState>
+                                        <VisualState x:Name="Disabled"><VisualState.Setters><Setter Target="Root.Opacity" Value="0.42" /></VisualState.Setters></VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Foreground="{TemplateBinding Foreground}" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="RedDangerButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonBaseStyle}">
+                <Setter Property="Background" Value="#FF9D3035" /><Setter Property="BorderBrush" Value="#FFD05258" /><Setter Property="Foreground" Value="White" />
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Root" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"><VisualStateManager.VisualStateGroups><VisualStateGroup x:Name="CommonStates"><VisualState x:Name="Normal" /><VisualState x:Name="PointerOver"><VisualState.Setters><Setter Target="Root.Background" Value="#FFB83B41" /><Setter Target="Root.BorderBrush" Value="#FFE06A70" /></VisualState.Setters></VisualState><VisualState x:Name="Pressed"><VisualState.Setters><Setter Target="Root.Background" Value="#FF772328" /><Setter Target="Root.BorderBrush" Value="#FF9D3035" /></VisualState.Setters></VisualState><VisualState x:Name="Disabled"><VisualState.Setters><Setter Target="Root.Opacity" Value="0.42" /></VisualState.Setters></VisualState></VisualStateGroup></VisualStateManager.VisualStateGroups><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Foreground="{TemplateBinding Foreground}" /></Border></ControlTemplate></Setter.Value></Setter>
+            </Style>
+
+            <Style x:Key="GraySecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonBaseStyle}">
+                <Setter Property="Background" Value="#FF30343B" /><Setter Property="BorderBrush" Value="#FF4A505A" /><Setter Property="Foreground" Value="#FFF1F3F5" />
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Root" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"><VisualStateManager.VisualStateGroups><VisualStateGroup x:Name="CommonStates"><VisualState x:Name="Normal" /><VisualState x:Name="PointerOver"><VisualState.Setters><Setter Target="Root.Background" Value="#FF414750" /><Setter Target="Root.BorderBrush" Value="#FF626B78" /></VisualState.Setters></VisualState><VisualState x:Name="Pressed"><VisualState.Setters><Setter Target="Root.Background" Value="#FF22262C" /><Setter Target="Root.BorderBrush" Value="#FF3B414A" /></VisualState.Setters></VisualState><VisualState x:Name="Disabled"><VisualState.Setters><Setter Target="Root.Opacity" Value="0.42" /></VisualState.Setters></VisualState></VisualStateGroup></VisualStateManager.VisualStateGroups><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Foreground="{TemplateBinding Foreground}" /></Border></ControlTemplate></Setter.Value></Setter>
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

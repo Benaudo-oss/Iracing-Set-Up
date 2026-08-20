@@ -25,6 +25,7 @@
                 <ColumnDefinition />
                 <ColumnDefinition />
                 <ColumnDefinition />
+                <ColumnDefinition />
             </Grid.ColumnDefinitions>
             <Grid><TextBox x:Name="SearchBox" Height="40" Padding="34,0,8,0" PlaceholderText="Rechercher un fichier…" TextChanged="OnSearchChanged" /><FontIcon Margin="11,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE721;" /></Grid>
             <Grid Grid.Column="1"><ComboBox x:Name="ProviderFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Fournisseur" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="13" Glyph="&#xE77B;" /></Grid>
@@ -32,14 +33,15 @@
             <Grid Grid.Column="3"><ComboBox x:Name="CarFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Voiture" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE806;" /></Grid>
             <Grid Grid.Column="4"><ComboBox x:Name="TrackFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Circuit" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE707;" /></Grid>
             <Grid Grid.Column="5"><ComboBox x:Name="StatusFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Statut" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE73E;" /></Grid>
+            <Grid Grid.Column="6"><ComboBox x:Name="WeekFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Week" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE787;" /></Grid>
         </Grid>
 
         <Grid Grid.Row="2" ColumnSpacing="12">
             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled"><StackPanel x:Name="ActiveFiltersPanel" Orientation="Horizontal" Spacing="8" /></ScrollViewer>
             <TextBlock x:Name="ResultCountText" Grid.Column="1" VerticalAlignment="Center" Opacity="0.7" Text="0 résultat" />
-            <Button Grid.Column="2" Padding="10,6" Click="OnClearFilters" ToolTipService.ToolTip="Effacer tous les filtres"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="13" Glyph="&#xE711;" /><TextBlock Text="Effacer" /></StackPanel></Button>
-            <Button Grid.Column="3" Content="Retirer les fichiers manquants" Click="OnRemoveMissing" />
+            <Button Grid.Column="2" Padding="10,6" Style="{StaticResource GraySecondaryButtonStyle}" Click="OnClearFilters" ToolTipService.ToolTip="Effacer tous les filtres"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="13" Glyph="&#xE711;" /><TextBlock Text="Effacer" /></StackPanel></Button>
+            <Button Grid.Column="3" Content="Retirer les fichiers manquants" Style="{StaticResource RedDangerButtonStyle}" Click="OnRemoveMissing" />
         </Grid>
 
         <Border Grid.Row="3" Background="#FF20242B" BorderBrush="#FF343A43" BorderThickness="1" CornerRadius="10">
@@ -62,6 +64,7 @@
                                 <ColumnDefinition />
                                 <ColumnDefinition />
                                 <ColumnDefinition />
+                                <ColumnDefinition />
                             </Grid.ColumnDefinitions>
                             <TextBlock FontWeight="SemiBold" Text="Fichier" />
                             <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="Fournisseur" />
@@ -69,6 +72,7 @@
                             <TextBlock Grid.Column="3" FontWeight="SemiBold" Text="Voiture" />
                             <TextBlock Grid.Column="4" FontWeight="SemiBold" Text="Circuit" />
                             <TextBlock Grid.Column="5" FontWeight="SemiBold" Text="Statut" />
+                            <TextBlock Grid.Column="6" FontWeight="SemiBold" Text="Week" />
                         </Grid>
                     </ListView.Header>
                     <ListView.ItemTemplate>
@@ -77,6 +81,7 @@
                                 <Grid ColumnSpacing="16">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="2*" />
+                                        <ColumnDefinition />
                                         <ColumnDefinition />
                                         <ColumnDefinition />
                                         <ColumnDefinition />
@@ -91,6 +96,7 @@
                                     <Border Grid.Column="5" HorizontalAlignment="Left" Padding="10,4" Background="{Binding StatusBackground}" BorderBrush="{Binding StatusBorder}" BorderThickness="1" CornerRadius="12">
                                         <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon VerticalAlignment="Center" FontSize="11" Foreground="{Binding StatusForeground}" Glyph="{Binding StatusGlyph}" /><TextBlock VerticalAlignment="Center" Foreground="{Binding StatusForeground}" FontWeight="SemiBold" Text="{Binding Setup.StatusDisplay}" /></StackPanel>
                                     </Border>
+                                    <Border Grid.Column="6" HorizontalAlignment="Left" Padding="10,4" Background="{Binding WeekBackground}" BorderBrush="{Binding WeekBorder}" BorderThickness="1" CornerRadius="12"><TextBlock Foreground="{Binding WeekForeground}" FontWeight="SemiBold" Text="{Binding Setup.WeekDisplay}" /></Border>
                                 </Grid>
                             </Border>
                         </DataTemplate>

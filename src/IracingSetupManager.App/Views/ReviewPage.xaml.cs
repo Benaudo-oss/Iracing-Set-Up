@@ -20,6 +20,7 @@ public sealed partial class ReviewPage : Page
     private readonly ObservableCollection<string> _categories = [];
     private readonly ObservableCollection<string> _cars = [];
     private readonly ObservableCollection<string> _tracks = [];
+    private readonly ObservableCollection<string> _weeks = [];
     private bool _isListeningForImports;
 
     public ReviewPage()
@@ -30,6 +31,7 @@ public sealed partial class ReviewPage : Page
         CategoryFilter.ItemsSource = _categories;
         CarFilter.ItemsSource = _cars;
         TrackFilter.ItemsSource = _tracks;
+        WeekFilter.ItemsSource = _weeks;
         IdentificationFilter.ItemsSource = new[] { "Tous", "À identifier", "Identifiés" };
         IdentificationFilter.SelectedIndex = 0;
     }
@@ -98,6 +100,130 @@ public sealed partial class ReviewPage : Page
     private async void OnCorrectOne(object sender, RoutedEventArgs e) =>
         await UiOperation.RunAsync(() => CorrectOneAsync(sender), "La correction a échoué", ReviewInfo);
 
+    private async void OnCorrectSelection(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(CorrectSelectionAsync, "La correction groupée a échoué", ReviewInfo);
+
+    private async Task CorrectSelectionAsync()
+    {
+        var selected = ReviewList.SelectedItems.Cast<SetupEntity>().ToList();
+        if (selected.Count == 0)
+        {
+            ShowWarning("Sélectionnez au moins un setup à corriger.");
+            return;
+        }
+
+        var trackCatalog = await App.Services.TrackCatalog.GetAllAsync();
+        var provider = CreateOptionalCombo("Fournisseur", SetupCatalog.ProviderNames);
+        var category = CreateOptionalCombo("Catégorie", SetupCatalog.Categories);
+        var car = CreateOptionalCombo("Voiture", SetupCatalog.Cars.Select(item => item.DisplayName));
+        var track = CreateOptionalCombo("Circuit", SetupMetadataAnalyzer.KnownTrackNames.Concat(trackCatalog.Select(item => item.TrackName)));
+        var season = CreateOptionalCombo("Saison", _setups.Select(item => item.Season), editable: true);
+        var week = CreateOptionalCombo("Week", Enumerable.Range(1, 13).Select(value => $"Week {value:00}")
+            .Concat(["Week NEC", "Sans Week", "Week inconnue"]));
+        var type = CreateOptionalCombo("Type de setup", _setups.Select(item => item.SetupType), editable: true);
+        var content = new StackPanel { Spacing = 10 };
+        content.Children.Add(new TextBlock
+        {
+            Text = $"{selected.Count} setup(s) sélectionné(s). Seuls les champs différents de « Ne pas modifier » seront appliqués.",
+            TextWrapping = TextWrapping.Wrap
+        });
+        foreach (var control in new Control[] { provider, category, car, track, season, week, type }) content.Children.Add(control);
+        var editDialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Corriger la sélection",
+            Content = new ScrollViewer { Content = content, MaxHeight = 620 },
+            PrimaryButtonText = "Afficher l’aperçu",
+            CloseButtonText = "Annuler",
+            DefaultButton = ContentDialogButton.Primary
+        };
+        if (await editDialog.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
+
+        var providerValue = OptionalValue(provider);
+        var categoryValue = OptionalValue(category);
+        var carValue = OptionalValue(car);
+        var trackValue = OptionalValue(track);
+        var seasonValue = OptionalValue(season);
+        var typeValue = OptionalValue(type);
+        var weekValue = OptionalValue(week);
+        var (weekNumber, weekKind) = ParseWeekChoice(weekValue);
+        var changes = new List<string>();
+        AddPreview(changes, "Fournisseur", providerValue);
+        AddPreview(changes, "Catégorie", categoryValue);
+        AddPreview(changes, "Voiture", carValue);
+        AddPreview(changes, "Circuit", trackValue);
+        AddPreview(changes, "Saison", seasonValue);
+        AddPreview(changes, "Week", weekValue);
+        AddPreview(changes, "Type", typeValue);
+        if (changes.Count == 0)
+        {
+            ShowWarning("Aucun champ n’a été choisi : aucune modification appliquée.");
+            return;
+        }
+
+        var confirmation = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Confirmer la correction groupée",
+            Content = new TextBlock
+            {
+                Text = $"{selected.Count} setup(s) seront modifiés :\n\n{string.Join("\n", changes.Select(value => "• " + value))}\n\nUne entrée d’historique sera créée pour chaque setup.",
+                TextWrapping = TextWrapping.Wrap
+            },
+            PrimaryButtonText = "Appliquer",
+            CloseButtonText = "Annuler",
+            DefaultButton = ContentDialogButton.Close
+        };
+        if (await confirmation.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
+
+        await App.Services.SetupCorrection.CorrectManyAsync(
+            selected.Select(item => item.Id).ToArray(),
+            new SetupBatchCorrection(providerValue, categoryValue, carValue, trackValue, seasonValue,
+                typeValue, weekNumber, weekKind));
+        await ReloadAsync();
+        ShowSuccess($"{selected.Count} setup(s) corrigé(s). L’historique individuel a été conservé.");
+    }
+
+    private static ComboBox CreateOptionalCombo(string header, IEnumerable<string?> values, bool editable = false)
+    {
+        var items = new[] { "Ne pas modifier" }.Concat(values
+            .Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.CurrentCultureIgnoreCase)).ToArray();
+        return new ComboBox
+        {
+            Header = header,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            ItemsSource = items,
+            SelectedIndex = 0,
+            IsEditable = editable
+        };
+    }
+
+    private static string? OptionalValue(ComboBox combo)
+    {
+        var value = combo.IsEditable && !string.IsNullOrWhiteSpace(combo.Text) ? combo.Text : combo.SelectedItem as string;
+        return string.IsNullOrWhiteSpace(value) || value.Equals("Ne pas modifier", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : value.Trim();
+    }
+
+    private static (int? Week, SetupWeekKind? Kind) ParseWeekChoice(string? value)
+    {
+        if (value is null) return (null, null);
+        if (value.Equals("Week NEC", StringComparison.OrdinalIgnoreCase)) return (null, SetupWeekKind.Nec);
+        if (value.Equals("Sans Week", StringComparison.OrdinalIgnoreCase)) return (null, SetupWeekKind.NoWeek);
+        if (value.Equals("Week inconnue", StringComparison.OrdinalIgnoreCase)) return (null, SetupWeekKind.Unknown);
+        return int.TryParse(value.Replace("Week", string.Empty, StringComparison.OrdinalIgnoreCase).Trim(), out var number)
+            ? (number, SetupWeekKind.Numeric)
+            : (null, null);
+    }
+
+    private static void AddPreview(ICollection<string> changes, string label, string? value)
+    {
+        if (value is not null) changes.Add($"{label} → {value}");
+    }
+
     private async Task CorrectOneAsync(object sender)
     {
         if (!TryGetSetupId(sender, out var setupId)) return;
@@ -131,7 +257,7 @@ public sealed partial class ReviewPage : Page
             CloseButtonText = "Annuler",
             DefaultButton = ContentDialogButton.Primary
         };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        if (await dialog.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
         await App.Services.SetupCorrection.CorrectAsync(setup.Id, new SetupCorrection(
             provider.SelectedItem as string ?? string.Empty,
             category.SelectedItem as string ?? string.Empty,
@@ -226,7 +352,7 @@ public sealed partial class ReviewPage : Page
             CloseButtonText = "Annuler",
             DefaultButton = ContentDialogButton.Close
         };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        if (await dialog.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
 
         if (validate) await App.Services.Validation.ValidateManyAsync(ids, true);
         else await App.Services.Validation.RefuseManyAsync(ids, true);
@@ -245,6 +371,7 @@ public sealed partial class ReviewPage : Page
         ResetOptions(_categories, Distinct(item => item.Category));
         ResetOptions(_cars, Distinct(item => item.Car));
         ResetOptions(_tracks, Distinct(item => item.Track));
+        ResetOptions(_weeks, Distinct(item => item.WeekDisplay));
         ApplyFilters();
         UpdateEmptyState();
         RatingBox.Value = double.NaN;
@@ -264,6 +391,7 @@ public sealed partial class ReviewPage : Page
         AddOption(_categories, setup.Category);
         AddOption(_cars, setup.Car);
         AddOption(_tracks, setup.Track);
+        AddOption(_weeks, setup.WeekDisplay);
 
         var matches = MatchesCurrentFilters(setup);
         var wasVisible = _visibleSetupIds.Contains(setup.Id);
@@ -309,6 +437,7 @@ public sealed partial class ReviewPage : Page
         AddActive(active, "category", "Catégorie", CategoryFilter.SelectedItem as string);
         AddActive(active, "car", "Voiture", CarFilter.SelectedItem as string);
         AddActive(active, "track", "Circuit", TrackFilter.SelectedItem as string);
+        AddActive(active, "week", "Week", WeekFilter.SelectedItem as string);
         var identification = IdentificationFilter.SelectedItem as string;
         if (!string.IsNullOrWhiteSpace(identification) && identification != "Tous")
             active.Add(("identification", $"Identification : {identification}"));
@@ -325,6 +454,7 @@ public sealed partial class ReviewPage : Page
         CategoryFilter.SelectedItem = null;
         CarFilter.SelectedItem = null;
         TrackFilter.SelectedItem = null;
+        WeekFilter.SelectedItem = null;
         IdentificationFilter.SelectedIndex = 0;
         ApplyFilters();
     }
@@ -339,6 +469,7 @@ public sealed partial class ReviewPage : Page
             case "category": CategoryFilter.SelectedItem = null; break;
             case "car": CarFilter.SelectedItem = null; break;
             case "track": TrackFilter.SelectedItem = null; break;
+            case "week": WeekFilter.SelectedItem = null; break;
             case "identification": IdentificationFilter.SelectedIndex = 0; break;
         }
         ApplyFilters();
@@ -366,13 +497,14 @@ public sealed partial class ReviewPage : Page
         };
         return matchesIdentification && SetupListFilter.Matches(new SetupListItem(
                 setup.OriginalFileName, setup.Provider, setup.Category, setup.Car, setup.Track,
-                setup.TrackConfiguration, setup.Season, setup.SetupType, setup.StatusDisplay),
+                setup.TrackConfiguration, setup.Season, setup.SetupType, setup.StatusDisplay, setup.WeekDisplay),
             new SetupFilterCriteria(
                 SearchBox.Text,
                 ProviderFilter.SelectedItem as string,
                 CategoryFilter.SelectedItem as string,
                 CarFilter.SelectedItem as string,
-                TrackFilter.SelectedItem as string));
+                TrackFilter.SelectedItem as string,
+                WeekFilter.SelectedItem as string));
     }
 
     private IReadOnlyList<string> Distinct(Func<SetupEntity, string?> selector) =>

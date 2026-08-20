@@ -23,6 +23,11 @@ public sealed class SetupEntity
 
     public int? Week { get; set; }
 
+    public SetupWeekKind WeekKind { get; set; } = SetupWeekKind.Unknown;
+
+    [NotMapped]
+    public string WeekDisplay => SetupWeekPresentation.Display(Week, WeekKind);
+
     public required string SetupType { get; set; }
 
     public long SizeInBytes { get; set; }

@@ -181,6 +181,7 @@ public sealed class DatabaseTests
         await using (var context = environment.Factory.Create())
         {
             await context.Database.ExecuteSqlRawAsync("DROP INDEX IF EXISTS \"IX_Setups_Season_Week\";");
+            await context.Database.ExecuteSqlRawAsync("DROP INDEX IF EXISTS \"IX_Setups_WeekKind_Week\";");
             await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Setups\" DROP COLUMN \"Week\";");
         }
 
