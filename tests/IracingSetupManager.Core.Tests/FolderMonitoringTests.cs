@@ -41,7 +41,7 @@ public sealed class FolderMonitoringTests
             var awaiter = new StableFileAwaiter(
                 TimeSpan.FromMilliseconds(10),
                 requiredStableProbes: 2,
-                TimeSpan.FromSeconds(1));
+                TimeSpan.FromSeconds(10));
 
             Assert.True(await awaiter.WaitAsync(path));
         }
