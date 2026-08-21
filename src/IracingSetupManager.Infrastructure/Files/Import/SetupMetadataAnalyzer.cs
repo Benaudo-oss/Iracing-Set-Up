@@ -169,6 +169,7 @@ public sealed partial class SetupMetadataAnalyzer(
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["LeMans"] = "Le Mans",
+            ["CircuitDes24HeuresDuMans"] = "Le Mans",
             ["Fuji"] = "Fuji",
             ["Monza"] = "Monza",
             ["RoAmerica"] = "Road America",
@@ -321,7 +322,8 @@ public sealed partial class SetupMetadataAnalyzer(
         var week = detectedWeek?.Number ?? defaults?.Week;
         var weekKind = detectedWeek?.Kind ?? defaults?.EffectiveWeekKind ?? SetupWeekKind.Unknown;
 
-        var trackConfiguration = FindTrackConfiguration(filePath, tokens, track)
+        var trackConfiguration = FindTrackTitanConfiguration(trackTitanFolders, track)
+            ?? FindTrackConfiguration(filePath, tokens, track)
             ?? catalogTrack?.Configuration ?? defaults?.TrackConfiguration;
 
         return new SetupMetadata(
@@ -412,6 +414,23 @@ public sealed partial class SetupMetadataAnalyzer(
                 ?? FindTrack(folder, Tokenize(folder))
                 ?? trackCatalog?.Find(folder)?.TrackName;
             if (!string.IsNullOrWhiteSpace(track)) return track;
+        }
+
+        return null;
+    }
+
+    private string? FindTrackTitanConfiguration(IReadOnlyList<string> folders, string track)
+    {
+        foreach (var folder in folders)
+        {
+            var parts = folder.Split(" - ", 2, StringSplitOptions.TrimEntries);
+            if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[1])) continue;
+
+            var folderTrack = recognitionAliases?.Find(RecognitionAliasKind.Track, parts[0])
+                ?? FindTrack(parts[0], Tokenize(parts[0]))
+                ?? trackCatalog?.Find(parts[0])?.TrackName;
+            if (folderTrack?.Equals(track, StringComparison.OrdinalIgnoreCase) == true)
+                return parts[1];
         }
 
         return null;

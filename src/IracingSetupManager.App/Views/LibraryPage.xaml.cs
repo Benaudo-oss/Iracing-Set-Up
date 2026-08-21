@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using IracingSetupManager.App.Services;
 using IracingSetupManager.Core.Presentation;
+using IracingSetupManager.Infrastructure.Resilience;
 using Windows.UI;
 
 namespace IracingSetupManager.App.Views;
@@ -27,6 +28,8 @@ public sealed partial class LibraryPage : Page
     private readonly ObservableCollection<string> _statuses = [];
     private bool _isListeningForImports;
     private readonly SemaphoreSlim _pageLoadLock = new(1, 1);
+    private readonly SingleFlightGate _incrementalLoadGate = new();
+    private bool _isPageActive;
     private bool _suppressFilterChanges;
     private int _totalCount;
     private int _queryVersion;
@@ -47,6 +50,7 @@ public sealed partial class LibraryPage : Page
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        _isPageActive = true;
         await UiOperation.RunAsync(LoadPageAsync, "Impossible de charger la bibliothèque");
     }
 
@@ -59,6 +63,9 @@ public sealed partial class LibraryPage : Page
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        _isPageActive = false;
+        Interlocked.Increment(ref _queryVersion);
+        _incrementalLoadGate.Exit();
         _searchDelayCancellation?.Cancel();
         _pageLoadCancellation?.Cancel();
         if (!_isListeningForImports) return;
@@ -243,7 +250,7 @@ public sealed partial class LibraryPage : Page
         {
             if (version != _queryVersion || _visibleSetups.Count >= _totalCount && _totalCount > 0) return;
             var page = await App.Services.QueryService.GetPageAsync(CreatePageRequest(_visibleSetups.Count), cancellationToken);
-            if (version != _queryVersion || cancellationToken.IsCancellationRequested) return;
+            if (!_isPageActive || version != _queryVersion || cancellationToken.IsCancellationRequested) return;
             _totalCount = page.TotalCount;
             foreach (var setup in page.Items)
             {
@@ -268,13 +275,23 @@ public sealed partial class LibraryPage : Page
         Week: WeekFilter.SelectedItem as string,
         Status: StatusFilter.SelectedItem as string);
 
-    private async void OnContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    private void OnContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
     {
-        if (args.InRecycleQueue || args.ItemIndex < _visibleSetups.Count - 20 || _visibleSetups.Count >= _totalCount) return;
+        if (!_isPageActive || args.InRecycleQueue || args.ItemIndex < _visibleSetups.Count - 20 ||
+            _visibleSetups.Count >= _totalCount || !_incrementalLoadGate.TryEnter()) return;
+        var version = _queryVersion;
         var cancellationToken = _pageLoadCancellation?.Token ?? CancellationToken.None;
-        await UiOperation.RunAsync(
-            () => LoadNextPageAsync(_queryVersion, cancellationToken),
-            "Impossible de charger la suite de la bibliothèque");
+        if (!DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, async () =>
+        {
+            try
+            {
+                if (!_isPageActive || version != _queryVersion || cancellationToken.IsCancellationRequested) return;
+                await UiOperation.RunAsync(
+                    () => LoadNextPageAsync(version, cancellationToken),
+                    "Impossible de charger la suite de la bibliothèque");
+            }
+            finally { _incrementalLoadGate.Exit(); }
+        })) _incrementalLoadGate.Exit();
     }
 
     private void OnRowPointerEntered(object sender, PointerRoutedEventArgs e)

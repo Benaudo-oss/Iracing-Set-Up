@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Navigation;
 using IracingSetupManager.App.Services;
+using IracingSetupManager.Infrastructure.Resilience;
 
 namespace IracingSetupManager.App.Views;
 
@@ -17,6 +18,8 @@ public sealed partial class IracingCopyPage : Page
     private readonly ObservableCollection<CopyRow> rows = [];
     private readonly HashSet<Guid> loadedIds = [];
     private readonly SemaphoreSlim pageLoadLock = new(1, 1);
+    private readonly SingleFlightGate incrementalLoadGate = new();
+    private bool isPageActive;
     private List<CopyRow> previewRows = [];
     private bool filtersReady;
     private bool previewMode;
@@ -42,11 +45,17 @@ public sealed partial class IracingCopyPage : Page
         isTeam = e.Parameter as string == "team";
     }
 
-    private async void OnLoaded(object sender, RoutedEventArgs e) =>
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        isPageActive = true;
         await UiOperation.RunAsync(LoadPageAsync, "Impossible de charger les setups validés", ActionInfo);
+    }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        isPageActive = false;
+        Interlocked.Increment(ref queryVersion);
+        incrementalLoadGate.Exit();
         searchDelayCancellation?.Cancel();
         pageLoadCancellation?.Cancel();
     }
@@ -349,7 +358,7 @@ public sealed partial class IracingCopyPage : Page
         {
             if (version != queryVersion || previewMode || rows.Count >= totalCount && totalCount > 0) return;
             var page = await App.Services.QueryService.GetPageAsync(CreatePageRequest(rows.Count), cancellationToken);
-            if (version != queryVersion || cancellationToken.IsCancellationRequested) return;
+            if (!isPageActive || version != queryVersion || cancellationToken.IsCancellationRequested) return;
             totalCount = page.TotalCount;
             foreach (var setup in page.Items)
             {
@@ -375,14 +384,24 @@ public sealed partial class IracingCopyPage : Page
         CopyState: Selection(CopyStatusFilter),
         TeamCopy: isTeam);
 
-    private async void OnContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    private void OnContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
     {
-        if (previewMode || args.InRecycleQueue || args.ItemIndex < rows.Count - 20 || rows.Count >= totalCount) return;
+        if (!isPageActive || previewMode || args.InRecycleQueue || args.ItemIndex < rows.Count - 20 ||
+            rows.Count >= totalCount || !incrementalLoadGate.TryEnter()) return;
+        var version = queryVersion;
         var cancellationToken = pageLoadCancellation?.Token ?? CancellationToken.None;
-        await UiOperation.RunAsync(
-            () => LoadNextPageAsync(queryVersion, cancellationToken),
-            "Impossible de charger la suite des setups validés",
-            ActionInfo);
+        if (!DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, async () =>
+        {
+            try
+            {
+                if (!isPageActive || version != queryVersion || cancellationToken.IsCancellationRequested) return;
+                await UiOperation.RunAsync(
+                    () => LoadNextPageAsync(version, cancellationToken),
+                    "Impossible de charger la suite des setups validés",
+                    ActionInfo);
+            }
+            finally { incrementalLoadGate.Exit(); }
+        })) incrementalLoadGate.Exit();
     }
 
     private void UpdateResultPresentation()

@@ -253,6 +253,18 @@ public sealed class FileClassificationAndHashTests
     }
 
     [Fact]
+    public void MetadataAnalyzerRecognizesLocalizedTrackTitanTrackAndConfiguration()
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(
+            @"C:\Users\Benaudo\Documents\iRacing\setups\amvantageevogt3\Track Titan\2026\Season 2\Week 11\Circuit des 24 Heures du Mans - 24 Heures du Mans\setup.sto");
+
+        Assert.Equal("2026 S2", metadata.Season);
+        Assert.Equal(11, metadata.Week);
+        Assert.Equal("Le Mans", metadata.Track);
+        Assert.Equal("24 Heures du Mans", metadata.TrackConfiguration);
+    }
+
+    [Fact]
     public void ClassificationUsesUnknownWeekFolderWhenWeekIsMissing()
     {
         var metadata = new SetupMetadata("VRS", "GT3", "BMW M4 GT3", "Le Mans", null, "2026 S3", "Race");

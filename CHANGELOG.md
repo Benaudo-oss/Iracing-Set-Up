@@ -5,6 +5,13 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.3.12.39
+
+- Reconnaissance du dossier Track Titan « Circuit des 24 Heures du Mans - 24 Heures du Mans » comme Le Mans avec sa configuration.
+- Protection des tableaux contre les chargements concurrents lors d’un défilement rapide.
+- Conservation de la position de lecture et annulation des chargements lorsque la page est quittée.
+- Ajout d’un test simulant 30 000 demandes rapides de chargement.
+
 # 1.3.12.38
 
 - Renforcement de SQLite avec WAL, attente contrôlée et reprise après verrouillage temporaire.

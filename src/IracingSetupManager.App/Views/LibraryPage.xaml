@@ -48,7 +48,7 @@
             <Grid>
                 <ListView x:Name="SetupList" HorizontalContentAlignment="Stretch" SelectionMode="None" ContainerContentChanging="OnContainerContentChanging">
                     <ListView.ItemsPanel>
-                        <ItemsPanelTemplate><ItemsStackPanel ItemsUpdatingScrollMode="KeepItemsInView" /></ItemsPanelTemplate>
+                        <ItemsPanelTemplate><ItemsStackPanel ItemsUpdatingScrollMode="KeepScrollOffset" /></ItemsPanelTemplate>
                     </ListView.ItemsPanel>
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem">

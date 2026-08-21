@@ -5,6 +5,7 @@ using IracingSetupManager.Infrastructure.Settings;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using IracingSetupManager.Core.Setups;
+using IracingSetupManager.Infrastructure.Resilience;
 
 namespace IracingSetupManager.App.Views;
 
@@ -18,6 +19,7 @@ public sealed partial class SynchronizationPage : Page
     private readonly List<string> resultOrder = [];
     private int visibleResultCapacity = ResultPageSize;
     private bool listening;
+    private readonly SingleFlightGate incrementalLoadGate = new();
 
     public SynchronizationPage()
     {
@@ -59,6 +61,7 @@ public sealed partial class SynchronizationPage : Page
 
     private async void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        incrementalLoadGate.Exit();
         if (listening)
         {
             App.Services.SynchronizationActivity.Changed -= OnProgressChanged;
@@ -164,8 +167,14 @@ public sealed partial class SynchronizationPage : Page
             button.IsChecked = selected;
     }
 
-    private void OnProgressChanged(object? sender, SynchronizationProgress progress) =>
-        DispatcherQueue.TryEnqueue(() => ApplyProgress(progress));
+    private void OnProgressChanged(object? sender, SynchronizationProgress progress)
+    {
+        if (!listening) return;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (listening && IsLoaded) ApplyProgress(progress);
+        });
+    }
 
     private void ApplyProgress(SynchronizationProgress progress)
     {
@@ -263,9 +272,18 @@ public sealed partial class SynchronizationPage : Page
 
     private void OnResultContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
     {
-        if (args.InRecycleQueue || args.ItemIndex < results.Count - 30 || results.Count >= allResultRows.Count) return;
-        visibleResultCapacity += ResultPageSize;
-        AppendVisibleResults();
+        if (!IsLoaded || args.InRecycleQueue || args.ItemIndex < results.Count - 30 ||
+            results.Count >= allResultRows.Count || !incrementalLoadGate.TryEnter()) return;
+        if (!DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        {
+            try
+            {
+                if (!IsLoaded) return;
+                visibleResultCapacity += ResultPageSize;
+                AppendVisibleResults();
+            }
+            finally { incrementalLoadGate.Exit(); }
+        })) incrementalLoadGate.Exit();
     }
 
     private void ShowSummary(SynchronizationSummary summary, bool showInfo)

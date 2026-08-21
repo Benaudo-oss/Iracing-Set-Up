@@ -141,6 +141,23 @@ public sealed class ResilienceScaleTests
         Assert.Equal(["deuxième", "troisième"], completed);
     }
 
+    [Fact]
+    public void ThirtyThousandRapidScrollRequestsAreCoalescedIntoOneLoad()
+    {
+        var gate = new SingleFlightGate();
+        var accepted = 0;
+
+        Parallel.For(0, 30_000, _ =>
+        {
+            if (gate.TryEnter()) Interlocked.Increment(ref accepted);
+        });
+
+        Assert.Equal(1, accepted);
+        gate.Exit();
+        Assert.True(gate.TryEnter());
+        gate.Exit();
+    }
+
     private static SetupEntity CreateSetup(int index) => new()
     {
         Id = Guid.NewGuid(),

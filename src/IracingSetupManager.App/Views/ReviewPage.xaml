@@ -29,7 +29,7 @@
             <Grid>
                 <ListView x:Name="ReviewList" SelectionMode="Multiple" SelectionChanged="OnSelectionChanged" ContainerContentChanging="OnContainerContentChanging">
                     <ListView.ItemsPanel>
-                        <ItemsPanelTemplate><ItemsStackPanel ItemsUpdatingScrollMode="KeepItemsInView" /></ItemsPanelTemplate>
+                        <ItemsPanelTemplate><ItemsStackPanel ItemsUpdatingScrollMode="KeepScrollOffset" /></ItemsPanelTemplate>
                     </ListView.ItemsPanel>
                     <ListView.ItemTemplate>
                         <DataTemplate>

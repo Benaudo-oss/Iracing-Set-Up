@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Controls;
 using IracingSetupManager.App.Services;
 using IracingSetupManager.Core.Presentation;
 using IracingSetupManager.Core.Catalog;
+using IracingSetupManager.Infrastructure.Resilience;
 
 namespace IracingSetupManager.App.Views;
 
@@ -23,6 +24,8 @@ public sealed partial class ReviewPage : Page
     private readonly ObservableCollection<string> _tracks = [];
     private readonly ObservableCollection<string> _weeks = [];
     private readonly SemaphoreSlim _pageLoadLock = new(1, 1);
+    private readonly SingleFlightGate _incrementalLoadGate = new();
+    private bool _isPageActive;
     private bool _isListeningForImports;
     private bool _suppressFilterChanges;
     private int _totalCount;
@@ -44,8 +47,11 @@ public sealed partial class ReviewPage : Page
         IdentificationFilter.SelectedIndex = 0;
     }
 
-    private async void OnLoaded(object sender, RoutedEventArgs e) =>
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        _isPageActive = true;
         await UiOperation.RunAsync(LoadPageAsync, "Impossible de charger les setups à vérifier", ReviewInfo);
+    }
 
     private async Task LoadPageAsync()
     {
@@ -55,6 +61,9 @@ public sealed partial class ReviewPage : Page
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        _isPageActive = false;
+        Interlocked.Increment(ref _queryVersion);
+        _incrementalLoadGate.Exit();
         _searchDelayCancellation?.Cancel();
         _pageLoadCancellation?.Cancel();
         if (!_isListeningForImports) return;
@@ -528,7 +537,7 @@ public sealed partial class ReviewPage : Page
         {
             if (version != _queryVersion || _visibleSetups.Count >= _totalCount && _totalCount > 0) return;
             var page = await App.Services.QueryService.GetPageAsync(CreatePageRequest(_visibleSetups.Count), cancellationToken);
-            if (version != _queryVersion || cancellationToken.IsCancellationRequested) return;
+            if (!_isPageActive || version != _queryVersion || cancellationToken.IsCancellationRequested) return;
             _totalCount = page.TotalCount;
             foreach (var setup in page.Items)
             {
@@ -554,14 +563,24 @@ public sealed partial class ReviewPage : Page
         Identification: IdentificationFilter.SelectedItem as string,
         ToReviewOnly: true);
 
-    private async void OnContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    private void OnContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
     {
-        if (args.InRecycleQueue || args.ItemIndex < _visibleSetups.Count - 20 || _visibleSetups.Count >= _totalCount) return;
+        if (!_isPageActive || args.InRecycleQueue || args.ItemIndex < _visibleSetups.Count - 20 ||
+            _visibleSetups.Count >= _totalCount || !_incrementalLoadGate.TryEnter()) return;
+        var version = _queryVersion;
         var cancellationToken = _pageLoadCancellation?.Token ?? CancellationToken.None;
-        await UiOperation.RunAsync(
-            () => LoadNextPageAsync(_queryVersion, cancellationToken),
-            "Impossible de charger la suite des setups à vérifier",
-            ReviewInfo);
+        if (!DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, async () =>
+        {
+            try
+            {
+                if (!_isPageActive || version != _queryVersion || cancellationToken.IsCancellationRequested) return;
+                await UiOperation.RunAsync(
+                    () => LoadNextPageAsync(version, cancellationToken),
+                    "Impossible de charger la suite des setups à vérifier",
+                    ReviewInfo);
+            }
+            finally { _incrementalLoadGate.Exit(); }
+        })) _incrementalLoadGate.Exit();
     }
 
     private bool MatchesCurrentFilters(SetupEntity setup)

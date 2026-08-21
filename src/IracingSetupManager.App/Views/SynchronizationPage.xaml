@@ -105,7 +105,7 @@
                     <ComboBox x:Name="WeekFilter" Width="190" HorizontalAlignment="Right" PlaceholderText="Week" SelectionChanged="OnWeekFilterChanged" />
                     <ListView x:Name="SynchronizationResultsList" SelectionMode="None" MaxHeight="360" ContainerContentChanging="OnResultContainerContentChanging">
                         <ListView.ItemsPanel>
-                            <ItemsPanelTemplate><ItemsStackPanel ItemsUpdatingScrollMode="KeepItemsInView" /></ItemsPanelTemplate>
+                            <ItemsPanelTemplate><ItemsStackPanel ItemsUpdatingScrollMode="KeepScrollOffset" /></ItemsPanelTemplate>
                         </ListView.ItemsPanel>
                         <ListView.ItemTemplate>
                             <DataTemplate>
