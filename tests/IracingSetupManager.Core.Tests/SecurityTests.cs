@@ -22,6 +22,16 @@ public sealed class SecurityTests
     }
 
     [Fact]
+    public void RedactorHidesTheCurrentUserProfileFromDiagnostics()
+    {
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var result = SensitiveDataRedactor.Redact(Path.Combine(userProfile, "Documents", "private", "setup.sto"));
+
+        Assert.DoesNotContain(userProfile, result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains('%', result);
+    }
+
+    [Fact]
     public void SecurePathRejectsTraversalDeviceAndAlternateStreamPaths()
     {
         var root = Path.Combine(Path.GetTempPath(), "safe-root");
@@ -46,6 +56,55 @@ public sealed class SecurityTests
             }
             await Assert.ThrowsAsync<InvalidDataException>(() => new SecureZipExtractor().ExtractAsync(zip, Path.Combine(root, "out")));
             Assert.False(File.Exists(Path.Combine(root, "out", "large.sto")));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
+    public async Task AtomicWriteNeverPublishesAPartialDestination()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "AtomicFileTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var destination = Path.Combine(root, "race.sto");
+            var operations = new AtomicFileOperations();
+
+            await Assert.ThrowsAsync<IOException>(() => operations.WriteAsync(destination, async (stream, token) =>
+            {
+                await stream.WriteAsync(new byte[] { 1, 2, 3 }, token);
+                throw new IOException("Échec simulé.");
+            }));
+
+            Assert.False(File.Exists(destination));
+            Assert.Empty(Directory.EnumerateFiles(root));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
+    public async Task CancellationDuringAtomicCopyRemovesPartialTemporaryFile()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "AtomicCancellationTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var destination = Path.Combine(root, "race.sto");
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var cancellation = new CancellationTokenSource();
+            var copy = new AtomicFileOperations().WriteAsync(destination, async (stream, token) =>
+            {
+                await stream.WriteAsync(new byte[4096], token);
+                started.TrySetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, token);
+            }, cancellation.Token);
+
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            cancellation.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => copy);
+            Assert.False(File.Exists(destination));
+            Assert.Empty(Directory.EnumerateFiles(root));
         }
         finally { Directory.Delete(root, true); }
     }

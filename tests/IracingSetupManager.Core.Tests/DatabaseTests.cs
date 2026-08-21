@@ -2,6 +2,7 @@ using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Database;
 using IracingSetupManager.Infrastructure.Database.Entities;
 using IracingSetupManager.Infrastructure.Files.Import;
+using IracingSetupManager.Infrastructure.Files.Monitoring;
 using IracingSetupManager.Infrastructure.Settings;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -175,6 +176,38 @@ public sealed class DatabaseTests
     }
 
     [Fact]
+    public async Task DatabaseUsesWalAndACommandTimeoutForShortLivedLocks()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        await using var context = environment.Factory.Create();
+        var connection = context.Database.GetDbConnection();
+        await connection.OpenAsync();
+
+        await using var journalCommand = connection.CreateCommand();
+        journalCommand.CommandText = "PRAGMA journal_mode;";
+        var journalMode = Convert.ToString(await journalCommand.ExecuteScalarAsync());
+
+        Assert.Equal("wal", journalMode, ignoreCase: true);
+        Assert.Equal(15, Assert.IsType<Microsoft.Data.Sqlite.SqliteConnection>(connection).DefaultTimeout);
+    }
+
+    [Fact]
+    public async Task ExaminedFileStatePersistsAndIsUpdatedWithoutDuplicates()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var store = new MonitoredFileStateStore(environment.Factory);
+        var path = Path.Combine(environment.RootPath, "Downloads", "setup.sto");
+
+        await store.SaveAsync([new MonitoredFileSnapshot(path, 10, 100)]);
+        await store.SaveAsync([new MonitoredFileSnapshot(path, 25, 200)]);
+        var stored = Assert.Single(await store.LoadAsync());
+
+        Assert.Equal(MonitoredFileStateStore.CreatePathKey(path), stored.PathKey);
+        Assert.Equal(25, stored.Length);
+        Assert.Equal(200, stored.LastWriteTimeUtcTicks);
+    }
+
+    [Fact]
     public async Task InitializationRepairsWeekColumnEvenWhenMigrationLedgerClaimsItExists()
     {
         await using var environment = await TestEnvironment.CreateAsync();
@@ -232,6 +265,95 @@ public sealed class DatabaseTests
     }
 
     [Fact]
+    public async Task SetupPagesLoadEveryRowOnceWithoutAVisibleLimit()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        await using (var context = environment.Factory.Create())
+        {
+            context.Setups.AddRange(Enumerable.Range(0, 230).Select(index =>
+            {
+                var setup = CreateSetup();
+                setup.Id = Guid.NewGuid();
+                setup.OriginalFileName = $"setup-{index:000}.sto";
+                setup.Sha256 = index.ToString("x64");
+                setup.DownloadedAtUtc = DateTimeOffset.UtcNow.AddMinutes(-index);
+                return setup;
+            }));
+            await context.SaveChangesAsync();
+        }
+
+        var queries = new SetupQueryService(environment.Factory);
+        var first = await queries.GetPageAsync(new SetupPageRequest(0, 100));
+        var second = await queries.GetPageAsync(new SetupPageRequest(100, 100));
+        var third = await queries.GetPageAsync(new SetupPageRequest(200, 100));
+        var ids = first.Items.Concat(second.Items).Concat(third.Items).Select(item => item.Id).ToList();
+
+        Assert.Equal(230, first.TotalCount);
+        Assert.Equal(100, first.Items.Count);
+        Assert.Equal(100, second.Items.Count);
+        Assert.Equal(30, third.Items.Count);
+        Assert.Equal(230, ids.Distinct().Count());
+        Assert.Equal("setup-000.sto", first.Items[0].OriginalFileName);
+    }
+
+    [Fact]
+    public async Task SetupPagesApplySearchWeekAndIdentificationInsideSqlite()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var identified = CreateSetup();
+        identified.Status = SetupStatus.AVerifier;
+        identified.Week = 5;
+        identified.WeekKind = SetupWeekKind.Numeric;
+        identified.OriginalFileName = "VRS_26S3_Spa_GT3.sto";
+        var unidentified = CreateSetup();
+        unidentified.Id = Guid.NewGuid();
+        unidentified.Sha256 = new string('b', 64);
+        unidentified.Status = SetupStatus.AVerifier;
+        unidentified.Track = "À identifier";
+        unidentified.Week = null;
+        unidentified.WeekKind = SetupWeekKind.Nec;
+        await new SetupRepository(environment.Factory).AddAsync(identified);
+        await new SetupRepository(environment.Factory).AddAsync(unidentified);
+
+        var queries = new SetupQueryService(environment.Factory);
+        var filtered = await queries.GetPageAsync(new SetupPageRequest(
+            0, 100, Search: "spa", Week: "Week 05", Identification: "Identifiés", ToReviewOnly: true));
+        var nec = await queries.GetPageAsync(new SetupPageRequest(
+            0, 100, Week: "Week NEC", Identification: "À identifier", ToReviewOnly: true));
+        var options = await queries.GetFilterOptionsAsync(true);
+
+        Assert.Equal(identified.Id, Assert.Single(filtered.Items).Id);
+        Assert.Equal(unidentified.Id, Assert.Single(nec.Items).Id);
+        Assert.Contains("Week 05", options.Weeks);
+        Assert.Contains("Week NEC", options.Weeks);
+    }
+
+    [Fact]
+    public async Task ValidatedSetupPagesApplyPersonalAndTeamCopyStateIndependently()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var copiedPersonally = CreateSetup();
+        copiedPersonally.IracingCopyCount = 1;
+        copiedPersonally.IracingTeamCopyCount = 0;
+        var copiedToTeam = CreateSetup();
+        copiedToTeam.Id = Guid.NewGuid();
+        copiedToTeam.Sha256 = new string('b', 64);
+        copiedToTeam.IracingCopyCount = 0;
+        copiedToTeam.IracingTeamCopyCount = 1;
+        await new SetupRepository(environment.Factory).AddAsync(copiedPersonally);
+        await new SetupRepository(environment.Factory).AddAsync(copiedToTeam);
+
+        var queries = new SetupQueryService(environment.Factory);
+        var personal = await queries.GetPageAsync(new SetupPageRequest(
+            0, 100, ValidatedOnly: true, CopyState: "À copier"));
+        var team = await queries.GetPageAsync(new SetupPageRequest(
+            0, 100, ValidatedOnly: true, CopyState: "À copier", TeamCopy: true));
+
+        Assert.Equal(copiedToTeam.Id, Assert.Single(personal.Items).Id);
+        Assert.Equal(copiedPersonally.Id, Assert.Single(team.Items).Id);
+    }
+
+    [Fact]
     public async Task ClearingApplicationHistoryKeepsSetups()
     {
         await using var environment = await TestEnvironment.CreateAsync();
@@ -244,6 +366,37 @@ public sealed class DatabaseTests
         Assert.Equal(1, await queries.ClearHistoryAsync());
         Assert.Empty(await queries.GetHistoryAsync());
         Assert.Single(await queries.GetAllAsync());
+    }
+
+    [Fact]
+    public async Task HistoryQueryReturnsOnlyTheNewestThousandEntries()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        await using (var context = environment.Factory.Create())
+        {
+            context.SetupChangeHistory.AddRange(Enumerable.Range(0, 1005).Select(index =>
+                new SetupChangeHistoryEntity
+                {
+                    SetupId = Guid.NewGuid(),
+                    OriginalFileName = $"setup-{index}.sto",
+                    ChangeType = "Test",
+                    ChangedAtUtc = DateTimeOffset.UtcNow.AddSeconds(index)
+                }));
+            await context.SaveChangesAsync();
+        }
+
+        var history = await new SetupQueryService(environment.Factory).GetHistoryAsync();
+        var firstPage = await new SetupQueryService(environment.Factory).GetHistoryPageAsync(0, 500);
+        var lastPage = await new SetupQueryService(environment.Factory).GetHistoryPageAsync(1000, 100);
+        var searchPage = await new SetupQueryService(environment.Factory).GetHistoryPageAsync(0, 100, "setup-1004");
+
+        Assert.Equal(1000, history.Count);
+        Assert.Equal("setup-1004.sto", history[0].OriginalFileName);
+        Assert.Equal("setup-5.sto", history[^1].OriginalFileName);
+        Assert.Equal(1005, firstPage.TotalCount);
+        Assert.Equal(500, firstPage.Items.Count);
+        Assert.Equal(5, lastPage.Items.Count);
+        Assert.Equal("setup-1004.sto", Assert.Single(searchPage.Items).OriginalFileName);
     }
 
     [Fact]
@@ -312,6 +465,25 @@ public sealed class DatabaseTests
 
         Assert.Equal(1, await integrity.RemoveMissingEntriesAsync([setup.Id]));
         Assert.Empty(await new SetupQueryService(environment.Factory).GetAllAsync());
+    }
+
+    [Fact]
+    public async Task ScheduledIntegrityCheckDoesNotRescanBeforeItsInterval()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var archivePath = Path.Combine(environment.RootPath, "archive.sto");
+        await File.WriteAllTextAsync(archivePath, "setup");
+        var setup = CreateSetup();
+        setup.ArchivePath = archivePath;
+        await new SetupRepository(environment.Factory).AddAsync(setup);
+        var integrity = new SetupLibraryIntegrityService(environment.Factory);
+
+        Assert.Equal(0, await integrity.MarkMissingFilesIfDueAsync(TimeSpan.FromMinutes(10)));
+        File.Delete(archivePath);
+        Assert.Equal(0, await integrity.MarkMissingFilesIfDueAsync(TimeSpan.FromMinutes(10)));
+        Assert.Equal(SetupStatus.Valide, (await new SetupQueryService(environment.Factory).GetAllAsync()).Single().Status);
+
+        Assert.Equal(1, await integrity.MarkMissingFilesAsync());
     }
 
     private static SetupEntity CreateSetup() => new()

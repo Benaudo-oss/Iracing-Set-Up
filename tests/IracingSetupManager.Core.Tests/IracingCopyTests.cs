@@ -1,7 +1,9 @@
 using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Database;
 using IracingSetupManager.Infrastructure.Database.Entities;
+using IracingSetupManager.Infrastructure.Files;
 using IracingSetupManager.Infrastructure.Iracing;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace IracingSetupManager.Core.Tests;
@@ -323,6 +325,53 @@ public sealed class IracingCopyTests
         Assert.False(File.Exists(plan[0].DestinationPath));
     }
 
+    [Fact]
+    public async Task InterruptedBatchKeepsCompletedCopiesAndCanResumeRemainingFiles()
+    {
+        await using var environment = await TestEnvironment.CreateAsync("first.sto");
+        var secondId = await environment.AddValidatedAsync("second.sto", "second");
+        var ids = new[] { environment.ValidatedId, secondId };
+        var weeks = ids.ToDictionary(id => id, _ => 7);
+        var failingFiles = new FailOnCopyAtomicFileOperations(2);
+        var interruptedService = new IracingCopyService(environment.Factory, atomicFileOperations: failingFiles);
+        var plan = await interruptedService.CreatePlanAsync(ids, environment.Target, weeks);
+
+        await Assert.ThrowsAsync<IOException>(() => interruptedService.ExecuteAsync(plan, true));
+
+        await using (var context = environment.Factory.Create())
+        {
+            var completed = await context.Setups.SingleAsync(item => item.Id == plan[0].SetupId);
+            var interrupted = await context.Setups.SingleAsync(item => item.Id == plan[1].SetupId);
+            Assert.Equal(1, completed.IracingCopyCount);
+            Assert.Equal(0, interrupted.IracingCopyCount);
+            Assert.Single(await context.SetupChangeHistory.Where(item => item.SetupId == completed.Id).ToListAsync());
+        }
+        Assert.True(File.Exists(plan[0].DestinationPath));
+        Assert.False(File.Exists(plan[1].DestinationPath));
+
+        var remaining = await environment.Service.CreatePlanAsync([plan[1].SetupId], environment.Target, weeks);
+        var resumed = await environment.Service.ExecuteAsync(remaining, true);
+
+        Assert.Equal(1, resumed.Copied);
+        Assert.True(File.Exists(remaining[0].DestinationPath));
+    }
+
+    private sealed class FailOnCopyAtomicFileOperations(int failureCall) : IAtomicFileOperations
+    {
+        private readonly AtomicFileOperations inner = new();
+        private int calls;
+
+        public Task CopyAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken = default)
+        {
+            if (Interlocked.Increment(ref calls) == failureCall)
+                throw new IOException("Interruption simulée pendant la copie.");
+            return inner.CopyAsync(sourcePath, destinationPath, cancellationToken);
+        }
+
+        public Task WriteAsync(string destinationPath, Func<Stream, CancellationToken, Task> write, CancellationToken cancellationToken = default) =>
+            inner.WriteAsync(destinationPath, write, cancellationToken);
+    }
+
     private sealed class TestEnvironment : IAsyncDisposable
     {
         private readonly string root;
@@ -338,6 +387,17 @@ public sealed class IracingCopyTests
         public Guid[] Ids { get; }
         public string Source { get; }
         public string Target { get; }
+
+        public async Task<Guid> AddValidatedAsync(string fileName, string contents)
+        {
+            var id = Guid.NewGuid();
+            var path = Path.Combine(root, "archive", fileName);
+            await File.WriteAllTextAsync(path, contents);
+            await using var context = Factory.Create();
+            context.Setups.Add(Create(id, fileName, SetupStatus.Valide, path));
+            await context.SaveChangesAsync();
+            return id;
+        }
 
         public static async Task<TestEnvironment> CreateAsync(string validFileName = "race.sto")
         {

@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidatePattern('^\d+\.\d+\.\d+(\.\d+)?$')][string]$Version = '1.3.11.38',
+    [ValidatePattern('^\d+\.\d+\.\d+(\.\d+)?$')][string]$Version = '1.3.12.38',
     [ValidateSet('win-x64')][string]$Runtime = 'win-x64',
     [string]$CertificateThumbprint
 )

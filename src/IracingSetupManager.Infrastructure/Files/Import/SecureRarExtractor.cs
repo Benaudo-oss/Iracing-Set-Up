@@ -6,8 +6,11 @@ public sealed class SecureRarExtractor(
     int maximumEntries = 10_000,
     long maximumUncompressedBytes = 2L * 1024 * 1024 * 1024,
     long maximumEntryBytes = 256L * 1024 * 1024,
-    int maximumCompressionRatio = 200)
+    int maximumCompressionRatio = 200,
+    IAtomicFileOperations? atomicFileOperations = null)
 {
+    private readonly IAtomicFileOperations atomicFiles = atomicFileOperations ?? new AtomicFileOperations();
+
     public bool ContainsSetup(string rarPath, CancellationToken cancellationToken = default)
     {
         using var archive = ArchiveFactory.OpenArchive(SecurePath.GetFullPath(rarPath));
@@ -31,17 +34,16 @@ public sealed class SecureRarExtractor(
 
         using var archive = ArchiveFactory.OpenArchive(source);
         var archiveEntries = archive.Entries.ToList();
-        if (archiveEntries.Count > maximumEntries) throw new InvalidDataException("L’archive contient trop de fichiers.");
-
         long totalSize = 0;
         var entries = new List<(IArchiveEntry Entry, string Destination)>();
         var destinations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var entry in archiveEntries)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (string.IsNullOrWhiteSpace(entry.Key)) continue;
+            if (entry.IsDirectory || string.IsNullOrWhiteSpace(entry.Key) ||
+                !Path.GetExtension(entry.Key).Equals(".sto", StringComparison.OrdinalIgnoreCase)) continue;
+            if (entries.Count >= maximumEntries) throw new InvalidDataException("L’archive contient trop de setups.");
             SecurePath.ValidateArchiveEntry(entry.Key);
-            if (entry.IsDirectory) continue;
 
             totalSize = checked(totalSize + entry.Size);
             if (totalSize > maximumUncompressedBytes) throw new InvalidDataException("L’archive dépasse la taille maximale autorisée.");
@@ -58,10 +60,11 @@ public sealed class SecureRarExtractor(
         foreach (var (entry, destination) in entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            await using var input = entry.OpenEntryStream();
-            await using var output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, FileOptions.Asynchronous);
-            await input.CopyToAsync(output, cancellationToken);
+            await atomicFiles.WriteAsync(destination, async (output, token) =>
+            {
+                await using var input = entry.OpenEntryStream();
+                await input.CopyToAsync(output, token);
+            }, cancellationToken);
             extracted.Add(destination);
         }
 

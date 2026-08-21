@@ -14,19 +14,38 @@ public sealed class ImportMonitoringService(
     Func<CancellationToken, Task<string?>> getArchivePath,
     SynchronizationSelectionSettingsService selectionSettings,
     HymoMonitoringSettingsService hymoMonitoringSettings,
-    TrackTitanFolderResolver trackTitanFolders) : IAsyncDisposable
+    TrackTitanFolderResolver trackTitanFolders,
+    MonitoredFileStateStore fileStateStore) : IAsyncDisposable
 {
-    private readonly Channel<DetectedImportFile> queue = Channel.CreateUnbounded<DetectedImportFile>(
-        new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
+    private const int QueueCapacity = 2048;
+    private const int StateSaveBatchSize = 100;
+    private static readonly TimeSpan StateSaveInterval = TimeSpan.FromSeconds(10);
+
+    private readonly Channel<DetectedImportFile> queue = Channel.CreateBounded<DetectedImportFile>(
+        new BoundedChannelOptions(QueueCapacity)
+        {
+            SingleReader = true,
+            SingleWriter = false,
+            FullMode = BoundedChannelFullMode.Wait
+        });
     private readonly ConcurrentDictionary<string, byte> queuedFiles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, MonitoredFileFingerprint> examinedFiles = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, MonitoredFileSnapshot> pendingFileStates = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim manualScanLock = new(1, 1);
     private readonly SemaphoreSlim processingLock = new(1, 1);
+    private readonly SemaphoreSlim lifecycleLock = new(1, 1);
     private readonly SemaphoreSlim folderRefreshLock = new(1, 1);
+    private readonly SemaphoreSlim fileStateLoadLock = new(1, 1);
+    private readonly SemaphoreSlim fileStateSaveLock = new(1, 1);
     private CancellationTokenSource? cancellation;
     private CancellationTokenSource? manualScanCancellation;
     private Task? worker;
+    private Task? initialScanner;
     private Task? periodicScanner;
+    private Task? stateSaver;
     private IReadOnlyList<MonitoredFolder> folders = [];
+    private bool fileStatesLoaded;
+    private int queueSaturationReported;
 
     public event EventHandler<SetupImportResult>? ImportCompleted;
     public event EventHandler<Exception>? ImportFailed;
@@ -34,17 +53,45 @@ public sealed class ImportMonitoringService(
 
     public bool IsManualScanRunning => manualScanCancellation is not null;
 
+    public async Task WaitForInitialScanAsync(CancellationToken cancellationToken = default)
+    {
+        var scan = initialScanner;
+        if (scan is not null) await scan.WaitAsync(cancellationToken);
+    }
+
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        if (worker is not null) return;
-        folders = await ResolveFoldersAsync(cancellationToken);
-        cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        folderMonitor.FileDetected += OnFileDetected;
-        folderMonitor.Start(folders);
-        worker = RunAsync(cancellation.Token);
-        periodicScanner = RunPeriodicScanAsync(cancellation.Token);
-        foreach (var file in await folderMonitor.ScanAsync(folders, cancellationToken))
-            QueueIfNeeded(file);
+        await lifecycleLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (worker is not null) return;
+            await EnsureFileStatesLoadedAsync(cancellationToken);
+            folders = await ResolveFoldersAsync(cancellationToken);
+            cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            folderMonitor.FileDetected += OnFileDetected;
+            folderMonitor.MonitoringFailed += OnMonitoringFailed;
+            try
+            {
+                folderMonitor.Start(folders);
+                worker = RunAsync(cancellation.Token);
+                initialScanner = ScanAndQueueChangedFilesSafelyAsync(folders, cancellation.Token);
+                periodicScanner = RunPeriodicScanAsync(cancellation.Token);
+                stateSaver = RunStateSaverAsync(cancellation.Token);
+            }
+            catch
+            {
+                folderMonitor.FileDetected -= OnFileDetected;
+                folderMonitor.MonitoringFailed -= OnMonitoringFailed;
+                folderMonitor.Stop();
+                cancellation.Dispose();
+                cancellation = null;
+                throw;
+            }
+        }
+        finally
+        {
+            lifecycleLock.Release();
+        }
     }
 
     public async Task<SynchronizationSummary> ImportNowAsync(CancellationToken cancellationToken = default)
@@ -58,7 +105,16 @@ public sealed class ImportMonitoringService(
         manualScanCancellation = linked;
         try
         {
-            files = await folderMonitor.ScanAsync(await ResolveFoldersAsync(linked.Token), linked.Token);
+            await EnsureFileStatesLoadedAsync(linked.Token);
+            var scan = await folderMonitor.ScanWithDiagnosticsAsync(
+                await ResolveFoldersAsync(linked.Token),
+                linked.Token);
+            files = scan.Files;
+            foreach (var failure in scan.Failures)
+            {
+                errors++;
+                ReportFolderFailure(failure, automatic: false);
+            }
             foreach (var file in files) Raise(file.FullPath, SynchronizationFileState.Detected, "Détecté", 0, files.Count, false);
             var completed = 0;
             foreach (var file in files)
@@ -82,16 +138,18 @@ public sealed class ImportMonitoringService(
                 catch (Exception exception)
                 {
                     errors++;
-                    ImportFailed?.Invoke(this, exception);
+                    NotifyImportFailed(exception);
                     Raise(file.FullPath, SynchronizationFileState.Error, exception.Message, completed + 1, files.Count, false);
                 }
                 completed++;
             }
+            await TryFlushFileStatesAsync(linked.Token);
             return Summary(false);
         }
         catch (OperationCanceledException) when (linked.IsCancellationRequested) { return Summary(true); }
         finally
         {
+            await TryFlushFileStatesAsync(CancellationToken.None);
             manualScanCancellation = null;
             manualScanLock.Release();
         }
@@ -104,59 +162,121 @@ public sealed class ImportMonitoringService(
 
     public async Task StopAsync()
     {
-        if (worker is null) return;
-        folderMonitor.FileDetected -= OnFileDetected;
-        folderMonitor.Stop();
-        cancellation?.Cancel();
-        try { await Task.WhenAll(worker, periodicScanner ?? Task.CompletedTask); }
-        catch (OperationCanceledException) { }
-        cancellation?.Dispose();
-        queuedFiles.Clear();
-        cancellation = null; worker = null; periodicScanner = null;
+        await lifecycleLock.WaitAsync();
+        try
+        {
+            if (worker is null) return;
+            folderMonitor.FileDetected -= OnFileDetected;
+            folderMonitor.MonitoringFailed -= OnMonitoringFailed;
+            folderMonitor.Stop();
+            cancellation?.Cancel();
+            try
+            {
+                await Task.WhenAll(
+                    worker,
+                    initialScanner ?? Task.CompletedTask,
+                    periodicScanner ?? Task.CompletedTask,
+                    stateSaver ?? Task.CompletedTask);
+            }
+            catch (OperationCanceledException) { }
+            await TryFlushFileStatesAsync(CancellationToken.None);
+            cancellation?.Dispose();
+            queuedFiles.Clear();
+            while (queue.Reader.TryRead(out _)) { }
+            cancellation = null;
+            worker = null;
+            initialScanner = null;
+            periodicScanner = null;
+            stateSaver = null;
+            Interlocked.Exchange(ref queueSaturationReported, 0);
+        }
+        finally
+        {
+            lifecycleLock.Release();
+        }
     }
 
     public async ValueTask DisposeAsync()
     {
         CancelImportNow();
+        await manualScanLock.WaitAsync();
+        manualScanLock.Release();
         await StopAsync();
         folderMonitor.Dispose();
         manualScanLock.Dispose();
         processingLock.Dispose();
+        lifecycleLock.Dispose();
         folderRefreshLock.Dispose();
+        fileStateLoadLock.Dispose();
+        fileStateSaveLock.Dispose();
     }
 
     public async Task RefreshFoldersAsync(CancellationToken cancellationToken = default)
     {
-        if (worker is null) return;
-        await folderRefreshLock.WaitAsync(cancellationToken);
+        await lifecycleLock.WaitAsync(cancellationToken);
         try
         {
-            folders = await ResolveFoldersAsync(cancellationToken);
-            folderMonitor.Start(folders);
+            if (worker is null) return;
+            await folderRefreshLock.WaitAsync(cancellationToken);
+            try
+            {
+                folders = await ResolveFoldersAsync(cancellationToken);
+                folderMonitor.Start(folders);
+            }
+            finally { folderRefreshLock.Release(); }
         }
-        finally { folderRefreshLock.Release(); }
+        finally { lifecycleLock.Release(); }
+
+        var monitoringToken = cancellation?.Token ?? cancellationToken;
+        _ = ScanAndQueueChangedFilesSafelyAsync(folders, monitoringToken);
     }
 
-    private void OnFileDetected(object? sender, DetectedImportFile file) => QueueIfNeeded(file);
+    private void OnFileDetected(object? sender, DetectedImportFile file) => TryQueueIfNeeded(file);
 
-    private void QueueIfNeeded(DetectedImportFile file)
+    private void OnMonitoringFailed(object? sender, FolderScanFailure failure) =>
+        ReportFolderFailure(failure, automatic: true);
+
+    private void TryQueueIfNeeded(DetectedImportFile file)
     {
+        if (IsAlreadyExamined(file)) return;
         if (!queuedFiles.TryAdd(file.FullPath, 0)) return;
-        if (!queue.Writer.TryWrite(file)) queuedFiles.TryRemove(file.FullPath, out _);
+        if (queue.Writer.TryWrite(file)) return;
+
+        queuedFiles.TryRemove(file.FullPath, out _);
+        if (Interlocked.Exchange(ref queueSaturationReported, 1) == 0)
+        {
+            var exception = new InvalidOperationException(
+                "La file de synchronisation est pleine. Les fichiers restants seront repris au prochain contrôle.");
+            NotifyImportFailed(exception);
+            Raise(file.FullPath, SynchronizationFileState.Error, exception.Message, 0, 0, true);
+        }
     }
 
     private async Task RunAsync(CancellationToken cancellationToken)
     {
         await foreach (var file in queue.Reader.ReadAllAsync(cancellationToken))
         {
-            try { await ProcessFileAsync(file, cancellationToken, true); }
+            try
+            {
+                if (!IsAlreadyExamined(file, refreshSnapshot: true))
+                {
+                    await ProcessFileAsync(file, cancellationToken, true);
+                }
+            }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
             catch (Exception exception)
             {
-                ImportFailed?.Invoke(this, exception);
+                NotifyImportFailed(exception);
                 Raise(file.FullPath, SynchronizationFileState.Error, exception.Message, 0, 0, true);
             }
-            finally { queuedFiles.TryRemove(file.FullPath, out _); }
+            finally
+            {
+                queuedFiles.TryRemove(file.FullPath, out _);
+                if (queuedFiles.Count < QueueCapacity / 2)
+                {
+                    Interlocked.Exchange(ref queueSaturationReported, 0);
+                }
+            }
         }
     }
 
@@ -187,28 +307,196 @@ public sealed class ImportMonitoringService(
             metadata => SynchronizationImportPolicy.Allows(selection, metadata));
         foreach (var result in results)
         {
-            ImportCompleted?.Invoke(this, result);
+            NotifyImportCompleted(result);
             if (raiseProgress)
             {
                 var state = ToState(result.Outcome);
                 Raise(file.FullPath, state, ToMessage(state), 0, 0, automatic, result);
             }
         }
+        if (results.Count > 0) await RememberExaminedFileAsync(file.FullPath, cancellationToken);
         return results;
     }
 
     private async Task RunPeriodicScanAsync(CancellationToken cancellationToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(5));
-        var lastScanUtc = DateTime.UtcNow;
+        if (initialScanner is not null) await initialScanner;
+        while (true)
+        {
+            await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
+            try
+            {
+                folders = await ResolveFoldersAsync(cancellationToken);
+                await ScanAndQueueChangedFilesAsync(folders, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                NotifyImportFailed(exception);
+            }
+        }
+    }
+
+    private async Task ScanAndQueueChangedFilesSafelyAsync(
+        IReadOnlyList<MonitoredFolder> foldersToScan,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await ScanAndQueueChangedFilesAsync(foldersToScan, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            NotifyImportFailed(exception);
+        }
+    }
+
+    private async Task ScanAndQueueChangedFilesAsync(
+        IReadOnlyList<MonitoredFolder> foldersToScan,
+        CancellationToken cancellationToken)
+    {
+        var scan = await folderMonitor.ScanWithDiagnosticsAsync(foldersToScan, cancellationToken);
+        foreach (var failure in scan.Failures) ReportFolderFailure(failure, automatic: true);
+        foreach (var file in scan.Files)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await QueueIfNeededAsync(file, cancellationToken);
+        }
+    }
+
+    private async Task QueueIfNeededAsync(
+        DetectedImportFile file,
+        CancellationToken cancellationToken)
+    {
+        if (IsAlreadyExamined(file)) return;
+        if (!queuedFiles.TryAdd(file.FullPath, 0)) return;
+        try
+        {
+            await queue.Writer.WriteAsync(file, cancellationToken);
+        }
+        catch
+        {
+            queuedFiles.TryRemove(file.FullPath, out _);
+            throw;
+        }
+    }
+
+    private bool IsAlreadyExamined(DetectedImportFile file, bool refreshSnapshot = false)
+    {
+        var snapshot = refreshSnapshot ? TryCaptureSnapshot(file.FullPath) : file.Snapshot;
+        if (snapshot is null) return false;
+        var pathKey = MonitoredFileStateStore.CreatePathKey(snapshot.FullPath);
+        return examinedFiles.TryGetValue(pathKey, out var examined) &&
+               examined.Length == snapshot.Length &&
+               examined.LastWriteTimeUtcTicks == snapshot.LastWriteTimeUtcTicks;
+    }
+
+    private async Task EnsureFileStatesLoadedAsync(CancellationToken cancellationToken)
+    {
+        if (fileStatesLoaded) return;
+        await fileStateLoadLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (fileStatesLoaded) return;
+            foreach (var snapshot in await fileStateStore.LoadAsync(cancellationToken))
+            {
+                examinedFiles[snapshot.PathKey] = snapshot;
+            }
+            fileStatesLoaded = true;
+        }
+        finally
+        {
+            fileStateLoadLock.Release();
+        }
+    }
+
+    private async Task RememberExaminedFileAsync(string path, CancellationToken cancellationToken)
+    {
+        var snapshot = TryCaptureSnapshot(path);
+        if (snapshot is null) return;
+        var pathKey = MonitoredFileStateStore.CreatePathKey(path);
+        examinedFiles[pathKey] = new MonitoredFileFingerprint(
+            pathKey,
+            snapshot.Length,
+            snapshot.LastWriteTimeUtcTicks);
+        pendingFileStates[pathKey] = snapshot;
+        if (pendingFileStates.Count >= StateSaveBatchSize)
+        {
+            await TryFlushFileStatesAsync(cancellationToken);
+        }
+    }
+
+    private static MonitoredFileSnapshot? TryCaptureSnapshot(string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            return info.Exists
+                ? new MonitoredFileSnapshot(path, info.Length, info.LastWriteTimeUtc.Ticks)
+                : null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private async Task RunStateSaverAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(StateSaveInterval);
         while (await timer.WaitForNextTickAsync(cancellationToken))
         {
-            var scanStartedUtc = DateTime.UtcNow;
-            folders = await ResolveFoldersAsync(cancellationToken);
-            foreach (var file in (await folderMonitor.ScanAsync(folders, cancellationToken))
-                         .Where(item => File.GetLastWriteTimeUtc(item.FullPath) >= lastScanUtc))
-                QueueIfNeeded(file);
-            lastScanUtc = scanStartedUtc;
+            await TryFlushFileStatesAsync(cancellationToken);
+        }
+    }
+
+    private async Task TryFlushFileStatesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await FlushFileStatesAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            NotifyImportFailed(exception);
+        }
+    }
+
+    private async Task FlushFileStatesAsync(CancellationToken cancellationToken)
+    {
+        await fileStateSaveLock.WaitAsync(cancellationToken);
+        try
+        {
+            while (!pendingFileStates.IsEmpty)
+            {
+                var batch = pendingFileStates.Take(StateSaveBatchSize).ToArray();
+                await fileStateStore.SaveAsync(batch.Select(item => item.Value).ToArray(), cancellationToken);
+                foreach (var item in batch)
+                {
+                    if (pendingFileStates.TryGetValue(item.Key, out var current) && current == item.Value)
+                    {
+                        pendingFileStates.TryRemove(item.Key, out _);
+                    }
+                }
+            }
+        }
+        finally
+        {
+            fileStateSaveLock.Release();
         }
     }
 
@@ -225,8 +513,68 @@ public sealed class ImportMonitoringService(
             .ToList();
     }
 
-    private void Raise(string path, SynchronizationFileState state, string message, int completed, int total, bool automatic, SetupImportResult? result = null) =>
-        ProgressChanged?.Invoke(this, new SynchronizationProgress(path, state, message, completed, total, automatic, result));
+    private void ReportFolderFailure(FolderScanFailure failure, bool automatic)
+    {
+        NotifyImportFailed(failure.Exception);
+        Raise(
+            failure.Path,
+            SynchronizationFileState.Error,
+            $"Dossier ignoré : {failure.Exception.Message}",
+            0,
+            0,
+            automatic);
+    }
+
+    private void NotifyImportCompleted(SetupImportResult result)
+    {
+        if (ImportCompleted is null) return;
+        foreach (EventHandler<SetupImportResult> handler in ImportCompleted.GetInvocationList())
+        {
+            try
+            {
+                handler(this, result);
+            }
+            catch (Exception exception)
+            {
+                NotifyImportFailed(new InvalidOperationException(
+                    "Un écran n’a pas pu traiter la notification d’import.",
+                    exception));
+            }
+        }
+    }
+
+    private void NotifyImportFailed(Exception exception)
+    {
+        if (ImportFailed is null) return;
+        foreach (EventHandler<Exception> handler in ImportFailed.GetInvocationList())
+        {
+            try { handler(this, exception); }
+            catch { }
+        }
+    }
+
+    private void Raise(
+        string path,
+        SynchronizationFileState state,
+        string message,
+        int completed,
+        int total,
+        bool automatic,
+        SetupImportResult? result = null)
+    {
+        if (ProgressChanged is null) return;
+        var progress = new SynchronizationProgress(path, state, message, completed, total, automatic, result);
+        foreach (EventHandler<SynchronizationProgress> handler in ProgressChanged.GetInvocationList())
+        {
+            try { handler(this, progress); }
+            catch (Exception exception)
+            {
+                NotifyImportFailed(new InvalidOperationException(
+                    "Un écran n’a pas pu traiter la progression de synchronisation.",
+                    exception));
+            }
+        }
+    }
 
     private static SynchronizationFileState ToState(SetupImportOutcome outcome) => outcome switch
     {

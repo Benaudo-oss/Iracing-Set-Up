@@ -191,6 +191,29 @@ public sealed class LocalLibraryTests
     }
 
     [Fact]
+    public async Task ZipExtractionWritesOnlySetupFiles()
+    {
+        await using var environment = await LibraryTestEnvironment.CreateAsync();
+        var zipPath = Path.Combine(environment.SourcePath, "mixed.zip");
+        using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+        {
+            await using (var setup = new StreamWriter(archive.CreateEntry("setups/race.sto").Open()))
+                await setup.WriteAsync("setup");
+            await using (var ignored = new StreamWriter(archive.CreateEntry("tools/installer.exe").Open()))
+                await ignored.WriteAsync("not-a-setup");
+            await using (var notes = new StreamWriter(archive.CreateEntry("notes/readme.txt").Open()))
+                await notes.WriteAsync("notes");
+        }
+
+        var extraction = Path.Combine(environment.RootPath, "Extracted");
+        var files = await new SecureZipExtractor().ExtractAsync(zipPath, extraction);
+
+        Assert.Single(files);
+        Assert.EndsWith("race.sto", files[0], StringComparison.OrdinalIgnoreCase);
+        Assert.Single(Directory.EnumerateFiles(extraction, "*", SearchOption.AllDirectories));
+    }
+
+    [Fact]
     public async Task ArchiveWithoutStoIsIgnoredBeforeExtractionLimitsAreEvaluated()
     {
         await using var environment = await LibraryTestEnvironment.CreateAsync();

@@ -10,11 +10,13 @@ namespace IracingSetupManager.App.Views;
 
 public sealed partial class SynchronizationPage : Page
 {
+    private const int ResultPageSize = 200;
     private static SynchronizationSelection? sessionSelection;
     private readonly ObservableCollection<SynchronizationResultRow> results = [];
     private readonly Dictionary<string, int> resultIndexes = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, SynchronizationResultRow> allResultRows = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> resultOrder = [];
+    private int visibleResultCapacity = ResultPageSize;
     private bool listening;
 
     public SynchronizationPage()
@@ -95,6 +97,7 @@ public sealed partial class SynchronizationPage : Page
         resultIndexes.Clear();
         allResultRows.Clear();
         resultOrder.Clear();
+        visibleResultCapacity = ResultPageSize;
         EmptyResultsText.Visibility = Visibility.Visible;
         SetRunningState(true);
         ProgressText.Text = "Recherche des fichiers…";
@@ -135,6 +138,7 @@ public sealed partial class SynchronizationPage : Page
         resultIndexes.Clear();
         allResultRows.Clear();
         resultOrder.Clear();
+        visibleResultCapacity = ResultPageSize;
         EmptyResultsText.Visibility = Visibility.Visible;
         ProgressText.Text = "Aucune synchronisation en cours";
         ProgressCountersText.Text = string.Empty;
@@ -171,13 +175,13 @@ public sealed partial class SynchronizationPage : Page
         if (MatchesWeek(row))
         {
             if (resultIndexes.TryGetValue(progress.FilePath, out var index)) results[index] = row;
-            else
+            else if (results.Count < visibleResultCapacity)
             {
                 resultIndexes[progress.FilePath] = results.Count;
                 results.Add(row);
             }
         }
-        else if (resultIndexes.ContainsKey(progress.FilePath)) RebuildVisibleResults();
+        else if (resultIndexes.TryGetValue(progress.FilePath, out var visibleIndex)) RemoveVisibleResultAt(visibleIndex);
         EmptyResultsText.Visibility = Visibility.Collapsed;
         ProgressText.Text = progress.Automatic ? "Synchronisation automatique" : "Synchronisation manuelle";
         if (progress.Total > 0)
@@ -200,6 +204,7 @@ public sealed partial class SynchronizationPage : Page
         resultIndexes.Clear();
         allResultRows.Clear();
         resultOrder.Clear();
+        visibleResultCapacity = ResultPageSize;
         foreach (var progress in App.Services.SynchronizationActivity.Snapshot())
         {
             var row = SynchronizationResultRow.From(progress);
@@ -210,7 +215,11 @@ public sealed partial class SynchronizationPage : Page
         EmptyResultsText.Visibility = results.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private void OnWeekFilterChanged(object sender, SelectionChangedEventArgs e) => RebuildVisibleResults();
+    private void OnWeekFilterChanged(object sender, SelectionChangedEventArgs e)
+    {
+        visibleResultCapacity = ResultPageSize;
+        RebuildVisibleResults();
+    }
 
     private bool MatchesWeek(SynchronizationResultRow row) =>
         WeekFilter.SelectedItem is not string selected || selected == "Toutes les Weeks" ||
@@ -225,8 +234,38 @@ public sealed partial class SynchronizationPage : Page
             if (!allResultRows.TryGetValue(path, out var row) || !MatchesWeek(row)) continue;
             resultIndexes[path] = results.Count;
             results.Add(row);
+            if (results.Count >= visibleResultCapacity) break;
         }
         EmptyResultsText.Visibility = results.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void AppendVisibleResults()
+    {
+        foreach (var path in resultOrder)
+        {
+            if (results.Count >= visibleResultCapacity) break;
+            if (resultIndexes.ContainsKey(path) || !allResultRows.TryGetValue(path, out var row) || !MatchesWeek(row)) continue;
+            resultIndexes[path] = results.Count;
+            results.Add(row);
+        }
+        EmptyResultsText.Visibility = results.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void RemoveVisibleResultAt(int index)
+    {
+        var path = results[index].FullPath;
+        results.RemoveAt(index);
+        resultIndexes.Remove(path);
+        for (var current = index; current < results.Count; current++)
+            resultIndexes[results[current].FullPath] = current;
+        AppendVisibleResults();
+    }
+
+    private void OnResultContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    {
+        if (args.InRecycleQueue || args.ItemIndex < results.Count - 30 || results.Count >= allResultRows.Count) return;
+        visibleResultCapacity += ResultPageSize;
+        AppendVisibleResults();
     }
 
     private void ShowSummary(SynchronizationSummary summary, bool showInfo)

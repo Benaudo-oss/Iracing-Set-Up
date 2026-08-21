@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using IracingSetupManager.Infrastructure.Database;
 using IracingSetupManager.Infrastructure.Database.Entities;
 using IracingSetupManager.Infrastructure.Iracing;
 using IracingSetupManager.Core.Setups;
@@ -11,17 +13,27 @@ namespace IracingSetupManager.App.Views;
 
 public sealed partial class IracingCopyPage : Page
 {
-    private List<CopyRow> allRows = [];
-    private List<CopyRow> rows = [];
+    private const int PageSize = 100;
+    private readonly ObservableCollection<CopyRow> rows = [];
+    private readonly HashSet<Guid> loadedIds = [];
+    private readonly SemaphoreSlim pageLoadLock = new(1, 1);
+    private List<CopyRow> previewRows = [];
     private bool filtersReady;
     private bool previewMode;
     private bool isTeam;
     private string? teamName;
+    private int totalCount;
+    private int queryVersion;
+    private SetupFilterOptions? filterOptions;
+    private CancellationTokenSource? searchDelayCancellation;
+    private CancellationTokenSource? pageLoadCancellation;
 
     public IracingCopyPage()
     {
         InitializeComponent();
+        SetupList.ItemsSource = rows;
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -32,6 +44,12 @@ public sealed partial class IracingCopyPage : Page
 
     private async void OnLoaded(object sender, RoutedEventArgs e) =>
         await UiOperation.RunAsync(LoadPageAsync, "Impossible de charger les setups validés", ActionInfo);
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        searchDelayCancellation?.Cancel();
+        pageLoadCancellation?.Cancel();
+    }
 
     private async Task LoadPageAsync()
     {
@@ -57,14 +75,12 @@ public sealed partial class IracingCopyPage : Page
 
     private async Task LoadValidatedAsync()
     {
-        var setups = (await App.Services.QueryService.GetAllAsync())
-            .Where(item => item.Status == SetupStatus.Valide)
-            .ToList();
-        allRows = setups.Select(setup => CopyRow.FromSetup(setup, isTeam)).ToList();
+        filterOptions = await App.Services.QueryService.GetFilterOptionsAsync(requiredStatus: SetupStatus.Valide);
         previewMode = false;
+        previewRows.Clear();
         UpdatePreviewActions();
         PopulateFilters();
-        ApplyFilters();
+        await ResetPagesAsync();
     }
 
     private void OnDetectFolder(object sender, RoutedEventArgs e)
@@ -84,12 +100,26 @@ public sealed partial class IracingCopyPage : Page
 
     private void OnSelectAll(object sender, RoutedEventArgs e) => SetupList.SelectAll();
 
-    private void OnFilterChanged(object sender, object e)
+    private async void OnFilterChanged(object sender, object e)
     {
-        if (filtersReady) ApplyFilters();
+        if (!filtersReady) return;
+        if (sender is TextBox)
+        {
+            searchDelayCancellation?.Cancel();
+            var cancellation = searchDelayCancellation = new CancellationTokenSource();
+            try
+            {
+                await Task.Delay(300, cancellation.Token);
+                if (!cancellation.IsCancellationRequested)
+                    await UiOperation.RunAsync(ApplyFiltersAsync, "Impossible d’appliquer la recherche", ActionInfo);
+            }
+            catch (OperationCanceledException) { }
+            return;
+        }
+        await UiOperation.RunAsync(ApplyFiltersAsync, "Impossible d’appliquer les filtres", ActionInfo);
     }
 
-    private void OnClearFilters(object sender, RoutedEventArgs e)
+    private async void OnClearFilters(object sender, RoutedEventArgs e)
     {
         filtersReady = false;
         SearchBox.Text = string.Empty;
@@ -101,10 +131,10 @@ public sealed partial class IracingCopyPage : Page
         TrackFilter.SelectedIndex = 0;
         CopyStatusFilter.SelectedIndex = 2;
         filtersReady = true;
-        ApplyFilters();
+        await UiOperation.RunAsync(ApplyFiltersAsync, "Impossible d’effacer les filtres", ActionInfo);
     }
 
-    private void OnRemoveFilter(object sender, RoutedEventArgs e)
+    private async void OnRemoveFilter(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string key }) return;
         filtersReady = false;
@@ -120,7 +150,7 @@ public sealed partial class IracingCopyPage : Page
             case "copy-status": CopyStatusFilter.SelectedIndex = 2; break;
         }
         filtersReady = true;
-        ApplyFilters();
+        await UiOperation.RunAsync(ApplyFiltersAsync, "Impossible de retirer le filtre", ActionInfo);
     }
 
     private async void OnCreatePreview(object sender, RoutedEventArgs e) =>
@@ -173,11 +203,11 @@ public sealed partial class IracingCopyPage : Page
                 weekChoices: choices);
         }
         var sourceRows = selected.ToDictionary(item => item.Id);
-        allRows = plan.Select(item => CopyRow.FromPlan(item, sourceRows[item.SetupId])).ToList();
+        previewRows = plan.Select(item => CopyRow.FromPlan(item, sourceRows[item.SetupId])).ToList();
         previewMode = true;
         UpdatePreviewActions();
         PopulateFilters();
-        ApplyFilters();
+        await ApplyFiltersAsync();
         SetupList.SelectAll();
         Show("Aperçu prêt. Vérifiez les destinations et résolvez les conflits.", InfoBarSeverity.Informational);
     }
@@ -249,12 +279,12 @@ public sealed partial class IracingCopyPage : Page
     private void PopulateFilters()
     {
         filtersReady = false;
-        FillFilter(ProviderFilter, allRows.Select(item => item.Provider));
-        FillFilter(CategoryFilter, allRows.Select(item => item.Category));
-        FillFilter(SeasonFilter, allRows.Select(item => item.Season));
-        FillFilter(WeekFilter, allRows.Select(item => item.WeekDisplay));
-        FillFilter(CarFilter, allRows.Select(item => item.Car));
-        FillFilter(TrackFilter, allRows.Select(item => item.Track));
+        FillFilter(ProviderFilter, previewMode ? previewRows.Select(item => item.Provider) : filterOptions?.Providers ?? []);
+        FillFilter(CategoryFilter, previewMode ? previewRows.Select(item => item.Category) : filterOptions?.Categories ?? []);
+        FillFilter(SeasonFilter, previewMode ? previewRows.Select(item => item.Season) : filterOptions?.Seasons ?? []);
+        FillFilter(WeekFilter, previewMode ? previewRows.Select(item => item.WeekDisplay) : filterOptions?.Weeks ?? []);
+        FillFilter(CarFilter, previewMode ? previewRows.Select(item => item.Car) : filterOptions?.Cars ?? []);
+        FillFilter(TrackFilter, previewMode ? previewRows.Select(item => item.Track) : filterOptions?.Tracks ?? []);
         CopyStatusFilter.ItemsSource = new[] { "À copier", "Déjà copiés", "Tous" };
         CopyStatusFilter.SelectedIndex = previewMode ? 2 : 0;
         filtersReady = true;
@@ -270,10 +300,16 @@ public sealed partial class IracingCopyPage : Page
         filter.SelectedIndex = 0;
     }
 
-    private void ApplyFilters()
+    private async Task ApplyFiltersAsync()
     {
+        if (!previewMode)
+        {
+            await ResetPagesAsync();
+            return;
+        }
+
         var search = SearchBox.Text.Trim();
-        rows = allRows.Where(item =>
+        var filtered = previewRows.Where(item =>
             MatchesSelection(item.Provider, ProviderFilter) &&
             MatchesSelection(item.Category, CategoryFilter) &&
             MatchesSelection(item.Season, SeasonFilter) &&
@@ -284,11 +320,82 @@ public sealed partial class IracingCopyPage : Page
             (search.Length == 0 || new[] { item.OriginalFileName, item.Provider, item.Category, item.Season, item.WeekDisplay, item.Car, item.Track }
                 .Any(value => value.Contains(search, StringComparison.CurrentCultureIgnoreCase))))
             .ToList();
-        SetupList.ItemsSource = rows;
+        rows.Clear();
+        foreach (var row in filtered) rows.Add(row);
+        totalCount = previewRows.Count;
+        UpdateResultPresentation();
+        RebuildActiveFilters();
+    }
+
+    private async Task ResetPagesAsync()
+    {
+        var version = Interlocked.Increment(ref queryVersion);
+        pageLoadCancellation?.Cancel();
+        pageLoadCancellation = new CancellationTokenSource();
+        rows.Clear();
+        loadedIds.Clear();
+        totalCount = 0;
+        UpdateResultPresentation();
+        RebuildActiveFilters();
+        await LoadNextPageAsync(version, pageLoadCancellation.Token);
+    }
+
+    private async Task LoadNextPageAsync(int version, CancellationToken cancellationToken)
+    {
+        if (previewMode || rows.Count >= totalCount && totalCount > 0) return;
+        try { await pageLoadLock.WaitAsync(cancellationToken); }
+        catch (OperationCanceledException) { return; }
+        try
+        {
+            if (version != queryVersion || previewMode || rows.Count >= totalCount && totalCount > 0) return;
+            var page = await App.Services.QueryService.GetPageAsync(CreatePageRequest(rows.Count), cancellationToken);
+            if (version != queryVersion || cancellationToken.IsCancellationRequested) return;
+            totalCount = page.TotalCount;
+            foreach (var setup in page.Items)
+            {
+                if (loadedIds.Add(setup.Id)) rows.Add(CopyRow.FromSetup(setup, isTeam));
+            }
+            UpdateResultPresentation();
+        }
+        catch (OperationCanceledException) { }
+        finally { pageLoadLock.Release(); }
+    }
+
+    private SetupPageRequest CreatePageRequest(int skip) => new(
+        skip,
+        PageSize,
+        SearchBox.Text,
+        Selection(ProviderFilter),
+        Selection(CategoryFilter),
+        Selection(CarFilter),
+        Selection(TrackFilter),
+        Season: Selection(SeasonFilter),
+        Week: Selection(WeekFilter),
+        ValidatedOnly: true,
+        CopyState: Selection(CopyStatusFilter),
+        TeamCopy: isTeam);
+
+    private async void OnContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    {
+        if (previewMode || args.InRecycleQueue || args.ItemIndex < rows.Count - 20 || rows.Count >= totalCount) return;
+        var cancellationToken = pageLoadCancellation?.Token ?? CancellationToken.None;
+        await UiOperation.RunAsync(
+            () => LoadNextPageAsync(queryVersion, cancellationToken),
+            "Impossible de charger la suite des setups validés",
+            ActionInfo);
+    }
+
+    private void UpdateResultPresentation()
+    {
         SelectionSummary.Text = previewMode
-            ? $"Aperçu : {rows.Count}/{allRows.Count} fichier(s), {rows.Count(item => item.HasConflict)} conflit(s) affiché(s)"
-            : $"{rows.Count}/{allRows.Count} setup(s) validé(s) affiché(s)";
-        ResultCountText.Text = $"{rows.Count} résultat{(rows.Count > 1 ? "s" : string.Empty)} sur {allRows.Count}";
+            ? $"Aperçu : {rows.Count}/{totalCount} fichier(s), {rows.Count(item => item.HasConflict)} conflit(s) affiché(s)"
+            : $"{rows.Count} chargé{(rows.Count > 1 ? "s" : string.Empty)} sur {totalCount} setup(s) validé(s)";
+        ResultCountText.Text = $"{rows.Count} affiché{(rows.Count > 1 ? "s" : string.Empty)} sur {totalCount}";
+    }
+
+    private void RebuildActiveFilters()
+    {
+        var search = SearchBox.Text.Trim();
         var active = new List<(string Key, string Label)>();
         if (!string.IsNullOrWhiteSpace(search)) active.Add(("search", $"Recherche : {search}"));
         AddActive(active, "provider", "Fournisseur", ProviderFilter.SelectedItem as string);
@@ -300,6 +407,9 @@ public sealed partial class IracingCopyPage : Page
         AddActive(active, "copy-status", "État", CopyStatusFilter.SelectedItem as string);
         FilterPresentation.Rebuild(ActiveFiltersPanel, active, OnRemoveFilter);
     }
+
+    private static string? Selection(ComboBox filter) =>
+        filter.SelectedItem is string value && value != "Tous" ? value : null;
 
     private static void AddActive(List<(string Key, string Label)> filters, string key, string label, string? value)
     {

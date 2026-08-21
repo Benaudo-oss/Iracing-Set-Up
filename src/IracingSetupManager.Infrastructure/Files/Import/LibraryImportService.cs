@@ -78,10 +78,7 @@ public sealed class LibraryImportService(
         }
         finally
         {
-            if (Directory.Exists(temporaryRoot))
-            {
-                Directory.Delete(temporaryRoot, recursive: true);
-            }
+            TryDeleteTemporaryDirectory(temporaryRoot);
         }
     }
 
@@ -247,4 +244,14 @@ public sealed class LibraryImportService(
         extension.Equals(".sto", StringComparison.OrdinalIgnoreCase) ||
         extension.Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
         extension.Equals(".rar", StringComparison.OrdinalIgnoreCase);
+
+    private static void TryDeleteTemporaryDirectory(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path)) Directory.Delete(path, recursive: true);
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
 }

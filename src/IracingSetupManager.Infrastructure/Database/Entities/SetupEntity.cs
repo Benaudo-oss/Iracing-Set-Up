@@ -56,6 +56,8 @@ public sealed class SetupEntity
 
     public DateTimeOffset DownloadedAtUtc { get; set; }
 
+    public long DownloadedAtUtcSortKey { get; set; }
+
     public DateTimeOffset? LastCopiedToIracingAtUtc { get; set; }
 
     public int IracingCopyCount { get; set; }

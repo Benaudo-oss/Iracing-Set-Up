@@ -41,9 +41,13 @@ public sealed record SetupWeekChoice(int? Week, SetupWeekKind Kind)
     public static SetupWeekChoice NoWeek { get; } = new(null, SetupWeekKind.NoWeek);
 }
 
-public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, IracingPathLayoutService? pathLayoutService = null)
+public sealed class IracingCopyService(
+    ISetupDbContextFactory contextFactory,
+    IracingPathLayoutService? pathLayoutService = null,
+    IAtomicFileOperations? atomicFileOperations = null)
 {
     private readonly IracingPathLayoutService pathLayout = pathLayoutService ?? new IracingPathLayoutService(contextFactory);
+    private readonly IAtomicFileOperations atomicFiles = atomicFileOperations ?? new AtomicFileOperations();
     private static readonly Regex WeekPattern = new(@"(?:^|[_\- ])W(?<week>0?[1-9]|1[0-3])(?:[_\- .]|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     public static string? DetectSetupsFolder()
@@ -184,7 +188,6 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
 
         var copied = 0;
         var skipped = 0;
-        var copiedIds = new List<Guid>();
         foreach (var item in plan)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -202,46 +205,56 @@ public sealed class IracingCopyService(ISetupDbContextFactory contextFactory, Ir
             var destination = item.HasConflict
                 ? FindAvailablePath(item.DestinationPath)
                 : item.DestinationPath;
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            File.Copy(item.SourcePath, destination, overwrite: false);
-            copied++;
-            copiedIds.Add(item.SetupId);
-        }
-
-        if (copiedIds.Count > 0)
-        {
-            await using var context = contextFactory.Create();
-            var copiedSetups = await context.Setups
-                .Where(item => copiedIds.Contains(item.Id))
-                .ToListAsync(cancellationToken);
-            var copiedAt = DateTimeOffset.UtcNow;
-            foreach (var setup in copiedSetups)
+            await atomicFiles.CopyAsync(item.SourcePath, destination, cancellationToken);
+            try
             {
-                if (target == IracingCopyTarget.Team)
-                {
-                    setup.LastCopiedToIracingTeamAtUtc = copiedAt;
-                    setup.IracingTeamCopyCount++;
-                }
-                else
-                {
-                    setup.LastCopiedToIracingAtUtc = copiedAt;
-                    setup.IracingCopyCount++;
-                }
-
-                context.SetupChangeHistory.Add(new SetupChangeHistoryEntity
-                {
-                    SetupId = setup.Id,
-                    OriginalFileName = setup.OriginalFileName,
-                    ChangeType = target == IracingCopyTarget.Team
-                        ? "Copie vers iRacing Team"
-                        : "Copie vers iRacing",
-                    ChangedAtUtc = copiedAt
-                });
+                // Once the destination has been published atomically, its success must be
+                // persisted even if the user requests cancellation before the next file.
+                await RecordCopySuccessAsync(item.SetupId, target, CancellationToken.None);
             }
-            await context.SaveChangesAsync(cancellationToken);
+            catch
+            {
+                AtomicFileOperations.TryDelete(destination);
+                throw;
+            }
+            copied++;
         }
 
         return new IracingCopyResult(copied, skipped);
+    }
+
+    private async Task RecordCopySuccessAsync(
+        Guid setupId,
+        IracingCopyTarget target,
+        CancellationToken cancellationToken)
+    {
+        await using var context = contextFactory.Create();
+        var setup = await context.Setups.SingleOrDefaultAsync(
+            item => item.Id == setupId && item.Status == SetupStatus.Valide,
+            cancellationToken)
+            ?? throw new InvalidOperationException("Le setup n’est plus validé.");
+        var copiedAt = DateTimeOffset.UtcNow;
+        if (target == IracingCopyTarget.Team)
+        {
+            setup.LastCopiedToIracingTeamAtUtc = copiedAt;
+            setup.IracingTeamCopyCount++;
+        }
+        else
+        {
+            setup.LastCopiedToIracingAtUtc = copiedAt;
+            setup.IracingCopyCount++;
+        }
+
+        context.SetupChangeHistory.Add(new SetupChangeHistoryEntity
+        {
+            SetupId = setup.Id,
+            OriginalFileName = setup.OriginalFileName,
+            ChangeType = target == IracingCopyTarget.Team
+                ? "Copie vers iRacing Team"
+                : "Copie vers iRacing",
+            ChangedAtUtc = copiedAt
+        });
+        await context.SaveChangesAsync(cancellationToken);
     }
 
     private static string FindAvailablePath(string path)

@@ -1,5 +1,14 @@
 namespace IracingSetupManager.Infrastructure.Files.Monitoring;
 
+public sealed record FolderScanFailure(
+    MonitoredFolder Folder,
+    string Path,
+    Exception Exception);
+
+public sealed record FolderScanResult(
+    IReadOnlyList<DetectedImportFile> Files,
+    IReadOnlyList<FolderScanFailure> Failures);
+
 public sealed class ImportFolderMonitor(MonitoredFolderPolicy policy) : IDisposable
 {
     private static readonly HashSet<string> SupportedExtensions =
@@ -8,6 +17,7 @@ public sealed class ImportFolderMonitor(MonitoredFolderPolicy policy) : IDisposa
     private readonly List<FileSystemWatcher> _watchers = [];
 
     public event EventHandler<DetectedImportFile>? FileDetected;
+    public event EventHandler<FolderScanFailure>? MonitoringFailed;
 
     public void Start(IEnumerable<MonitoredFolder> folders)
     {
@@ -16,46 +26,110 @@ public sealed class ImportFolderMonitor(MonitoredFolderPolicy policy) : IDisposa
 
         foreach (var folder in folders)
         {
-            var validatedPath = policy.Validate(folder);
-            if (!Directory.Exists(validatedPath))
+            try
             {
-                continue;
+                var validatedPath = policy.Validate(folder);
+                if (!Directory.Exists(validatedPath)) continue;
+
+                var watcher = new FileSystemWatcher(validatedPath)
+                {
+                    IncludeSubdirectories = true,
+                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.Size | NotifyFilters.LastWrite,
+                    InternalBufferSize = 32 * 1024,
+                    EnableRaisingEvents = false
+                };
+
+                watcher.Created += (_, args) => RaiseIfSupported(args.FullPath, folder);
+                watcher.Renamed += (_, args) => RaiseIfSupported(args.FullPath, folder);
+                watcher.Error += (_, args) => ReportFailure(
+                    new FolderScanFailure(folder, validatedPath, args.GetException()));
+                watcher.EnableRaisingEvents = true;
+                _watchers.Add(watcher);
             }
-
-            var watcher = new FileSystemWatcher(validatedPath)
+            catch (Exception exception) when (IsRecoverableFolderError(exception))
             {
-                IncludeSubdirectories = true,
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.Size | NotifyFilters.LastWrite,
-                EnableRaisingEvents = false
-            };
-
-            watcher.Created += (_, args) => RaiseIfSupported(args.FullPath, folder);
-            watcher.Renamed += (_, args) => RaiseIfSupported(args.FullPath, folder);
-            watcher.EnableRaisingEvents = true;
-            _watchers.Add(watcher);
+                ReportFailure(new FolderScanFailure(folder, folder.Path, exception));
+            }
         }
     }
 
-    public Task<IReadOnlyList<DetectedImportFile>> ScanAsync(
+    public async Task<IReadOnlyList<DetectedImportFile>> ScanAsync(
+        IEnumerable<MonitoredFolder> folders,
+        CancellationToken cancellationToken = default) =>
+        (await ScanWithDiagnosticsAsync(folders, cancellationToken)).Files;
+
+    public async Task<FolderScanResult> ScanWithDiagnosticsAsync(
         IEnumerable<MonitoredFolder> folders,
         CancellationToken cancellationToken = default)
     {
         var files = new List<DetectedImportFile>();
+        var failures = new List<FolderScanFailure>();
+        var processedSinceYield = 0;
         foreach (var folder in folders)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var validatedPath = policy.Validate(folder);
-            if (!Directory.Exists(validatedPath))
+            string validatedPath;
+            try
             {
+                validatedPath = policy.Validate(folder);
+            }
+            catch (Exception exception) when (IsRecoverableFolderError(exception))
+            {
+                failures.Add(new FolderScanFailure(folder, folder.Path, exception));
                 continue;
             }
 
-            files.AddRange(Directory.EnumerateFiles(validatedPath, "*", SearchOption.AllDirectories)
-                .Where(IsSupported)
-                .Select(path => new DetectedImportFile(path, folder.Kind, folder.Provider)));
+            if (!Directory.Exists(validatedPath)) continue;
+            var pendingDirectories = new Stack<string>();
+            pendingDirectories.Push(validatedPath);
+            while (pendingDirectories.TryPop(out var currentDirectory))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                try
+                {
+                    foreach (var path in Directory.GetFiles(currentDirectory, "*", SearchOption.TopDirectoryOnly))
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (IsSupported(path)) files.Add(CreateDetectedFile(path, folder));
+                        if (++processedSinceYield >= 256)
+                        {
+                            processedSinceYield = 0;
+                            await Task.Yield();
+                        }
+                    }
+
+                    foreach (var directory in Directory.GetDirectories(currentDirectory, "*", SearchOption.TopDirectoryOnly))
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        pendingDirectories.Push(directory);
+                    }
+                }
+                catch (Exception exception) when (IsRecoverableFolderError(exception))
+                {
+                    failures.Add(new FolderScanFailure(folder, currentDirectory, exception));
+                }
+            }
         }
 
-        return Task.FromResult<IReadOnlyList<DetectedImportFile>>(files);
+        return new FolderScanResult(files, failures);
+    }
+
+    private static DetectedImportFile CreateDetectedFile(string path, MonitoredFolder folder)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            return new DetectedImportFile(
+                path,
+                folder.Kind,
+                folder.Provider,
+                info.Length,
+                info.LastWriteTimeUtc.Ticks);
+        }
+        catch (Exception exception) when (IsRecoverableFolderError(exception))
+        {
+            return new DetectedImportFile(path, folder.Kind, folder.Provider);
+        }
     }
 
     public void Stop()
@@ -75,9 +149,18 @@ public sealed class ImportFolderMonitor(MonitoredFolderPolicy policy) : IDisposa
     {
         if (IsSupported(path))
         {
-            FileDetected?.Invoke(this, new DetectedImportFile(path, folder.Kind, folder.Provider));
+            FileDetected?.Invoke(this, CreateDetectedFile(path, folder));
         }
     }
+
+    private void ReportFailure(FolderScanFailure failure) => MonitoringFailed?.Invoke(this, failure);
+
+    private static bool IsRecoverableFolderError(Exception exception) => exception is
+        IOException or
+        UnauthorizedAccessException or
+        InvalidOperationException or
+        ArgumentException or
+        NotSupportedException;
 
     private static bool IsSupported(string path) =>
         SupportedExtensions.Contains(Path.GetExtension(path));

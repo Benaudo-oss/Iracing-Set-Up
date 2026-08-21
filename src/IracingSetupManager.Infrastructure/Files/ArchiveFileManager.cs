@@ -1,7 +1,11 @@
 namespace IracingSetupManager.Infrastructure.Files;
 
-public sealed class ArchiveFileManager(Sha256Calculator sha256Calculator) : IArchiveFileManager
+public sealed class ArchiveFileManager(
+    Sha256Calculator sha256Calculator,
+    IAtomicFileOperations? atomicFileOperations = null) : IArchiveFileManager
 {
+    private readonly IAtomicFileOperations atomicFiles = atomicFileOperations ?? new AtomicFileOperations();
+
     public async Task<string> CopyWithoutOverwriteAsync(
         string sourcePath,
         string destinationDirectory,
@@ -41,27 +45,7 @@ public sealed class ArchiveFileManager(Sha256Calculator sha256Calculator) : IArc
             }
         }
 
-        var temporaryPath = SecurePath.EnsureChildOf(
-            Path.Combine(Path.GetDirectoryName(destinationPath)!, $".{Path.GetFileName(destinationPath)}.{Guid.NewGuid():N}.tmp"),
-            destinationRoot);
-        try
-        {
-            await using (var source = new FileStream(
-                sourceFullPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920,
-                FileOptions.Asynchronous | FileOptions.SequentialScan))
-            await using (var destination = new FileStream(
-                temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920,
-                FileOptions.Asynchronous | FileOptions.WriteThrough))
-            {
-                await source.CopyToAsync(destination, cancellationToken);
-                await destination.FlushAsync(cancellationToken);
-            }
-            File.Move(temporaryPath, destinationPath);
-        }
-        finally
-        {
-            if (File.Exists(temporaryPath)) File.Delete(temporaryPath);
-        }
+        await atomicFiles.CopyAsync(sourceFullPath, destinationPath, cancellationToken);
         return destinationPath;
     }
 }

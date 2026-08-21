@@ -46,7 +46,7 @@
 
         <Border Grid.Row="3" Background="#FF20242B" BorderBrush="#FF343A43" BorderThickness="1" CornerRadius="10">
             <Grid>
-                <ListView x:Name="SetupList" HorizontalContentAlignment="Stretch" SelectionMode="None">
+                <ListView x:Name="SetupList" HorizontalContentAlignment="Stretch" SelectionMode="None" ContainerContentChanging="OnContainerContentChanging">
                     <ListView.ItemsPanel>
                         <ItemsPanelTemplate><ItemsStackPanel ItemsUpdatingScrollMode="KeepItemsInView" /></ItemsPanelTemplate>
                     </ListView.ItemsPanel>

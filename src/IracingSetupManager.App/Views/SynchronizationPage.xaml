@@ -103,7 +103,7 @@
                     </Grid>
                     <ProgressBar x:Name="ScanProgress" Minimum="0" Maximum="1" Value="0" />
                     <ComboBox x:Name="WeekFilter" Width="190" HorizontalAlignment="Right" PlaceholderText="Week" SelectionChanged="OnWeekFilterChanged" />
-                    <ListView x:Name="SynchronizationResultsList" SelectionMode="None" MaxHeight="360">
+                    <ListView x:Name="SynchronizationResultsList" SelectionMode="None" MaxHeight="360" ContainerContentChanging="OnResultContainerContentChanging">
                         <ListView.ItemsPanel>
                             <ItemsPanelTemplate><ItemsStackPanel ItemsUpdatingScrollMode="KeepItemsInView" /></ItemsPanelTemplate>
                         </ListView.ItemsPanel>

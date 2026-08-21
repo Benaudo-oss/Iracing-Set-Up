@@ -51,7 +51,7 @@ public sealed partial class DashboardPage : Page
     }
 
     private async void OnRefreshClicked(object sender, RoutedEventArgs e) =>
-        await UiOperation.RunAsync(LoadDashboardAsync, "Impossible d’actualiser le tableau de bord", DashboardInfo);
+        await UiOperation.RunAsync(RefreshDashboardAsync, "Impossible d’actualiser le tableau de bord", DashboardInfo);
 
     private void OnSynchronizationActivityChanged(object? sender, SynchronizationProgress progress) =>
         dashboardRefreshPending = true;
@@ -68,7 +68,6 @@ public sealed partial class DashboardPage : Page
         if (!await refreshLock.WaitAsync(0)) return;
         try
         {
-            await App.Services.LibraryIntegrity.MarkMissingFilesAsync();
             var statisticsTask = App.Services.QueryService.GetDashboardStatisticsAsync();
             var breakdownTask = App.Services.QueryService.GetDashboardBreakdownAsync();
             var historyTask = App.Services.QueryService.GetHistoryAsync();
@@ -109,6 +108,12 @@ public sealed partial class DashboardPage : Page
         {
             refreshLock.Release();
         }
+    }
+
+    private async Task RefreshDashboardAsync()
+    {
+        await App.Services.LibraryIntegrity.MarkMissingFilesAsync();
+        await LoadDashboardAsync();
     }
 
     private void RenderProviderBars(IReadOnlyList<DashboardCount> providers)

@@ -5,6 +5,16 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.3.12.38
+
+- Renforcement de SQLite avec WAL, attente contrôlée et reprise après verrouillage temporaire.
+- Synchronisation accélérée grâce à la mémorisation des fichiers déjà examinés et au traitement des seuls fichiers nouveaux ou modifiés.
+- Chargement progressif des tableaux par pages, recherches temporisées et actualisations ciblées sans déplacer la lecture.
+- Copies et extractions atomiques, enregistrement après chaque réussite et reprise après interruption.
+- Extraction limitée aux setups `.sto` présents dans les archives ZIP et RAR.
+- Isolation des tâches secondaires de démarrage afin qu’un échec n’empêche pas les suivantes.
+- Tests de résistance avec 30 000 setups, débordement de surveillance, SQLite occupée et interruptions de fichiers.
+
 # 1.3.11.38
 
 - Gestion complète des Weeks numériques, de Week NEC, de Sans Week et de Week inconnue dans SQLite.

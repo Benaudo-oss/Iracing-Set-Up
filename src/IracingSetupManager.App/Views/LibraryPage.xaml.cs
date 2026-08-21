@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using IracingSetupManager.Core.Setups;
+using IracingSetupManager.Infrastructure.Database;
 using IracingSetupManager.Infrastructure.Database.Entities;
 using IracingSetupManager.Infrastructure.Files.Import;
 using Microsoft.UI.Xaml;
@@ -14,7 +15,7 @@ namespace IracingSetupManager.App.Views;
 
 public sealed partial class LibraryPage : Page
 {
-    private readonly List<SetupEntity> _setups = [];
+    private const int PageSize = 100;
     private readonly HashSet<Guid> _setupIds = [];
     private readonly ObservableCollection<LibrarySetupRow> _visibleSetups = [];
     private readonly HashSet<Guid> _visibleSetupIds = [];
@@ -25,6 +26,12 @@ public sealed partial class LibraryPage : Page
     private readonly ObservableCollection<string> _weeks = [];
     private readonly ObservableCollection<string> _statuses = [];
     private bool _isListeningForImports;
+    private readonly SemaphoreSlim _pageLoadLock = new(1, 1);
+    private bool _suppressFilterChanges;
+    private int _totalCount;
+    private int _queryVersion;
+    private CancellationTokenSource? _searchDelayCancellation;
+    private CancellationTokenSource? _pageLoadCancellation;
 
     public LibraryPage()
     {
@@ -46,13 +53,14 @@ public sealed partial class LibraryPage : Page
     private async Task LoadPageAsync()
     {
         StartListeningForImports();
-        await App.Services.LibraryIntegrity.MarkMissingFilesAsync();
-        await App.Services.MetadataRefresh.RefreshAsync();
-        await ReloadAsync();
+        await App.Services.LibraryIntegrity.MarkMissingFilesIfDueAsync(TimeSpan.FromMinutes(10));
+        await ReloadAsync(true);
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        _searchDelayCancellation?.Cancel();
+        _pageLoadCancellation?.Cancel();
         if (!_isListeningForImports) return;
         App.Services.Monitoring.ImportCompleted -= OnImportCompleted;
         _isListeningForImports = false;
@@ -79,30 +87,28 @@ public sealed partial class LibraryPage : Page
         });
     }
 
-    private async Task ReloadAsync()
+    private async Task ReloadAsync(bool refreshOptions = false)
     {
-        _setups.Clear();
-        _setups.AddRange(await App.Services.QueryService.GetAllAsync());
-        _setupIds.Clear();
-        foreach (var setup in _setups) _setupIds.Add(setup.Id);
-        ResetOptions(_providers, Distinct(item => item.Provider));
-        ResetOptions(_categories, Distinct(item => item.Category));
-        ResetOptions(_cars, Distinct(item => item.Car));
-        ResetOptions(_tracks, Distinct(item => item.Track));
-        ResetOptions(_weeks, Distinct(item => item.WeekDisplay));
-        ResetOptions(_statuses, _setups.Select(item => item.StatusDisplay).Distinct().Order());
-        ApplyFilters();
+        if (refreshOptions)
+        {
+            var options = await App.Services.QueryService.GetFilterOptionsAsync();
+            _suppressFilterChanges = true;
+            try
+            {
+                ResetOptions(_providers, options.Providers);
+                ResetOptions(_categories, options.Categories);
+                ResetOptions(_cars, options.Cars);
+                ResetOptions(_tracks, options.Tracks);
+                ResetOptions(_weeks, options.Weeks);
+                ResetOptions(_statuses, options.Statuses);
+            }
+            finally { _suppressFilterChanges = false; }
+        }
+        await ResetPagesAsync();
     }
 
     private void AddOrUpdateSetup(SetupEntity setup)
     {
-        if (_setupIds.Add(setup.Id)) _setups.Add(setup);
-        else
-        {
-            var existingIndex = _setups.FindIndex(item => item.Id == setup.Id);
-            if (existingIndex >= 0) _setups[existingIndex] = setup;
-        }
-
         AddOption(_providers, setup.Provider);
         AddOption(_categories, setup.Category);
         AddOption(_cars, setup.Car);
@@ -111,16 +117,21 @@ public sealed partial class LibraryPage : Page
         AddOption(_statuses, setup.StatusDisplay);
 
         var isVisible = MatchesCurrentFilters(setup);
-        var wasVisible = _visibleSetupIds.Contains(setup.Id);
-        var visibleIndex = wasVisible ? IndexOf(_visibleSetups.Select(item => item.Setup), setup.Id) : -1;
+        var visibleIndex = IndexOf(_visibleSetups.Select(item => item.Setup), setup.Id);
         if (visibleIndex >= 0 && isVisible) _visibleSetups[visibleIndex] = CreateRow(setup, visibleIndex);
         else if (visibleIndex >= 0)
         {
             _visibleSetups.RemoveAt(visibleIndex);
             _visibleSetupIds.Remove(setup.Id);
+            _setupIds.Remove(setup.Id);
+            _totalCount = Math.Max(0, _totalCount - 1);
         }
-        else if (isVisible) _visibleSetups.Add(CreateRow(setup, _visibleSetups.Count));
-        if (isVisible) _visibleSetupIds.Add(setup.Id);
+        else if (isVisible && _setupIds.Add(setup.Id))
+        {
+            _visibleSetups.Add(CreateRow(setup, _visibleSetups.Count));
+            _visibleSetupIds.Add(setup.Id);
+            _totalCount++;
+        }
         UpdateEmptyState();
     }
 
@@ -131,7 +142,7 @@ public sealed partial class LibraryPage : Page
 
     private async Task RemoveMissingAsync()
     {
-        var selected = _setups.Where(item => item.Status == SetupStatus.FichierManquant).Select(item => item.Id).ToArray();
+        var selected = (await App.Services.QueryService.GetIdsByStatusAsync(SetupStatus.FichierManquant)).ToArray();
         if (selected.Length == 0) return;
         var dialog = new ContentDialog
         {
@@ -146,7 +157,6 @@ public sealed partial class LibraryPage : Page
         await App.Services.LibraryIntegrity.RemoveMissingEntriesAsync(selected);
         foreach (var id in selected)
         {
-            _setups.RemoveAll(item => item.Id == id);
             _setupIds.Remove(id);
             var index = IndexOf(_visibleSetups.Select(item => item.Setup), id);
             if (index >= 0)
@@ -155,15 +165,33 @@ public sealed partial class LibraryPage : Page
                 _visibleSetupIds.Remove(id);
             }
         }
-        RefreshRowAppearance();
+        _totalCount = Math.Max(0, _totalCount - selected.Length);
         UpdateEmptyState();
     }
 
-    private void OnSearchChanged(object sender, TextChangedEventArgs e) => ApplyFilters();
-    private void OnFilterChanged(object sender, SelectionChangedEventArgs e) => ApplyFilters();
-
-    private void OnClearFilters(object sender, RoutedEventArgs e)
+    private async void OnSearchChanged(object sender, TextChangedEventArgs e)
     {
+        if (_suppressFilterChanges) return;
+        _searchDelayCancellation?.Cancel();
+        var cancellation = _searchDelayCancellation = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(300, cancellation.Token);
+            if (!cancellation.IsCancellationRequested)
+                await UiOperation.RunAsync(ResetPagesAsync, "Impossible d’appliquer la recherche");
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async void OnFilterChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_suppressFilterChanges)
+            await UiOperation.RunAsync(ResetPagesAsync, "Impossible d’appliquer les filtres");
+    }
+
+    private async void OnClearFilters(object sender, RoutedEventArgs e)
+    {
+        _suppressFilterChanges = true;
         SearchBox.Text = string.Empty;
         ProviderFilter.SelectedItem = null;
         CategoryFilter.SelectedItem = null;
@@ -171,12 +199,14 @@ public sealed partial class LibraryPage : Page
         TrackFilter.SelectedItem = null;
         WeekFilter.SelectedItem = null;
         StatusFilter.SelectedItem = null;
-        ApplyFilters();
+        _suppressFilterChanges = false;
+        await UiOperation.RunAsync(ResetPagesAsync, "Impossible d’effacer les filtres");
     }
 
-    private void OnRemoveFilter(object sender, RoutedEventArgs e)
+    private async void OnRemoveFilter(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string key }) return;
+        _suppressFilterChanges = true;
         switch (key)
         {
             case "search": SearchBox.Text = string.Empty; break;
@@ -187,19 +217,64 @@ public sealed partial class LibraryPage : Page
             case "week": WeekFilter.SelectedItem = null; break;
             case "status": StatusFilter.SelectedItem = null; break;
         }
-        ApplyFilters();
+        _suppressFilterChanges = false;
+        await UiOperation.RunAsync(ResetPagesAsync, "Impossible de retirer le filtre");
     }
 
-    private void ApplyFilters()
+    private async Task ResetPagesAsync()
     {
+        var version = Interlocked.Increment(ref _queryVersion);
+        _pageLoadCancellation?.Cancel();
+        _pageLoadCancellation = new CancellationTokenSource();
         _visibleSetups.Clear();
         _visibleSetupIds.Clear();
-        foreach (var setup in _setups.Where(MatchesCurrentFilters))
-        {
-            _visibleSetups.Add(CreateRow(setup, _visibleSetups.Count));
-            _visibleSetupIds.Add(setup.Id);
-        }
+        _setupIds.Clear();
+        _totalCount = 0;
         UpdateEmptyState();
+        await LoadNextPageAsync(version, _pageLoadCancellation.Token);
+    }
+
+    private async Task LoadNextPageAsync(int version, CancellationToken cancellationToken)
+    {
+        if (_visibleSetups.Count >= _totalCount && _totalCount > 0) return;
+        try { await _pageLoadLock.WaitAsync(cancellationToken); }
+        catch (OperationCanceledException) { return; }
+        try
+        {
+            if (version != _queryVersion || _visibleSetups.Count >= _totalCount && _totalCount > 0) return;
+            var page = await App.Services.QueryService.GetPageAsync(CreatePageRequest(_visibleSetups.Count), cancellationToken);
+            if (version != _queryVersion || cancellationToken.IsCancellationRequested) return;
+            _totalCount = page.TotalCount;
+            foreach (var setup in page.Items)
+            {
+                if (!_setupIds.Add(setup.Id)) continue;
+                _visibleSetupIds.Add(setup.Id);
+                _visibleSetups.Add(CreateRow(setup, _visibleSetups.Count));
+            }
+            UpdateEmptyState();
+        }
+        catch (OperationCanceledException) { }
+        finally { _pageLoadLock.Release(); }
+    }
+
+    private SetupPageRequest CreatePageRequest(int skip) => new(
+        skip,
+        PageSize,
+        SearchBox.Text,
+        ProviderFilter.SelectedItem as string,
+        CategoryFilter.SelectedItem as string,
+        CarFilter.SelectedItem as string,
+        TrackFilter.SelectedItem as string,
+        Week: WeekFilter.SelectedItem as string,
+        Status: StatusFilter.SelectedItem as string);
+
+    private async void OnContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    {
+        if (args.InRecycleQueue || args.ItemIndex < _visibleSetups.Count - 20 || _visibleSetups.Count >= _totalCount) return;
+        var cancellationToken = _pageLoadCancellation?.Token ?? CancellationToken.None;
+        await UiOperation.RunAsync(
+            () => LoadNextPageAsync(_queryVersion, cancellationToken),
+            "Impossible de charger la suite de la bibliothèque");
     }
 
     private void OnRowPointerEntered(object sender, PointerRoutedEventArgs e)
@@ -210,12 +285,6 @@ public sealed partial class LibraryPage : Page
     private void OnRowPointerExited(object sender, PointerRoutedEventArgs e)
     {
         if (sender is Border { DataContext: LibrarySetupRow item } row) row.Background = item.RowBackground;
-    }
-
-    private void RefreshRowAppearance()
-    {
-        for (var index = 0; index < _visibleSetups.Count; index++)
-            _visibleSetups[index] = CreateRow(_visibleSetups[index].Setup, index);
     }
 
     private static LibrarySetupRow CreateRow(SetupEntity setup, int index)
@@ -251,10 +320,6 @@ public sealed partial class LibraryPage : Page
             StatusFilter.SelectedItem as string));
     }
 
-    private IReadOnlyList<string> Distinct(Func<SetupEntity, string?> selector) =>
-        _setups.Select(selector).Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value!)
-            .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase).ToList();
-
     private static void ResetOptions(ObservableCollection<string> target, IEnumerable<string> values)
     {
         target.Clear();
@@ -283,7 +348,7 @@ public sealed partial class LibraryPage : Page
     private void UpdateEmptyState()
     {
         EmptyState.Visibility = _visibleSetups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        ResultCountText.Text = $"{_visibleSetups.Count} résultat{(_visibleSetups.Count > 1 ? "s" : string.Empty)} sur {_setups.Count}";
+        ResultCountText.Text = $"{_visibleSetups.Count} affiché{(_visibleSetups.Count > 1 ? "s" : string.Empty)} sur {_totalCount}";
         var active = new List<(string Key, string Label)>();
         if (!string.IsNullOrWhiteSpace(SearchBox.Text)) active.Add(("search", $"Recherche : {SearchBox.Text.Trim()}"));
         AddActive(active, "provider", "Fournisseur", ProviderFilter.SelectedItem as string);

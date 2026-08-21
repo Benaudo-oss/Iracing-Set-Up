@@ -1,10 +1,19 @@
 using IracingSetupManager.Infrastructure.Database.Entities;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace IracingSetupManager.Infrastructure.Database;
 
 public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : DbContext(options)
 {
+    private static readonly TimeSpan[] BusyRetryDelays =
+    [
+        TimeSpan.FromMilliseconds(50),
+        TimeSpan.FromMilliseconds(100),
+        TimeSpan.FromMilliseconds(250),
+        TimeSpan.FromMilliseconds(500)
+    ];
+
     public DbSet<SetupEntity> Setups => Set<SetupEntity>();
 
     public DbSet<ApplicationSettingEntity> ApplicationSettings => Set<ApplicationSettingEntity>();
@@ -14,6 +23,46 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
     public DbSet<TrackCatalogEntity> TrackCatalog => Set<TrackCatalogEntity>();
 
     public DbSet<RecognitionAliasEntity> RecognitionAliases => Set<RecognitionAliasEntity>();
+
+    public DbSet<MonitoredFileStateEntity> MonitoredFileStates => Set<MonitoredFileStateEntity>();
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+        SaveChangesAsync(acceptAllChangesOnSuccess: true, cancellationToken);
+
+    public override async Task<int> SaveChangesAsync(
+        bool acceptAllChangesOnSuccess,
+        CancellationToken cancellationToken = default)
+    {
+        foreach (var entry in ChangeTracker.Entries<SetupEntity>()
+                     .Where(entry => entry.State is EntityState.Added or EntityState.Modified))
+        {
+            entry.Entity.DownloadedAtUtcSortKey = entry.Entity.DownloadedAtUtc.ToUnixTimeMilliseconds();
+        }
+
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            }
+            catch (Exception exception) when (
+                attempt < BusyRetryDelays.Length &&
+                IsTransientSqliteLock(exception))
+            {
+                await Task.Delay(BusyRetryDelays[attempt], cancellationToken);
+            }
+        }
+    }
+
+    private static bool IsTransientSqliteLock(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is SqliteException { SqliteErrorCode: 5 or 6 }) return true;
+        }
+
+        return false;
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,12 +87,14 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
         setup.Property(item => item.Comment).HasMaxLength(4000);
         setup.Property(item => item.IracingCopyCount).HasDefaultValue(0);
         setup.Property(item => item.IracingTeamCopyCount).HasDefaultValue(0);
+        setup.Property(item => item.DownloadedAtUtcSortKey).HasDefaultValue(0);
         setup.HasIndex(item => item.Sha256).IsUnique();
         setup.HasIndex(item => item.OriginalFileName);
         setup.HasIndex(item => new { item.Provider, item.Category, item.Status });
         setup.HasIndex(item => new { item.Car, item.Track, item.Season });
         setup.HasIndex(item => new { item.Season, item.Week });
         setup.HasIndex(item => new { item.WeekKind, item.Week });
+        setup.HasIndex(item => item.DownloadedAtUtcSortKey);
 
         var history = modelBuilder.Entity<SetupChangeHistoryEntity>();
         history.ToTable("SetupChangeHistory");
@@ -80,5 +131,11 @@ public sealed class SetupDbContext(DbContextOptions<SetupDbContext> options) : D
         recognitionAlias.Property(item => item.NormalizedAlias).HasMaxLength(128).IsRequired();
         recognitionAlias.Property(item => item.CanonicalValue).HasMaxLength(256).IsRequired();
         recognitionAlias.HasIndex(item => new { item.Kind, item.NormalizedAlias }).IsUnique();
+
+        var monitoredFile = modelBuilder.Entity<MonitoredFileStateEntity>();
+        monitoredFile.ToTable("MonitoredFileStates");
+        monitoredFile.HasKey(item => item.PathKey);
+        monitoredFile.Property(item => item.PathKey).HasMaxLength(64).IsFixedLength();
+        monitoredFile.HasIndex(item => item.LastExaminedAtUtc);
     }
 }

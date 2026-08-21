@@ -5,12 +5,13 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
 {
-    public const int CurrentSchemaVersion = 7;
+    public const int CurrentSchemaVersion = 9;
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         await using var context = contextFactory.Create();
         await context.Database.EnsureCreatedAsync(cancellationToken);
+        await ConfigureConnectionAsync(context, cancellationToken);
         await context.Database.ExecuteSqlRawAsync(
             """
             CREATE TABLE IF NOT EXISTS "SetupChangeHistory" (
@@ -50,6 +51,14 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
             );
             CREATE UNIQUE INDEX IF NOT EXISTS "IX_RecognitionAliases_Kind_NormalizedAlias"
                 ON "RecognitionAliases" ("Kind", "NormalizedAlias");
+            CREATE TABLE IF NOT EXISTS "MonitoredFileStates" (
+                "PathKey" TEXT NOT NULL CONSTRAINT "PK_MonitoredFileStates" PRIMARY KEY,
+                "Length" INTEGER NOT NULL,
+                "LastWriteTimeUtcTicks" INTEGER NOT NULL,
+                "LastExaminedAtUtc" TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS "IX_MonitoredFileStates_LastExaminedAtUtc"
+                ON "MonitoredFileStates" ("LastExaminedAtUtc");
             CREATE TABLE IF NOT EXISTS "SchemaMigrations" (
                 "Version" INTEGER NOT NULL CONSTRAINT "PK_SchemaMigrations" PRIMARY KEY,
                 "AppliedAtUtc" TEXT NOT NULL
@@ -60,6 +69,26 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
         // the migration ledger. This also heals databases created by an interrupted update.
         await RepairRequiredSchemaAsync(context, cancellationToken);
         await ApplyPendingMigrationsAsync(context, cancellationToken);
+    }
+
+    private static async Task ConfigureConnectionAsync(
+        SetupDbContext context,
+        CancellationToken cancellationToken)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldClose = connection.State != ConnectionState.Open;
+        if (shouldClose) await connection.OpenAsync(cancellationToken);
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText =
+                "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=15000; PRAGMA wal_autocheckpoint=1000;";
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+        finally
+        {
+            if (shouldClose) await connection.CloseAsync();
+        }
     }
 
     public async Task<int> GetSchemaVersionAsync(CancellationToken cancellationToken = default)
@@ -150,8 +179,28 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
                     cancellationToken);
                 await context.Database.ExecuteSqlRawAsync(
                     "CREATE INDEX IF NOT EXISTS \"IX_Setups_WeekKind_Week\" ON \"Setups\" (\"WeekKind\", \"Week\");",
-                    cancellationToken);
+                cancellationToken);
             }, cancellationToken);
+            version = 7;
+        }
+
+        if (version < 8)
+        {
+            await RunMigrationAsync(
+                context,
+                8,
+                () => EnsureMonitoredFileStateSchemaAsync(context, cancellationToken),
+                cancellationToken);
+            version = 8;
+        }
+
+        if (version < 9)
+        {
+            await RunMigrationAsync(
+                context,
+                9,
+                () => EnsureSetupSortKeySchemaAsync(context, cancellationToken),
+                cancellationToken);
         }
     }
 
@@ -169,6 +218,42 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
             cancellationToken);
         await context.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_Setups_WeekKind_Week\" ON \"Setups\" (\"WeekKind\", \"Week\");",
+            cancellationToken);
+        await EnsureMonitoredFileStateSchemaAsync(context, cancellationToken);
+        await EnsureSetupSortKeySchemaAsync(context, cancellationToken);
+    }
+
+    private static async Task EnsureSetupSortKeySchemaAsync(
+        SetupDbContext context,
+        CancellationToken cancellationToken)
+    {
+        await EnsureSetupColumnAsync(context, "DownloadedAtUtcSortKey", "INTEGER NOT NULL DEFAULT 0", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync(
+            """
+            UPDATE "Setups"
+            SET "DownloadedAtUtcSortKey" = CAST(strftime('%s', "DownloadedAtUtc") AS INTEGER) * 1000
+            WHERE "DownloadedAtUtcSortKey" = 0;
+            CREATE INDEX IF NOT EXISTS "IX_Setups_DownloadedAtUtcSortKey"
+                ON "Setups" ("DownloadedAtUtcSortKey");
+            """,
+            cancellationToken);
+    }
+
+    private static async Task EnsureMonitoredFileStateSchemaAsync(
+        SetupDbContext context,
+        CancellationToken cancellationToken)
+    {
+        await context.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE IF NOT EXISTS "MonitoredFileStates" (
+                "PathKey" TEXT NOT NULL CONSTRAINT "PK_MonitoredFileStates" PRIMARY KEY,
+                "Length" INTEGER NOT NULL,
+                "LastWriteTimeUtcTicks" INTEGER NOT NULL,
+                "LastExaminedAtUtc" TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS "IX_MonitoredFileStates_LastExaminedAtUtc"
+                ON "MonitoredFileStates" ("LastExaminedAtUtc");
+            """,
             cancellationToken);
     }
 

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using IracingSetupManager.Core.Setups;
+using IracingSetupManager.Infrastructure.Database;
 using IracingSetupManager.Infrastructure.Database.Entities;
 using IracingSetupManager.Infrastructure.Files.Import;
 using Microsoft.UI.Xaml;
@@ -12,7 +13,7 @@ namespace IracingSetupManager.App.Views;
 
 public sealed partial class ReviewPage : Page
 {
-    private readonly List<SetupEntity> _setups = [];
+    private const int PageSize = 100;
     private readonly HashSet<Guid> _setupIds = [];
     private readonly ObservableCollection<SetupEntity> _visibleSetups = [];
     private readonly HashSet<Guid> _visibleSetupIds = [];
@@ -21,7 +22,14 @@ public sealed partial class ReviewPage : Page
     private readonly ObservableCollection<string> _cars = [];
     private readonly ObservableCollection<string> _tracks = [];
     private readonly ObservableCollection<string> _weeks = [];
+    private readonly SemaphoreSlim _pageLoadLock = new(1, 1);
     private bool _isListeningForImports;
+    private bool _suppressFilterChanges;
+    private int _totalCount;
+    private int _queryVersion;
+    private SetupFilterOptions? _filterOptions;
+    private CancellationTokenSource? _searchDelayCancellation;
+    private CancellationTokenSource? _pageLoadCancellation;
 
     public ReviewPage()
     {
@@ -42,11 +50,13 @@ public sealed partial class ReviewPage : Page
     private async Task LoadPageAsync()
     {
         StartListeningForImports();
-        await ReloadAsync();
+        await ReloadAsync(true);
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        _searchDelayCancellation?.Cancel();
+        _pageLoadCancellation?.Cancel();
         if (!_isListeningForImports) return;
         App.Services.Monitoring.ImportCompleted -= OnImportCompleted;
         _isListeningForImports = false;
@@ -117,10 +127,10 @@ public sealed partial class ReviewPage : Page
         var category = CreateOptionalCombo("Catégorie", SetupCatalog.Categories);
         var car = CreateOptionalCombo("Voiture", SetupCatalog.Cars.Select(item => item.DisplayName));
         var track = CreateOptionalCombo("Circuit", SetupMetadataAnalyzer.KnownTrackNames.Concat(trackCatalog.Select(item => item.TrackName)));
-        var season = CreateOptionalCombo("Saison", _setups.Select(item => item.Season), editable: true);
+        var season = CreateOptionalCombo("Saison", _filterOptions?.Seasons ?? [], editable: true);
         var week = CreateOptionalCombo("Week", Enumerable.Range(1, 13).Select(value => $"Week {value:00}")
             .Concat(["Week NEC", "Sans Week", "Week inconnue"]));
-        var type = CreateOptionalCombo("Type de setup", _setups.Select(item => item.SetupType), editable: true);
+        var type = CreateOptionalCombo("Type de setup", _filterOptions?.SetupTypes ?? [], editable: true);
         var content = new StackPanel { Spacing = 10 };
         content.Children.Add(new TextBlock
         {
@@ -180,7 +190,11 @@ public sealed partial class ReviewPage : Page
             selected.Select(item => item.Id).ToArray(),
             new SetupBatchCorrection(providerValue, categoryValue, carValue, trackValue, seasonValue,
                 typeValue, weekNumber, weekKind));
-        await ReloadAsync();
+        foreach (var setup in selected)
+        {
+            var refreshed = await App.Services.QueryService.GetBySha256Async(setup.Sha256);
+            if (refreshed is not null) AddOrUpdateSetup(refreshed);
+        }
         ShowSuccess($"{selected.Count} setup(s) corrigé(s). L’historique individuel a été conservé.");
     }
 
@@ -227,7 +241,7 @@ public sealed partial class ReviewPage : Page
     private async Task CorrectOneAsync(object sender)
     {
         if (!TryGetSetupId(sender, out var setupId)) return;
-        var setup = _setups.Single(item => item.Id == setupId);
+        var setup = _visibleSetups.Single(item => item.Id == setupId);
         var provider = CreateCombo("Fournisseur", SetupCatalog.ProviderNames, setup.Provider);
         var category = CreateCombo("Catégorie", SetupCatalog.Categories, setup.Category);
         var car = CreateCombo("Voiture", SetupCatalog.Cars.Select(item => item.DisplayName), setup.Car);
@@ -361,32 +375,29 @@ public sealed partial class ReviewPage : Page
         foreach (var id in ids) RemoveSetup(id);
     }
 
-    private async Task ReloadAsync()
+    private async Task ReloadAsync(bool refreshOptions = false)
     {
-        _setups.Clear();
-        _setups.AddRange(await App.Services.QueryService.GetToReviewAsync());
-        _setupIds.Clear();
-        foreach (var setup in _setups) _setupIds.Add(setup.Id);
-        ResetOptions(_providers, Distinct(item => item.Provider));
-        ResetOptions(_categories, Distinct(item => item.Category));
-        ResetOptions(_cars, Distinct(item => item.Car));
-        ResetOptions(_tracks, Distinct(item => item.Track));
-        ResetOptions(_weeks, Distinct(item => item.WeekDisplay));
-        ApplyFilters();
-        UpdateEmptyState();
+        if (refreshOptions)
+        {
+            _filterOptions = await App.Services.QueryService.GetFilterOptionsAsync(true);
+            _suppressFilterChanges = true;
+            try
+            {
+                ResetOptions(_providers, _filterOptions.Providers);
+                ResetOptions(_categories, _filterOptions.Categories);
+                ResetOptions(_cars, _filterOptions.Cars);
+                ResetOptions(_tracks, _filterOptions.Tracks);
+                ResetOptions(_weeks, _filterOptions.Weeks);
+            }
+            finally { _suppressFilterChanges = false; }
+        }
+        await ResetPagesAsync();
         RatingBox.Value = double.NaN;
         CommentBox.Text = string.Empty;
     }
 
     private void AddOrUpdateSetup(SetupEntity setup)
     {
-        if (_setupIds.Add(setup.Id)) _setups.Add(setup);
-        else
-        {
-            var existingIndex = _setups.FindIndex(item => item.Id == setup.Id);
-            if (existingIndex >= 0) _setups[existingIndex] = setup;
-        }
-
         AddOption(_providers, setup.Provider);
         AddOption(_categories, setup.Category);
         AddOption(_cars, setup.Car);
@@ -401,28 +412,27 @@ public sealed partial class ReviewPage : Page
         {
             _visibleSetups.Remove(visible);
             _visibleSetupIds.Remove(setup.Id);
+            _setupIds.Remove(setup.Id);
+            _totalCount = Math.Max(0, _totalCount - 1);
         }
-        else if (matches)
+        else if (matches && _setupIds.Add(setup.Id))
         {
             _visibleSetups.Add(setup);
             _visibleSetupIds.Add(setup.Id);
+            _totalCount++;
         }
         UpdateEmptyState();
     }
 
     private void RemoveSetup(Guid id)
     {
-        var setup = _setups.FirstOrDefault(item => item.Id == id);
-        if (setup is not null)
-        {
-            _setups.Remove(setup);
-            _setupIds.Remove(id);
-        }
+        _setupIds.Remove(id);
         var visible = _visibleSetups.FirstOrDefault(item => item.Id == id);
         if (visible is not null)
         {
             _visibleSetups.Remove(visible);
             _visibleSetupIds.Remove(id);
+            _totalCount = Math.Max(0, _totalCount - 1);
         }
         UpdateEmptyState();
     }
@@ -430,7 +440,7 @@ public sealed partial class ReviewPage : Page
     private void UpdateEmptyState()
     {
         EmptyState.Visibility = _visibleSetups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        ResultCountText.Text = $"{_visibleSetups.Count} résultat{(_visibleSetups.Count > 1 ? "s" : string.Empty)} sur {_setups.Count}";
+        ResultCountText.Text = $"{_visibleSetups.Count} affiché{(_visibleSetups.Count > 1 ? "s" : string.Empty)} sur {_totalCount}";
         var active = new List<(string Key, string Label)>();
         if (!string.IsNullOrWhiteSpace(SearchBox.Text)) active.Add(("search", $"Recherche : {SearchBox.Text.Trim()}"));
         AddActive(active, "provider", "Fournisseur", ProviderFilter.SelectedItem as string);
@@ -444,11 +454,29 @@ public sealed partial class ReviewPage : Page
         FilterPresentation.Rebuild(ActiveFiltersPanel, active, OnRemoveFilter);
     }
 
-    private void OnSearchChanged(object sender, TextChangedEventArgs e) => ApplyFilters();
-    private void OnFilterChanged(object sender, SelectionChangedEventArgs e) => ApplyFilters();
-
-    private void OnClearFilters(object sender, RoutedEventArgs e)
+    private async void OnSearchChanged(object sender, TextChangedEventArgs e)
     {
+        if (_suppressFilterChanges) return;
+        _searchDelayCancellation?.Cancel();
+        var cancellation = _searchDelayCancellation = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(300, cancellation.Token);
+            if (!cancellation.IsCancellationRequested)
+                await UiOperation.RunAsync(ResetPagesAsync, "Impossible d’appliquer la recherche", ReviewInfo);
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async void OnFilterChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_suppressFilterChanges)
+            await UiOperation.RunAsync(ResetPagesAsync, "Impossible d’appliquer les filtres", ReviewInfo);
+    }
+
+    private async void OnClearFilters(object sender, RoutedEventArgs e)
+    {
+        _suppressFilterChanges = true;
         SearchBox.Text = string.Empty;
         ProviderFilter.SelectedItem = null;
         CategoryFilter.SelectedItem = null;
@@ -456,12 +484,14 @@ public sealed partial class ReviewPage : Page
         TrackFilter.SelectedItem = null;
         WeekFilter.SelectedItem = null;
         IdentificationFilter.SelectedIndex = 0;
-        ApplyFilters();
+        _suppressFilterChanges = false;
+        await UiOperation.RunAsync(ResetPagesAsync, "Impossible d’effacer les filtres", ReviewInfo);
     }
 
-    private void OnRemoveFilter(object sender, RoutedEventArgs e)
+    private async void OnRemoveFilter(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string key }) return;
+        _suppressFilterChanges = true;
         switch (key)
         {
             case "search": SearchBox.Text = string.Empty; break;
@@ -472,19 +502,66 @@ public sealed partial class ReviewPage : Page
             case "week": WeekFilter.SelectedItem = null; break;
             case "identification": IdentificationFilter.SelectedIndex = 0; break;
         }
-        ApplyFilters();
+        _suppressFilterChanges = false;
+        await UiOperation.RunAsync(ResetPagesAsync, "Impossible de retirer le filtre", ReviewInfo);
     }
 
-    private void ApplyFilters()
+    private async Task ResetPagesAsync()
     {
+        var version = Interlocked.Increment(ref _queryVersion);
+        _pageLoadCancellation?.Cancel();
+        _pageLoadCancellation = new CancellationTokenSource();
         _visibleSetups.Clear();
         _visibleSetupIds.Clear();
-        foreach (var setup in _setups.Where(MatchesCurrentFilters))
-        {
-            _visibleSetups.Add(setup);
-            _visibleSetupIds.Add(setup.Id);
-        }
+        _setupIds.Clear();
+        _totalCount = 0;
         UpdateEmptyState();
+        await LoadNextPageAsync(version, _pageLoadCancellation.Token);
+    }
+
+    private async Task LoadNextPageAsync(int version, CancellationToken cancellationToken)
+    {
+        if (_visibleSetups.Count >= _totalCount && _totalCount > 0) return;
+        try { await _pageLoadLock.WaitAsync(cancellationToken); }
+        catch (OperationCanceledException) { return; }
+        try
+        {
+            if (version != _queryVersion || _visibleSetups.Count >= _totalCount && _totalCount > 0) return;
+            var page = await App.Services.QueryService.GetPageAsync(CreatePageRequest(_visibleSetups.Count), cancellationToken);
+            if (version != _queryVersion || cancellationToken.IsCancellationRequested) return;
+            _totalCount = page.TotalCount;
+            foreach (var setup in page.Items)
+            {
+                if (!_setupIds.Add(setup.Id)) continue;
+                _visibleSetupIds.Add(setup.Id);
+                _visibleSetups.Add(setup);
+            }
+            UpdateEmptyState();
+        }
+        catch (OperationCanceledException) { }
+        finally { _pageLoadLock.Release(); }
+    }
+
+    private SetupPageRequest CreatePageRequest(int skip) => new(
+        skip,
+        PageSize,
+        SearchBox.Text,
+        ProviderFilter.SelectedItem as string,
+        CategoryFilter.SelectedItem as string,
+        CarFilter.SelectedItem as string,
+        TrackFilter.SelectedItem as string,
+        Week: WeekFilter.SelectedItem as string,
+        Identification: IdentificationFilter.SelectedItem as string,
+        ToReviewOnly: true);
+
+    private async void OnContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    {
+        if (args.InRecycleQueue || args.ItemIndex < _visibleSetups.Count - 20 || _visibleSetups.Count >= _totalCount) return;
+        var cancellationToken = _pageLoadCancellation?.Token ?? CancellationToken.None;
+        await UiOperation.RunAsync(
+            () => LoadNextPageAsync(_queryVersion, cancellationToken),
+            "Impossible de charger la suite des setups à vérifier",
+            ReviewInfo);
     }
 
     private bool MatchesCurrentFilters(SetupEntity setup)
@@ -506,10 +583,6 @@ public sealed partial class ReviewPage : Page
                 TrackFilter.SelectedItem as string,
                 WeekFilter.SelectedItem as string));
     }
-
-    private IReadOnlyList<string> Distinct(Func<SetupEntity, string?> selector) =>
-        _setups.Select(selector).Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value!)
-            .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase).ToList();
 
     private static void ResetOptions(ObservableCollection<string> target, IEnumerable<string> values)
     {

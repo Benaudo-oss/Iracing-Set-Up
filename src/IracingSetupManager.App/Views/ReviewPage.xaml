@@ -27,7 +27,7 @@
         <Grid Grid.Row="3" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled"><StackPanel x:Name="ActiveFiltersPanel" Orientation="Horizontal" Spacing="8" /></ScrollViewer><TextBlock x:Name="ResultCountText" Grid.Column="1" VerticalAlignment="Center" Opacity="0.7" Text="0 résultat" /><Button Grid.Column="2" Padding="10,6" Style="{StaticResource GraySecondaryButtonStyle}" Click="OnClearFilters" ToolTipService.ToolTip="Effacer tous les filtres"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="13" Glyph="&#xE711;" /><TextBlock Text="Effacer" /></StackPanel></Button></Grid>
         <Border Grid.Row="4" Padding="12" Background="#FF20242B" CornerRadius="10">
             <Grid>
-                <ListView x:Name="ReviewList" SelectionMode="Multiple" SelectionChanged="OnSelectionChanged">
+                <ListView x:Name="ReviewList" SelectionMode="Multiple" SelectionChanged="OnSelectionChanged" ContainerContentChanging="OnContainerContentChanging">
                     <ListView.ItemsPanel>
                         <ItemsPanelTemplate><ItemsStackPanel ItemsUpdatingScrollMode="KeepItemsInView" /></ItemsPanelTemplate>
                     </ListView.ItemsPanel>

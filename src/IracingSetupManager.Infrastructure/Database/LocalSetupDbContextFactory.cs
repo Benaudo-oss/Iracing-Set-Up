@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace IracingSetupManager.Infrastructure.Database;
@@ -13,8 +14,17 @@ public sealed class LocalSetupDbContextFactory : ISetupDbContextFactory
             ?? throw new ArgumentException("Le chemin de la base est invalide.", nameof(databasePath));
 
         Directory.CreateDirectory(directory);
+        var connectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = fullPath,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Pooling = false,
+            DefaultTimeout = 15,
+            ForeignKeys = true
+        }.ToString();
+
         _options = new DbContextOptionsBuilder<SetupDbContext>()
-            .UseSqlite($"Data Source={fullPath};Pooling=False")
+            .UseSqlite(connectionString)
             .Options;
     }
 

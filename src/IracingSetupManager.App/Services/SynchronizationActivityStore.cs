@@ -31,7 +31,6 @@ public sealed class SynchronizationActivityStore
         lock (gate)
         {
             items[progress.FilePath] = progress;
-            if (items.Count > 500) items.Remove(items.Keys.First());
         }
         Changed?.Invoke(this, progress);
     }
