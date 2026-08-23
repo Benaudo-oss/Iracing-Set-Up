@@ -23,6 +23,18 @@ public sealed class FileClassificationAndHashTests
     }
 
     [Theory]
+    [InlineData("VRS_26S1_Spa_M4GT4_R.sto", "BMW M4 G82 GT4")]
+    [InlineData("VRS_26S1_Spa_MustangGT4_R.sto", "Ford Mustang GT4")]
+    [InlineData("VRS_26S1_Spa_MGT4_R.sto", "Mercedes-AMG GT4")]
+    public void AnalyzerRecognizesCompactGt4Aliases(string fileName, string expectedCar)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal("GT4", metadata.Category);
+        Assert.Equal(expectedCar, metadata.Car);
+    }
+
+    [Theory]
     [InlineData("VRS_26S1_Spa_UnknownGT3_R.sto", "GT3")]
     [InlineData("VRS_26S1_Spa_UnknownGT4_R.sto", "GT4")]
     [InlineData("VRS_26S1_Spa_UnknownGTE_R.sto", "GTE")]
@@ -35,6 +47,24 @@ public sealed class FileClassificationAndHashTests
         var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
 
         Assert.Equal(expectedCategory, metadata.Category);
+    }
+
+    [Fact]
+    public void AnalyzerInfersDallaraWhenLmp2IsTheOnlyCatalogCar()
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze("VRS_26S1_Spa_UnknownLMP2_R.sto");
+
+        Assert.Equal("LMP2", metadata.Category);
+        Assert.Equal("Dallara P217", metadata.Car);
+    }
+
+    [Fact]
+    public void AnalyzerInfersLigierWhenLmp3IsTheOnlyCatalogCar()
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze("VRS_26S1_Spa_UnknownLMP3_R.sto");
+
+        Assert.Equal("LMP3", metadata.Category);
+        Assert.Equal("Ligier JS P320", metadata.Car);
     }
 
     [Theory]
@@ -330,6 +360,18 @@ public sealed class FileClassificationAndHashTests
         Assert.Equal("2026 S3", metadata.Season);
         Assert.Equal(expectedCar, metadata.Car);
         Assert.Equal("Red Bull Ring", metadata.Track);
+    }
+
+    [Fact]
+    public void MetadataAnalyzerRecognizesGng911RsrAlias()
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze("26S3-W11-GnG-Imola-911RSR-Q-Safe.sto");
+
+        Assert.Equal("Grid & Go", metadata.Provider);
+        Assert.Equal("Porsche 911 RSR", metadata.Car);
+        Assert.Equal("GTE", metadata.Category);
+        Assert.Equal("Autodromo Internazionale Enzo e Dino Ferrari", metadata.Track);
+        Assert.Equal(11, metadata.Week);
     }
 
     [Theory]

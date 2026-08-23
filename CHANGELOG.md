@@ -5,6 +5,13 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.3.12.40
+
+- Attribution automatique de la Dallara P217 lorsque la catégorie LMP2 est reconnue sans voiture.
+- Attribution automatique de la Ligier JS P320 lorsque la catégorie LMP3 est reconnue sans voiture.
+- Reconnaissance de l’alias Grid & Go `911RSR` pour la Porsche 911 RSR GTE.
+- Reconnaissance des alias GT4 `M4GT4`, `MustangGT4` et `MGT4`.
+
 # 1.3.12.39
 
 - Reconnaissance du dossier Track Titan « Circuit des 24 Heures du Mans - 24 Heures du Mans » comme Le Mans avec sa configuration.

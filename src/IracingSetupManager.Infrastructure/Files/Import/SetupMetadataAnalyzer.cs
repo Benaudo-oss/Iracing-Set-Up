@@ -65,10 +65,13 @@ public sealed partial class SetupMetadataAnalyzer(
             ["amvantagegt4"] = ("Aston Martin Vantage GT4", "GT4"),
             ["VantageGT4"] = ("Aston Martin Vantage GT4", "GT4"),
             ["bmwm4evogt4"] = ("BMW M4 G82 GT4", "GT4"),
-            ["bmwm4gt4"] = ("BMW M4 GT4", "GT4"),
+            ["bmwm4gt4"] = ("BMW M4 G82 GT4", "GT4"),
+            ["M4GT4"] = ("BMW M4 G82 GT4", "GT4"),
             ["fordmustanggt4"] = ("Ford Mustang GT4", "GT4"),
+            ["MustangGT4"] = ("Ford Mustang GT4", "GT4"),
             ["mclaren570sgt4"] = ("McLaren 570S GT4", "GT4"),
             ["mercedesamggt4"] = ("Mercedes-AMG GT4", "GT4"),
+            ["MGT4"] = ("Mercedes-AMG GT4", "GT4"),
             ["porsche718gt4"] = ("Porsche 718 Cayman GT4 Clubsport MR", "GT4"),
 
             ["bmwm8gte"] = ("BMW M8 GTE", "GTE"),
@@ -86,6 +89,7 @@ public sealed partial class SetupMetadataAnalyzer(
             ["FERRARIGTE"] = ("Ferrari 488 GTE", "GTE"),
             ["fordgt2017"] = ("Ford GTE", "GTE"),
             ["porsche991rsr"] = ("Porsche 911 RSR", "GTE"),
+            ["911RSR"] = ("Porsche 911 RSR", "GTE"),
             ["RSRGTE"] = ("Porsche 911 RSR", "GTE"),
 
             ["dallarap217"] = ("Dallara P217", "LMP2"),
@@ -305,7 +309,10 @@ public sealed partial class SetupMetadataAnalyzer(
             : (Car: learnedCarDefinition.DisplayName, Category: learnedCarDefinition.Category);
         var category = carMatch.Category ?? FindCategory(filePath, tokens) ?? defaults?.Category ?? Unknown;
         var setupType = FindSetupType(tokens) ?? defaults?.SetupType ?? Unknown;
-        var car = carMatch.Car ?? EmptyAsNull(defaults?.Car) ?? Unknown;
+        var car = carMatch.Car
+            ?? EmptyAsNull(defaults?.Car)
+            ?? InferOnlyCarForCategory(category)
+            ?? Unknown;
         var trackTitanTrack = FindTrackTitanTrack(trackTitanFolders);
         var catalogTrack = trackCatalog?.Find(filePath);
         var track = trackTitanTrack
@@ -499,6 +506,17 @@ public sealed partial class SetupMetadataAnalyzer(
             .OrderByDescending(category => category.Length)
             .FirstOrDefault(category =>
                 normalizedName.Contains(NormalizeAlias(category), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string? InferOnlyCarForCategory(string category)
+    {
+        if (category.Equals(Unknown, StringComparison.OrdinalIgnoreCase)) return null;
+
+        var matches = SetupCatalog.Cars
+            .Where(car => car.Category.Equals(category, StringComparison.OrdinalIgnoreCase))
+            .Take(2)
+            .ToArray();
+        return matches.Length == 1 ? matches[0].DisplayName : null;
     }
 
     private static string? FindTrack(string filePath, IReadOnlyList<string> tokens)
