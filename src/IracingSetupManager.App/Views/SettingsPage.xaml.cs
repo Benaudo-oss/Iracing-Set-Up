@@ -233,11 +233,13 @@ public sealed partial class SettingsPage : Page
             return;
         }
 
+        var preview = await App.Services.ArchiveReorganization.PreviewAsync(archive);
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
             Title = "Réorganiser l’archive ?",
-            Content = "Les fichiers seront replacés selon les métadonnées actuelles, sans écrasement.",
+            Content = $"MAJ01 va déplacer {preview.FilesToMove} fichier(s) et normaliser {preview.MetadataToNormalize} entrée(s). " +
+                      $"{preview.MissingFiles} fichier(s) manquant(s) seront ignorés. Aucun fichier ne sera écrasé.",
             PrimaryButtonText = "Réorganiser",
             CloseButtonText = "Annuler",
             DefaultButton = ContentDialogButton.Close

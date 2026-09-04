@@ -17,6 +17,7 @@ public sealed partial class IracingCopyPage : Page
     private const int PageSize = 100;
     private readonly ObservableCollection<CopyRow> rows = [];
     private readonly HashSet<Guid> loadedIds = [];
+    private readonly Dictionary<Guid, CopyRow> selectedRows = [];
     private readonly SemaphoreSlim pageLoadLock = new(1, 1);
     private readonly SingleFlightGate incrementalLoadGate = new();
     private bool isPageActive;
@@ -30,6 +31,7 @@ public sealed partial class IracingCopyPage : Page
     private SetupFilterOptions? filterOptions;
     private CancellationTokenSource? searchDelayCancellation;
     private CancellationTokenSource? pageLoadCancellation;
+    private bool restoringSelection;
 
     public IracingCopyPage()
     {
@@ -109,6 +111,19 @@ public sealed partial class IracingCopyPage : Page
 
     private void OnSelectAll(object sender, RoutedEventArgs e) => SetupList.SelectAll();
 
+    private void OnDeselectAll(object sender, RoutedEventArgs e)
+    {
+        selectedRows.Clear();
+        SetupList.SelectedItems.Clear();
+    }
+
+    private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (restoringSelection) return;
+        foreach (var row in e.AddedItems.OfType<CopyRow>()) selectedRows[row.Id] = row;
+        foreach (var row in e.RemovedItems.OfType<CopyRow>()) selectedRows.Remove(row.Id);
+    }
+
     private async void OnFilterChanged(object sender, object e)
     {
         if (!filtersReady) return;
@@ -179,7 +194,7 @@ public sealed partial class IracingCopyPage : Page
             return;
         }
 
-        var selected = SetupList.SelectedItems.Cast<CopyRow>().ToList();
+        var selected = selectedRows.Values.ToList();
         if (selected.Count == 0)
         {
             Show("Sélectionnez au moins un setup validé.", InfoBarSeverity.Warning);
@@ -288,20 +303,20 @@ public sealed partial class IracingCopyPage : Page
     private void PopulateFilters()
     {
         filtersReady = false;
-        FillFilter(ProviderFilter, previewMode ? previewRows.Select(item => item.Provider) : filterOptions?.Providers ?? []);
-        FillFilter(CategoryFilter, previewMode ? previewRows.Select(item => item.Category) : filterOptions?.Categories ?? []);
-        FillFilter(SeasonFilter, previewMode ? previewRows.Select(item => item.Season) : filterOptions?.Seasons ?? []);
-        FillFilter(WeekFilter, previewMode ? previewRows.Select(item => item.WeekDisplay) : filterOptions?.Weeks ?? []);
-        FillFilter(CarFilter, previewMode ? previewRows.Select(item => item.Car) : filterOptions?.Cars ?? []);
-        FillFilter(TrackFilter, previewMode ? previewRows.Select(item => item.Track) : filterOptions?.Tracks ?? []);
-        CopyStatusFilter.ItemsSource = new[] { "À copier", "Déjà copiés", "Tous" };
+        FillFilter(ProviderFilter, "Fournisseur", previewMode ? previewRows.Select(item => item.Provider) : filterOptions?.Providers ?? []);
+        FillFilter(CategoryFilter, "Catégorie", previewMode ? previewRows.Select(item => item.Category) : filterOptions?.Categories ?? []);
+        FillFilter(SeasonFilter, "Saison", previewMode ? previewRows.Select(item => item.Season) : filterOptions?.Seasons ?? []);
+        FillFilter(WeekFilter, "Week", previewMode ? previewRows.Select(item => item.WeekDisplay) : filterOptions?.Weeks ?? []);
+        FillFilter(CarFilter, "Voiture", previewMode ? previewRows.Select(item => item.Car) : filterOptions?.Cars ?? []);
+        FillFilter(TrackFilter, "Circuit", previewMode ? previewRows.Select(item => item.Track) : filterOptions?.Tracks ?? []);
+        CopyStatusFilter.ItemsSource = new[] { "À copier", "Déjà copiés", "État de copie" };
         CopyStatusFilter.SelectedIndex = previewMode ? 2 : 0;
         filtersReady = true;
     }
 
-    private static void FillFilter(ComboBox filter, IEnumerable<string> values)
+    private static void FillFilter(ComboBox filter, string label, IEnumerable<string> values)
     {
-        filter.ItemsSource = new[] { "Tous" }.Concat(values
+        filter.ItemsSource = new[] { label }.Concat(values
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(value => value, StringComparer.CurrentCultureIgnoreCase))
@@ -329,8 +344,7 @@ public sealed partial class IracingCopyPage : Page
             (search.Length == 0 || new[] { item.OriginalFileName, item.Provider, item.Category, item.Season, item.WeekDisplay, item.Car, item.Track }
                 .Any(value => value.Contains(search, StringComparison.CurrentCultureIgnoreCase))))
             .ToList();
-        rows.Clear();
-        foreach (var row in filtered) rows.Add(row);
+        ReplaceRows(filtered);
         totalCount = previewRows.Count;
         UpdateResultPresentation();
         RebuildActiveFilters();
@@ -341,7 +355,7 @@ public sealed partial class IracingCopyPage : Page
         var version = Interlocked.Increment(ref queryVersion);
         pageLoadCancellation?.Cancel();
         pageLoadCancellation = new CancellationTokenSource();
-        rows.Clear();
+        ClearVisibleRows();
         loadedIds.Clear();
         totalCount = 0;
         UpdateResultPresentation();
@@ -364,6 +378,7 @@ public sealed partial class IracingCopyPage : Page
             {
                 if (loadedIds.Add(setup.Id)) rows.Add(CopyRow.FromSetup(setup, isTeam));
             }
+            RestoreVisibleSelection();
             UpdateResultPresentation();
         }
         catch (OperationCanceledException) { }
@@ -404,6 +419,39 @@ public sealed partial class IracingCopyPage : Page
         })) incrementalLoadGate.Exit();
     }
 
+    private void ReplaceRows(IEnumerable<CopyRow> replacement)
+    {
+        restoringSelection = true;
+        try
+        {
+            rows.Clear();
+            foreach (var row in replacement) rows.Add(row);
+            RestoreVisibleSelectionCore();
+        }
+        finally { restoringSelection = false; }
+    }
+
+    private void ClearVisibleRows()
+    {
+        restoringSelection = true;
+        try { rows.Clear(); }
+        finally { restoringSelection = false; }
+    }
+
+    private void RestoreVisibleSelection()
+    {
+        restoringSelection = true;
+        try { RestoreVisibleSelectionCore(); }
+        finally { restoringSelection = false; }
+    }
+
+    private void RestoreVisibleSelectionCore()
+    {
+        SetupList.SelectedItems.Clear();
+        foreach (var row in rows.Where(row => selectedRows.ContainsKey(row.Id)))
+            SetupList.SelectedItems.Add(row);
+    }
+
     private void UpdateResultPresentation()
     {
         SelectionSummary.Text = previewMode
@@ -417,26 +465,30 @@ public sealed partial class IracingCopyPage : Page
         var search = SearchBox.Text.Trim();
         var active = new List<(string Key, string Label)>();
         if (!string.IsNullOrWhiteSpace(search)) active.Add(("search", $"Recherche : {search}"));
-        AddActive(active, "provider", "Fournisseur", ProviderFilter.SelectedItem as string);
-        AddActive(active, "category", "Catégorie", CategoryFilter.SelectedItem as string);
-        AddActive(active, "season", "Saison", SeasonFilter.SelectedItem as string);
-        AddActive(active, "week", "Week", WeekFilter.SelectedItem as string);
-        AddActive(active, "car", "Voiture", CarFilter.SelectedItem as string);
-        AddActive(active, "track", "Circuit", TrackFilter.SelectedItem as string);
-        AddActive(active, "copy-status", "État", CopyStatusFilter.SelectedItem as string);
+        AddActive(active, "provider", "Fournisseur", Selection(ProviderFilter));
+        AddActive(active, "category", "Catégorie", Selection(CategoryFilter));
+        AddActive(active, "season", "Saison", Selection(SeasonFilter));
+        AddActive(active, "week", "Week", Selection(WeekFilter));
+        AddActive(active, "car", "Voiture", Selection(CarFilter));
+        AddActive(active, "track", "Circuit", Selection(TrackFilter));
+        AddActive(active, "copy-status", "État", Selection(CopyStatusFilter));
         FilterPresentation.Rebuild(ActiveFiltersPanel, active, OnRemoveFilter);
     }
 
-    private static string? Selection(ComboBox filter) =>
-        filter.SelectedItem is string value && value != "Tous" ? value : null;
+    private string? Selection(ComboBox filter)
+    {
+        if (filter.SelectedItem is not string value) return null;
+        if (filter == CopyStatusFilter) return value == "État de copie" ? null : value;
+        return filter.SelectedIndex > 0 ? value : null;
+    }
 
     private static void AddActive(List<(string Key, string Label)> filters, string key, string label, string? value)
     {
-        if (!string.IsNullOrWhiteSpace(value) && value != "Tous") filters.Add((key, $"{label} : {value}"));
+        if (!string.IsNullOrWhiteSpace(value)) filters.Add((key, $"{label} : {value}"));
     }
 
-    private static bool MatchesSelection(string value, ComboBox filter) =>
-        filter.SelectedItem is not string selected || selected == "Tous" || value.Equals(selected, StringComparison.OrdinalIgnoreCase);
+    private bool MatchesSelection(string value, ComboBox filter) =>
+        Selection(filter) is not string selected || value.Equals(selected, StringComparison.OrdinalIgnoreCase);
 
     private bool MatchesCopyStatus(CopyRow row) =>
         previewMode || CopyStatusFilter.SelectedItem switch

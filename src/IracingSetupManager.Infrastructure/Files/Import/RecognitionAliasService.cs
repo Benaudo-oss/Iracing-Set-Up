@@ -36,6 +36,9 @@ public sealed class RecognitionAliasService(ISetupDbContextFactory contextFactor
         CancellationToken cancellationToken = default)
     {
         var cleanAlias = alias.Trim();
+        canonicalValue = kind == RecognitionAliasKind.Track
+            ? SetupCatalog.CanonicalizeTrack(canonicalValue)
+            : canonicalValue.Trim();
         var normalized = Normalize(cleanAlias);
         if (normalized.Length < 3)
             throw new InvalidOperationException("L’abréviation doit contenir au moins 3 caractères significatifs.");

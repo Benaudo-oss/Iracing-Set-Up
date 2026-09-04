@@ -10,7 +10,7 @@ des setups iRacing sans modifier les fichiers originaux.
 
 ## État du projet
 
-La version actuelle est `1.3.12.40`. Elle comprend la bibliothèque locale, la
+La version actuelle est `1.4.12.43`. Elle comprend la bibliothèque locale, la
 surveillance des dossiers autorisés, la validation, la copie vers iRacing et
 iRacing Team, les sauvegardes et les mises à jour automatiques.
 
@@ -23,9 +23,9 @@ iRacing Team, les sauvegardes et les mises à jour automatiques.
 - xUnit pour les tests
 - GitHub Actions pour l'intégration continue
 
-Les fournisseurs, catégories et voitures prises en charge sont définis dans un
-catalogue unique. Les alias de circuits sont partagés entre l'analyse des noms de
-fichiers et l'import du catalogue local iRacing.
+Les fournisseurs, catégories, voitures et noms officiels de circuits sont définis
+dans un catalogue unique. Les alias restent utilisables pour analyser les noms de
+fichiers, mais l’archive emploie toujours une écriture officielle et stable.
 
 ## Organisation
 
@@ -108,7 +108,7 @@ dotnet publish src/IracingSetupManager.App/IracingSetupManager.App.csproj `
 
 ### Installateur Windows
 
-La commande `installer/Build-Installer.ps1 -Version 1.3.12.40` publie l’application
+La commande `installer/Build-Installer.ps1 -Version 1.4.12.43` publie l’application
 autonome, génère l’installateur Inno Setup versionné et son empreinte SHA-256. Le
 même identifiant d’application assure installation, désinstallation et mise à
 niveau. L’installateur ne supprime jamais `%LocalAppData%\IracingSetupManager`,

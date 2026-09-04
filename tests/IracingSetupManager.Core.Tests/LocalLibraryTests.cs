@@ -114,15 +114,22 @@ public sealed class LocalLibraryTests
             Status = SetupStatus.AVerifier, DownloadedAtUtc = DateTimeOffset.UtcNow
         });
 
-        var moved = await new ArchiveReorganizationService(
+        var service = new ArchiveReorganizationService(
             environment.Factory,
             new ArchivePathBuilder(),
-            new Sha256Calculator()).ReorganizeAsync(environment.ArchivePath);
+            new Sha256Calculator());
+        var preview = await service.PreviewAsync(environment.ArchivePath);
+        var moved = await service.ReorganizeAsync(environment.ArchivePath);
         var setup = Assert.Single(await new SetupQueryService(environment.Factory).GetAllAsync());
 
+        Assert.Equal(1, preview.FilesToMove);
+        Assert.Equal(1, preview.MetadataToNormalize);
+        Assert.Equal(0, preview.MissingFiles);
         Assert.Equal(1, moved);
         Assert.False(File.Exists(oldPath));
-        Assert.Equal(Path.Combine(environment.ArchivePath, "2026_S3", "Week inconnue", "Le Mans", "bmwm4gt3", "VRS", Path.GetFileName(oldPath)), setup.ArchivePath);
+        Assert.False(Directory.Exists(oldDirectory));
+        Assert.Equal(Path.Combine(environment.ArchivePath, "2026_S3", "Week inconnue", "Circuit des 24 Heures du Mans", "bmwm4gt3", "VRS", Path.GetFileName(oldPath)), setup.ArchivePath);
+        Assert.Equal("Circuit des 24 Heures du Mans", setup.Track);
         Assert.True(File.Exists(setup.ArchivePath));
     }
 

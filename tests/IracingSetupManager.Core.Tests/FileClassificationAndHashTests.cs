@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using IracingSetupManager.Core.Catalog;
 using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Files;
 using IracingSetupManager.Infrastructure.Files.Import;
@@ -9,6 +10,25 @@ namespace IracingSetupManager.Core.Tests;
 
 public sealed class FileClassificationAndHashTests
 {
+    [Theory]
+    [InlineData("GO", "GO Setups")]
+    [InlineData("go-setups", "GO Setups")]
+    [InlineData("GNG", "Grid & Go")]
+    [InlineData("Grid and Go", "Grid & Go")]
+    [InlineData("Coach Dave Academy", "Coach Dave Academy (CDA)")]
+    [InlineData("CDA", "Coach Dave Academy (CDA)")]
+    public void ProviderFolderNamesAreCanonical(string alias, string expected) =>
+        Assert.Equal(expected, SetupCatalog.CanonicalizeProvider(alias));
+
+    [Theory]
+    [InlineData("Le Mans", "Circuit des 24 Heures du Mans")]
+    [InlineData("Circuit des 24 Heures du Mans", "Circuit des 24 Heures du Mans")]
+    [InlineData("Monza", "Autodromo Nazionale Monza")]
+    [InlineData("Watkins Glen", "Watkins Glen International")]
+    [InlineData("Spa-Francorchamps", "Circuit de Spa-Francorchamps")]
+    public void TrackFolderNamesAreOfficialAndStable(string alias, string expected) =>
+        Assert.Equal(expected, SetupCatalog.CanonicalizeTrack(alias));
+
     [Fact]
     public void AnalyzerRecognizesVrsVantageGt4CompactAlias()
     {
@@ -19,7 +39,7 @@ public sealed class FileClassificationAndHashTests
         Assert.Equal("VRS", metadata.Provider);
         Assert.Equal("GT4", metadata.Category);
         Assert.Equal("Aston Martin Vantage GT4", metadata.Car);
-        Assert.Equal("Spa-Francorchamps", metadata.Track);
+        Assert.Equal("Circuit de Spa-Francorchamps", metadata.Track);
     }
 
     [Theory]
@@ -180,7 +200,7 @@ public sealed class FileClassificationAndHashTests
 
         var result = new ArchivePathBuilder().BuildDirectory(Path.GetTempPath(), metadata);
 
-        Assert.Contains(Path.Combine("Watkins Glen", "porsche9922cup", "VRS"), result);
+        Assert.Contains(Path.Combine("Watkins Glen International", "porsche9922cup", "VRS"), result);
     }
 
     [Fact]
@@ -279,7 +299,7 @@ public sealed class FileClassificationAndHashTests
 
         Assert.Equal("2026 S3", metadata.Season);
         Assert.Equal(5, metadata.Week);
-        Assert.Equal("Le Mans", metadata.Track);
+        Assert.Equal("Circuit des 24 Heures du Mans", metadata.Track);
     }
 
     [Fact]
@@ -290,7 +310,7 @@ public sealed class FileClassificationAndHashTests
 
         Assert.Equal("2026 S2", metadata.Season);
         Assert.Equal(11, metadata.Week);
-        Assert.Equal("Le Mans", metadata.Track);
+        Assert.Equal("Circuit des 24 Heures du Mans", metadata.Track);
         Assert.Equal("24 Heures du Mans", metadata.TrackConfiguration);
     }
 
@@ -301,7 +321,7 @@ public sealed class FileClassificationAndHashTests
 
         var result = new ArchivePathBuilder().BuildDirectory(Path.GetTempPath(), metadata);
 
-        Assert.Contains(Path.Combine("2026_S3", "Week inconnue", "Le Mans"), result);
+        Assert.Contains(Path.Combine("2026_S3", "Week inconnue", "Circuit des 24 Heures du Mans"), result);
     }
 
     [Theory]
@@ -316,20 +336,20 @@ public sealed class FileClassificationAndHashTests
 
         var result = new ArchivePathBuilder().BuildDirectory(Path.GetTempPath(), metadata);
 
-        Assert.Contains(Path.Combine("2026_S3", expectedFolder, "Le Mans"), result);
+        Assert.Contains(Path.Combine("2026_S3", expectedFolder, "Circuit des 24 Heures du Mans"), result);
     }
 
     [Theory]
-    [InlineData("GO_26S3_GTS_720SGT3_LeMans_R_Safe.sto", "GO Setups", "McLaren 720S GT3 EVO", "GT3", "Le Mans", "Race Safe")]
-    [InlineData("VRS_26S3PG_M4GT3_LeMans_R1_V2.sto", "VRS", "BMW M4 GT3", "GT3", "Le Mans", "Race V2")]
-    [InlineData("HYMO_IMSA_26S3_ARX06_Fuji_WR.sto", "HYMO", "Acura ARX-06 GTP", "GTP", "Fuji", "Wet Race")]
-    [InlineData("HYMO_IMSA_26S3_ARX_Fuji_R.sto", "HYMO", "Acura ARX-06 GTP", "GTP", "Fuji", "Race")]
-    [InlineData("HYMO_IMSA_26S3_NSX_Fuji_WR.sto", "HYMO", "Acura NSX GT3 EVO 22", "GT3", "Fuji", "Wet Race")]
-    [InlineData("26S3-W07-GnG-Monza-BMWGTP-R-Safe.sto", "Grid & Go", "BMW M Hybrid V8", "GTP", "Monza", "Race Safe")]
+    [InlineData("GO_26S3_GTS_720SGT3_LeMans_R_Safe.sto", "GO Setups", "McLaren 720S GT3 EVO", "GT3", "Circuit des 24 Heures du Mans", "Race Safe")]
+    [InlineData("VRS_26S3PG_M4GT3_LeMans_R1_V2.sto", "VRS", "BMW M4 GT3", "GT3", "Circuit des 24 Heures du Mans", "Race V2")]
+    [InlineData("HYMO_IMSA_26S3_ARX06_Fuji_WR.sto", "HYMO", "Acura ARX-06 GTP", "GTP", "Fuji International Speedway", "Wet Race")]
+    [InlineData("HYMO_IMSA_26S3_ARX_Fuji_R.sto", "HYMO", "Acura ARX-06 GTP", "GTP", "Fuji International Speedway", "Race")]
+    [InlineData("HYMO_IMSA_26S3_NSX_Fuji_WR.sto", "HYMO", "Acura NSX GT3 EVO 22", "GT3", "Fuji International Speedway", "Wet Race")]
+    [InlineData("26S3-W07-GnG-Monza-BMWGTP-R-Safe.sto", "Grid & Go", "BMW M Hybrid V8", "GTP", "Autodromo Nazionale Monza", "Race Safe")]
     [InlineData("SRS_26S3_M8_Mosport_R.sto", "SRS", "BMW M8 GTE", "GTE", "Canadian Tire Motorsport Park", "Race")]
     [InlineData("SRS_26S3_Caddy_Mosport_R.sto", "SRS", "Cadillac V-Series.R GTP", "GTP", "Canadian Tire Motorsport Park", "Race")]
-    [InlineData("P1Doks_26S3_M4GT3_LeMans_R.sto", "P1Doks", "BMW M4 GT3", "GT3", "Le Mans", "Race")]
-    [InlineData("CDA_26S3_M4GT3_LeMans_R.sto", "Coach Dave Academy (CDA)", "BMW M4 GT3", "GT3", "Le Mans", "Race")]
+    [InlineData("P1Doks_26S3_M4GT3_LeMans_R.sto", "P1Doks", "BMW M4 GT3", "GT3", "Circuit des 24 Heures du Mans", "Race")]
+    [InlineData("CDA_26S3_M4GT3_LeMans_R.sto", "Coach Dave Academy (CDA)", "BMW M4 GT3", "GT3", "Circuit des 24 Heures du Mans", "Race")]
     public void MetadataAnalyzerUnderstandsKnownProviderNamingConventions(
         string fileName,
         string provider,
@@ -461,13 +481,13 @@ public sealed class FileClassificationAndHashTests
     {
         var metadata = new SetupMetadataAnalyzer().Analyze("HYMO_GTS_26S3_M4GT3_Glen_R.sto");
 
-        Assert.Equal("Watkins Glen", metadata.Track);
+        Assert.Equal("Watkins Glen International", metadata.Track);
     }
 
     [Theory]
-    [InlineData("VRS_26S3_M4GT3_Mexico_R.sto", "Mexique")]
-    [InlineData("HYMO_26S3_M4GT3_StPete_R.sto", "Saint-Pétersbourg")]
-    [InlineData("GO_26S3_992Cup_Adelaide_R.sto", "Adelaide")]
+    [InlineData("VRS_26S3_M4GT3_Mexico_R.sto", "Autódromo Hermanos Rodríguez")]
+    [InlineData("HYMO_26S3_M4GT3_StPete_R.sto", "St. Petersburg Street Circuit")]
+    [InlineData("GO_26S3_992Cup_Adelaide_R.sto", "Adelaide Street Circuit")]
     public void MetadataAnalyzerRecognizesLocalizedTrackAliases(string fileName, string expectedTrack)
     {
         var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
@@ -480,13 +500,13 @@ public sealed class FileClassificationAndHashTests
     [InlineData("VRS_26S3_M4GT3_roadam_R.sto", "Road America")]
     [InlineData("VRS_26S3_M4GT3_bathrust_R.sto", "Mount Panorama Circuit")]
     [InlineData("VRS_26S3_M4GT3_magny_R.sto", "Circuit de Nevers Magny-Cours")]
-    [InlineData("VRS_26S3_M4GT3_watkins_R.sto", "Watkins Glen")]
-    [InlineData("HYMO_26S3_M4GT3_RoAtlanta_R.sto", "Road Atlanta")]
-    [InlineData("GO_26S3_720SGT3_Detroit_R.sto", "Detroit Belle Isle")]
+    [InlineData("VRS_26S3_M4GT3_watkins_R.sto", "Watkins Glen International")]
+    [InlineData("HYMO_26S3_M4GT3_RoAtlanta_R.sto", "Michelin Raceway Road Atlanta")]
+    [InlineData("GO_26S3_720SGT3_Detroit_R.sto", "Raceway at Belle Isle Park")]
     [InlineData("VRS_26S3_M4GT3_Thruxton_R.sto", "Thruxton Circuit")]
     [InlineData("VRS_26S3_M4GT3_nuerbconbined_R.sto", "Nürburgring Combined")]
-    [InlineData("HYMO_26S3_M4GT3_Zandvoort_R.sto", "Zandvoort")]
-    [InlineData("GO_26S3_720SGT3_Suzuka_R.sto", "Suzuka")]
+    [InlineData("HYMO_26S3_M4GT3_Zandvoort_R.sto", "Circuit Zandvoort")]
+    [InlineData("GO_26S3_720SGT3_Suzuka_R.sto", "Suzuka International Racing Course")]
     [InlineData("VRS26S3M4GT3RoAmericaR.sto", "Road America")]
     public void MetadataAnalyzerRecognizesCommonTrackVariations(string fileName, string expectedTrack)
     {
@@ -513,14 +533,14 @@ public sealed class FileClassificationAndHashTests
     {
         var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
 
-        Assert.Equal("Donington Park", metadata.Track);
+        Assert.Equal("Donington Park Racing Circuit", metadata.Track);
         Assert.Equal("National", metadata.TrackConfiguration);
     }
 
     [Theory]
     [InlineData("VRS_26S3_M4GT3_Barcelone_R.sto", "Circuit de Barcelona-Catalunya")]
     [InlineData("VRS_26S3_M4GT3_LagunaSeca_R.sto", "WeatherTech Raceway Laguna Seca")]
-    [InlineData("HYMO_26S3_M4GT3_PhillipIslad_R.sto", "Phillip Island")]
+    [InlineData("HYMO_26S3_M4GT3_PhillipIslad_R.sto", "Phillip Island Grand Prix Circuit")]
     [InlineData("GO_26S3_720SGT3_Silverston_R.sto", "Silverstone Circuit")]
     [InlineData("VRS_26S3_M4GT3_Oscherslebe_R.sto", "Motorsport Arena Oschersleben")]
     [InlineData("HYMO_26S3_M4GT3_MagnyCour_R.sto", "Circuit de Nevers Magny-Cours")]

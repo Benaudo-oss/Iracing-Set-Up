@@ -4,6 +4,7 @@ using IracingSetupManager.Infrastructure.Files.Monitoring;
 using IracingSetupManager.Infrastructure.Settings;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Resilience;
 
@@ -25,7 +26,7 @@ public sealed partial class SynchronizationPage : Page
     {
         InitializeComponent();
         SynchronizationResultsList.ItemsSource = results;
-        WeekFilter.ItemsSource = new[] { "Toutes les Weeks" }
+        WeekFilter.ItemsSource = new[] { "Week" }
             .Concat(Enumerable.Range(1, 13).Select(week => $"Week {week:00}"))
             .Concat(["Week NEC", "Week inconnue", "Sans Week"])
             .ToList();
@@ -143,8 +144,9 @@ public sealed partial class SynchronizationPage : Page
         resultOrder.Clear();
         visibleResultCapacity = ResultPageSize;
         EmptyResultsText.Visibility = Visibility.Visible;
-        ProgressText.Text = "Aucune synchronisation en cours";
+        ProgressText.Text = "Progression";
         ProgressCountersText.Text = string.Empty;
+        CurrentFileText.Text = string.Empty;
         ScanProgress.Value = 0;
     }
 
@@ -192,19 +194,29 @@ public sealed partial class SynchronizationPage : Page
         }
         else if (resultIndexes.TryGetValue(progress.FilePath, out var visibleIndex)) RemoveVisibleResultAt(visibleIndex);
         EmptyResultsText.Visibility = Visibility.Collapsed;
-        ProgressText.Text = progress.Automatic ? "Synchronisation automatique" : "Synchronisation manuelle";
+        ProgressText.Text = progress.Automatic ? "Progression automatique" : "Progression manuelle";
+        CurrentFileText.Text = row.FileName;
         if (progress.Total > 0)
         {
             ScanProgress.IsIndeterminate = false;
             ScanProgress.Maximum = progress.Total;
             ScanProgress.Value = progress.Completed;
-            ProgressCountersText.Text = $"{progress.Completed} / {progress.Total}";
+            UpdateLiveCounters(progress.Completed, progress.Total);
         }
         else
         {
             ScanProgress.IsIndeterminate = progress.State == SynchronizationFileState.Analyzing;
             ProgressCountersText.Text = progress.Automatic ? "Traitement en arrière-plan" : string.Empty;
         }
+    }
+
+    private void UpdateLiveCounters(int completed, int total)
+    {
+        var imported = allResultRows.Values.Count(item => item.StateCode == SynchronizationFileState.Imported);
+        var duplicates = allResultRows.Values.Count(item => item.StateCode == SynchronizationFileState.Duplicate);
+        var ignored = allResultRows.Values.Count(item => item.StateCode is SynchronizationFileState.Filtered or SynchronizationFileState.Unsupported);
+        var errors = allResultRows.Values.Count(item => item.StateCode == SynchronizationFileState.Error);
+        ProgressCountersText.Text = $"{completed}/{total} analysés · {imported} importés · {duplicates} doublons · {ignored} ignorés · {errors} erreurs";
     }
 
     private void ReloadStoredResults()
@@ -231,7 +243,7 @@ public sealed partial class SynchronizationPage : Page
     }
 
     private bool MatchesWeek(SynchronizationResultRow row) =>
-        WeekFilter.SelectedItem is not string selected || selected == "Toutes les Weeks" ||
+        WeekFilter.SelectedItem is not string selected || selected == "Week" ||
         row.WeekDisplay.Equals(selected, StringComparison.OrdinalIgnoreCase);
 
     private void RebuildVisibleResults()
@@ -292,6 +304,7 @@ public sealed partial class SynchronizationPage : Page
         ScanProgress.Maximum = Math.Max(1, summary.Detected);
         ScanProgress.Value = summary.Detected;
         ProgressText.Text = summary.Cancelled ? "Synchronisation interrompue" : "Synchronisation terminée";
+        CurrentFileText.Text = string.Empty;
         ProgressCountersText.Text = $"{summary.Detected} détecté(s) · {summary.Imported} importé(s) · {summary.Duplicates} doublon(s) · {summary.Filtered} filtré(s) · {summary.Errors} erreur(s) · {summary.Duration.TotalSeconds:N0} s";
         if (!showInfo) return;
         ActionInfo.Severity = summary.Errors > 0 ? InfoBarSeverity.Warning : InfoBarSeverity.Success;
@@ -341,13 +354,48 @@ public sealed partial class SynchronizationPage : Page
         foreach (var item in items) item.Box.IsChecked = values.Contains(item.Value);
     }
 
-    private sealed record SynchronizationResultRow(string FullPath, string FileName, string WeekDisplay, SetupWeekKind WeekKind, string State, string Message)
+    private sealed record SynchronizationResultRow(
+        string FullPath,
+        string FileName,
+        string WeekDisplay,
+        SetupWeekKind WeekKind,
+        SynchronizationFileState StateCode,
+        string State,
+        string Message)
     {
+        public SolidColorBrush StateBackground => LibraryPage.Brush(StateCode switch
+        {
+            SynchronizationFileState.Imported => "#FF173C26",
+            SynchronizationFileState.Duplicate => "#FF183852",
+            SynchronizationFileState.Error => "#FF4B2222",
+            SynchronizationFileState.Filtered or SynchronizationFileState.Unsupported => "#FF493313",
+            _ => "#FF292D34"
+        });
+
+        public SolidColorBrush StateBorder => LibraryPage.Brush(StateCode switch
+        {
+            SynchronizationFileState.Imported => "#FF28643B",
+            SynchronizationFileState.Duplicate => "#FF285D84",
+            SynchronizationFileState.Error => "#FF773331",
+            SynchronizationFileState.Filtered or SynchronizationFileState.Unsupported => "#FF78541C",
+            _ => "#FF454B55"
+        });
+
+        public SolidColorBrush StateForeground => LibraryPage.Brush(StateCode switch
+        {
+            SynchronizationFileState.Imported => "#FFA9E8B3",
+            SynchronizationFileState.Duplicate => "#FFA9D8FF",
+            SynchronizationFileState.Error => "#FFFFAAA5",
+            SynchronizationFileState.Filtered or SynchronizationFileState.Unsupported => "#FFFFD18A",
+            _ => "#FFE2E6EC"
+        });
+
         public static SynchronizationResultRow From(SynchronizationProgress progress) => new(
             progress.FilePath,
             Path.GetFileName(progress.FilePath),
             progress.Result?.WeekDisplay ?? "—",
             progress.Result?.WeekKind ?? SetupWeekKind.Unknown,
+            progress.State,
             progress.State switch
             {
                 SynchronizationFileState.Detected => "Détecté",

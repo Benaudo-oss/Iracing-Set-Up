@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using IracingSetupManager.Core.Catalog;
 using IracingSetupManager.Core.Setups;
 
 namespace IracingSetupManager.Infrastructure.Files.Import;
@@ -14,9 +15,9 @@ public sealed class ArchivePathBuilder
             Path.GetFullPath(archiveRoot),
             FormatSeasonFolder(metadata.Season),
             SetupWeekPresentation.Display(metadata.Week, metadata.EffectiveWeekKind),
-            SanitizeFolder(metadata.Track),
+            SanitizeFolder(SetupCatalog.CanonicalizeTrack(metadata.Track)),
             SetupMetadataAnalyzer.ResolveIracingFolderName(metadata.Car, []) ?? SanitizeFolder(metadata.Car),
-            SanitizeFolder(metadata.Provider));
+            SanitizeFolder(SetupCatalog.CanonicalizeProvider(metadata.Provider)));
     }
 
 

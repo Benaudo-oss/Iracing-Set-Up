@@ -5,10 +5,12 @@ using IracingSetupManager.Infrastructure.Database.Entities;
 using IracingSetupManager.Infrastructure.Files.Import;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using IracingSetupManager.App.Services;
 using IracingSetupManager.Core.Presentation;
 using IracingSetupManager.Core.Catalog;
 using IracingSetupManager.Infrastructure.Resilience;
+using IracingSetupManager.Infrastructure.Iracing;
 
 namespace IracingSetupManager.App.Views;
 
@@ -43,8 +45,8 @@ public sealed partial class ReviewPage : Page
         CarFilter.ItemsSource = _cars;
         TrackFilter.ItemsSource = _tracks;
         WeekFilter.ItemsSource = _weeks;
-        IdentificationFilter.ItemsSource = new[] { "Tous", "À identifier", "Identifiés" };
-        IdentificationFilter.SelectedIndex = 0;
+        IdentificationFilter.ItemsSource = new[] { "À identifier", "Identifiés" };
+        IdentificationFilter.SelectedItem = null;
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -110,7 +112,8 @@ public sealed partial class ReviewPage : Page
         IsIdentified(setup.Category) &&
         IsIdentified(setup.Car) &&
         IsIdentified(setup.Track) &&
-        IsIdentified(setup.Season);
+        IsIdentified(setup.Season) &&
+        SetupWeekPresentation.EffectiveKind(setup.Week, setup.WeekKind) != SetupWeekKind.Unknown;
 
     private static bool IsIdentified(string? value) =>
         !string.IsNullOrWhiteSpace(value) &&
@@ -308,6 +311,9 @@ public sealed partial class ReviewPage : Page
     private async Task ValidateOneAsync(object sender)
     {
         if (!TryGetSetupId(sender, out var setupId)) return;
+        var setup = _visibleSetups.FirstOrDefault(item => item.Id == setupId);
+        if (setup is null) return;
+        if (!await ResolveUnknownWeeksAsync([setup])) return;
         await App.Services.Validation.ValidateAsync(setupId);
         ShowSuccess("Le setup a été validé.");
         RemoveSetup(setupId);
@@ -358,7 +364,8 @@ public sealed partial class ReviewPage : Page
 
     private async Task RunGroupedActionAsync(bool validate)
     {
-        var ids = ReviewList.SelectedItems.Cast<SetupEntity>().Select(item => item.Id).ToList();
+        var selected = ReviewList.SelectedItems.Cast<SetupEntity>().ToList();
+        var ids = selected.Select(item => item.Id).ToList();
         if (ids.Count == 0)
         {
             ShowWarning("Sélectionnez au moins un setup.");
@@ -377,11 +384,95 @@ public sealed partial class ReviewPage : Page
         };
         if (await dialog.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
 
+        if (validate && !await ResolveUnknownWeeksAsync(selected)) return;
         if (validate) await App.Services.Validation.ValidateManyAsync(ids, true);
         else await App.Services.Validation.RefuseManyAsync(ids, true);
 
         ShowSuccess($"{ids.Count} setup(s) ont été traités.");
         foreach (var id in ids) RemoveSetup(id);
+    }
+
+    private async Task<bool> ResolveUnknownWeeksAsync(IReadOnlyCollection<SetupEntity> setups)
+    {
+        var unknown = setups.Where(item =>
+                SetupWeekPresentation.EffectiveKind(item.Week, item.WeekKind) == SetupWeekKind.Unknown)
+            .ToList();
+        if (unknown.Count == 0) return true;
+
+        var choice = await AskWeekAsync(unknown);
+        if (choice is null) return false;
+
+        await App.Services.SetupCorrection.CorrectManyAsync(
+            unknown.Select(item => item.Id).ToArray(),
+            new SetupBatchCorrection(Week: choice.Week, WeekKind: choice.Kind));
+        return true;
+    }
+
+    private async Task<SetupWeekChoice?> AskWeekAsync(IReadOnlyCollection<SetupEntity> setups)
+    {
+        SetupWeekChoice? selectedWeek = null;
+        var weekButtons = new List<ToggleButton>();
+        var weekGrid = new Grid { RowSpacing = 8, ColumnSpacing = 8 };
+        for (var column = 0; column < 8; column++)
+            weekGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        weekGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        weekGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var description = setups.Count == 1
+            ? $"Choisissez la Week pour :\n{setups.First().OriginalFileName}"
+            : $"Choisissez la même Week pour les {setups.Count} setups dont la Week est inconnue.";
+        var content = new StackPanel { Spacing = 12 };
+        content.Children.Add(new TextBlock { Text = description, TextWrapping = TextWrapping.Wrap });
+        content.Children.Add(new TextBlock
+        {
+            Text = "Les setups ayant déjà une Week connue ne seront pas modifiés.",
+            Opacity = 0.75,
+            TextWrapping = TextWrapping.Wrap
+        });
+        content.Children.Add(weekGrid);
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Choisir la Week avant validation",
+            Content = content,
+            PrimaryButtonText = "Confirmer",
+            CloseButtonText = "Annuler",
+            IsPrimaryButtonEnabled = false,
+            DefaultButton = ContentDialogButton.Primary
+        };
+
+        for (var week = 1; week <= 13; week++)
+        {
+            var value = week;
+            var button = new ToggleButton { Content = week.ToString(), Width = 48, Height = 40 };
+            button.Click += (_, _) => Select(button, SetupWeekChoice.Numeric(value));
+            Grid.SetRow(button, (week - 1) / 7);
+            Grid.SetColumn(button, (week - 1) % 7);
+            weekButtons.Add(button);
+            weekGrid.Children.Add(button);
+        }
+
+        AddSpecialChoice("NEC", SetupWeekChoice.Nec, 0, 7);
+        AddSpecialChoice("Sans Week", SetupWeekChoice.NoWeek, 1, 7);
+        return await dialog.ApplyActionStyles().ShowAsync() == ContentDialogResult.Primary ? selectedWeek : null;
+
+        void Select(ToggleButton button, SetupWeekChoice choice)
+        {
+            foreach (var candidate in weekButtons) candidate.IsChecked = false;
+            button.IsChecked = true;
+            selectedWeek = choice;
+            dialog.IsPrimaryButtonEnabled = true;
+        }
+
+        void AddSpecialChoice(string label, SetupWeekChoice choice, int row, int column)
+        {
+            var button = new ToggleButton { Content = label, MinWidth = 78, Height = 40 };
+            button.Click += (_, _) => Select(button, choice);
+            Grid.SetRow(button, row);
+            Grid.SetColumn(button, column);
+            weekButtons.Add(button);
+            weekGrid.Children.Add(button);
+        }
     }
 
     private async Task ReloadAsync(bool refreshOptions = false)
@@ -458,7 +549,7 @@ public sealed partial class ReviewPage : Page
         AddActive(active, "track", "Circuit", TrackFilter.SelectedItem as string);
         AddActive(active, "week", "Week", WeekFilter.SelectedItem as string);
         var identification = IdentificationFilter.SelectedItem as string;
-        if (!string.IsNullOrWhiteSpace(identification) && identification != "Tous")
+        if (!string.IsNullOrWhiteSpace(identification))
             active.Add(("identification", $"Identification : {identification}"));
         FilterPresentation.Rebuild(ActiveFiltersPanel, active, OnRemoveFilter);
     }
@@ -492,7 +583,7 @@ public sealed partial class ReviewPage : Page
         CarFilter.SelectedItem = null;
         TrackFilter.SelectedItem = null;
         WeekFilter.SelectedItem = null;
-        IdentificationFilter.SelectedIndex = 0;
+        IdentificationFilter.SelectedItem = null;
         _suppressFilterChanges = false;
         await UiOperation.RunAsync(ResetPagesAsync, "Impossible d’effacer les filtres", ReviewInfo);
     }
@@ -509,7 +600,7 @@ public sealed partial class ReviewPage : Page
             case "car": CarFilter.SelectedItem = null; break;
             case "track": TrackFilter.SelectedItem = null; break;
             case "week": WeekFilter.SelectedItem = null; break;
-            case "identification": IdentificationFilter.SelectedIndex = 0; break;
+            case "identification": IdentificationFilter.SelectedItem = null; break;
         }
         _suppressFilterChanges = false;
         await UiOperation.RunAsync(ResetPagesAsync, "Impossible de retirer le filtre", ReviewInfo);

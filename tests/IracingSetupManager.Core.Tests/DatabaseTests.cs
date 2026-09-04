@@ -424,7 +424,7 @@ public sealed class DatabaseTests
         Assert.NotNull(refreshed);
         Assert.Equal("VRS", refreshed.Provider);
         Assert.Equal("BMW M4 GT3", refreshed.Car);
-        Assert.Equal("Le Mans", refreshed.Track);
+        Assert.Equal("Circuit des 24 Heures du Mans", refreshed.Track);
         Assert.Equal("2026 S3", refreshed.Season);
         Assert.Equal("Race V2", refreshed.SetupType);
         Assert.Equal(originalArchivePath, refreshed.ArchivePath);
@@ -444,7 +444,7 @@ public sealed class DatabaseTests
         var refreshed = await new SetupRepository(environment.Factory).FindBySha256Async(setup.Sha256);
 
         Assert.NotNull(refreshed);
-        Assert.Equal("Donington Park", refreshed.Track);
+        Assert.Equal("Donington Park Racing Circuit", refreshed.Track);
         Assert.Equal("National", refreshed.TrackConfiguration);
     }
 
@@ -497,6 +497,8 @@ public sealed class DatabaseTests
         TrackConfiguration = "Grand Prix Pits",
         Season = "2026 S3",
         SetupType = "Race",
+        Week = 1,
+        WeekKind = SetupWeekKind.Numeric,
         SizeInBytes = 4096,
         Sha256 = new string('a', 64),
         ArchivePath = @"C:\Archive\2026 S3\Spa\Porsche\HYMO\Race\spa_race.sto",

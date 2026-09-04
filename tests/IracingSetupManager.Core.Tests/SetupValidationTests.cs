@@ -51,6 +51,26 @@ public sealed class SetupValidationTests
     }
 
     [Fact]
+    public async Task UnknownWeekCannotBeValidated()
+    {
+        await using var environment = await ValidationEnvironment.CreateAsync(1);
+        await using (var context = environment.Factory.Create())
+        {
+            var setup = await context.Setups.FindAsync(environment.SetupIds[0]);
+            setup!.Week = null;
+            setup.WeekKind = SetupWeekKind.Unknown;
+            await context.SaveChangesAsync();
+        }
+
+        var service = new SetupValidationService(environment.Factory);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(environment.SetupIds[0]));
+
+        await using var verify = environment.Factory.Create();
+        Assert.Equal(SetupStatus.AVerifier, (await verify.Setups.FindAsync(environment.SetupIds[0]))!.Status);
+        Assert.Empty(await verify.SetupChangeHistory.ToListAsync());
+    }
+
+    [Fact]
     public async Task StoresRatingCommentAndTheirPreviousValuesInHistory()
     {
         await using var environment = await ValidationEnvironment.CreateAsync(1);
@@ -100,6 +120,8 @@ public sealed class SetupValidationTests
                     Car = "Porsche",
                     Track = "Spa",
                     SetupType = "Race",
+                    Week = 1,
+                    WeekKind = SetupWeekKind.Numeric,
                     SizeInBytes = 1024,
                     Sha256 = id.ToString("N").PadRight(64, '0'),
                     ArchivePath = Path.Combine(root, $"{id:N}.sto"),
@@ -123,4 +145,3 @@ public sealed class SetupValidationTests
         }
     }
 }
-

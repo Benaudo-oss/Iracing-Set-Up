@@ -40,7 +40,23 @@ public sealed class SetupCorrectionService(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(correction);
-        foreach (var setupId in setupIds.Distinct())
+        var distinctIds = setupIds.Distinct().ToArray();
+        await using (var validationContext = contextFactory.Create())
+        {
+            var setups = await validationContext.Setups.AsNoTracking()
+                .Where(item => distinctIds.Contains(item.Id))
+                .ToListAsync(cancellationToken);
+            if (setups.Count != distinctIds.Length)
+                throw new KeyNotFoundException("Un setup sélectionné n’existe plus.");
+
+            foreach (var setup in setups)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await ValidateBatchCorrectionAsync(validationContext, setup, correction, cancellationToken);
+            }
+        }
+
+        foreach (var setupId in distinctIds)
         {
             cancellationToken.ThrowIfCancellationRequested();
             await using var context = contextFactory.Create();
@@ -56,14 +72,21 @@ public sealed class SetupCorrectionService(
                 correction.Season ?? setup.Season,
                 correction.SetupType ?? setup.SetupType,
                 Week: correction.WeekKind.HasValue ? correction.Week : setup.Week,
-                WeekKind: correction.WeekKind ?? setup.WeekKind), cancellationToken);
+                WeekKind: correction.WeekKind ?? setup.WeekKind), cancellationToken, validateAllFields: false);
         }
     }
 
-    public async Task CorrectAsync(Guid setupId, SetupCorrection correction, CancellationToken cancellationToken = default)
+    public Task CorrectAsync(Guid setupId, SetupCorrection correction, CancellationToken cancellationToken = default) =>
+        CorrectAsync(setupId, correction, cancellationToken, validateAllFields: true);
+
+    private async Task CorrectAsync(
+        Guid setupId,
+        SetupCorrection correction,
+        CancellationToken cancellationToken,
+        bool validateAllFields)
     {
         await using var context = contextFactory.Create();
-        await ValidateAsync(context, correction, cancellationToken);
+        if (validateAllFields) await ValidateAsync(context, correction, cancellationToken);
         var setup = await context.Setups.SingleOrDefaultAsync(item => item.Id == setupId, cancellationToken)
             ?? throw new KeyNotFoundException("Le setup demandé n’existe pas.");
         var archiveRoot = await context.ApplicationSettings.Where(item => item.Key == "ArchivePath")
@@ -118,6 +141,7 @@ public sealed class SetupCorrectionService(
             if (moved && File.Exists(newPath) && !File.Exists(oldPath)) File.Move(newPath, oldPath);
             throw;
         }
+        if (moved) EmptyArchiveDirectoryCleaner.RemoveEmptyParents(oldPath, archiveRoot);
         if (!string.IsNullOrWhiteSpace(correction.CarAlias))
             await recognitionAliases.SaveAsync(RecognitionAliasKind.Car, correction.CarAlias, correction.Car, cancellationToken);
         if (!string.IsNullOrWhiteSpace(correction.TrackAlias))
@@ -137,6 +161,37 @@ public sealed class SetupCorrectionService(
             !await context.TrackCatalog.AnyAsync(item => item.TrackName == correction.Track, cancellationToken))
             throw new InvalidOperationException("Circuit inconnu.");
         if (string.IsNullOrWhiteSpace(correction.SetupType)) throw new InvalidOperationException("Le type de setup est obligatoire.");
+    }
+
+    private static async Task ValidateBatchCorrectionAsync(
+        SetupDbContext context,
+        SetupEntity setup,
+        SetupBatchCorrection correction,
+        CancellationToken cancellationToken)
+    {
+        if (correction.Provider is not null &&
+            !SetupCatalog.ProviderNames.Contains(correction.Provider, StringComparer.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Fournisseur inconnu.");
+
+        if (correction.Category is not null || correction.Car is not null)
+        {
+            var category = correction.Category ?? setup.Category;
+            var carName = correction.Car ?? setup.Car;
+            if (!SetupCatalog.Categories.Contains(category, StringComparer.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Catégorie inconnue.");
+            var car = SetupCatalog.Cars.FirstOrDefault(item =>
+                item.DisplayName.Equals(carName, StringComparison.OrdinalIgnoreCase));
+            if (car is null || !car.Category.Equals(category, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("La voiture ne correspond pas à la catégorie choisie.");
+        }
+
+        if (correction.Track is not null &&
+            !SetupMetadataAnalyzer.KnownTrackNames.Contains(correction.Track, StringComparer.OrdinalIgnoreCase) &&
+            !await context.TrackCatalog.AnyAsync(item => item.TrackName == correction.Track, cancellationToken))
+            throw new InvalidOperationException("Circuit inconnu.");
+
+        if (correction.SetupType is not null && string.IsNullOrWhiteSpace(correction.SetupType))
+            throw new InvalidOperationException("Le type de setup est obligatoire.");
     }
 
     private static string? EmptyAsNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

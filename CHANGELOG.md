@@ -5,6 +5,23 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.4.12.43
+
+- MAJ01 : uniformisation des noms de fournisseurs dans les dossiers d’archive.
+- MAJ01 : utilisation des noms complets officiels des circuits, tout en conservant les alias pour la reconnaissance.
+- MAJ01 : conservation des quatre formats de Week (`Week 01` à `Week 13`, `Week NEC`, `Sans Week` et `Week inconnue`).
+- MAJ01 : aperçu sécurisé avant la migration des archives existantes, sans écrasement.
+- Ajout de « Tout désélectionner » dans les copies iRacing et conservation de la sélection lors de l’utilisation des filtres.
+- Suppression sécurisée des dossiers d’archive devenus vides après un reclassement réussi.
+- Correction des modifications groupées lorsque certains champs restent à identifier.
+- Rétablissement du choix de Week avant validation, avec prise en charge des Weeks numériques, NEC et Sans Week.
+
+# 1.3.12.41
+
+- Présentation compacte des résultats de synchronisation avec détails dépliables.
+- Badges colorés pour distinguer immédiatement les fichiers importés, ignorés, en doublon ou en erreur.
+- Affichage du fichier en cours et de compteurs détaillés pendant l’analyse.
+
 # 1.3.12.40
 
 - Attribution automatique de la Dallara P217 lorsque la catégorie LMP2 est reconnue sans voiture.

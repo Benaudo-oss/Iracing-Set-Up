@@ -98,24 +98,40 @@
                 <StackPanel Spacing="12">
                     <Grid ColumnSpacing="16">
                         <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                        <TextBlock x:Name="ProgressText" FontWeight="SemiBold" Text="Aucune synchronisation en cours" />
+                        <TextBlock x:Name="ProgressText" FontWeight="SemiBold" Text="Progression" />
                         <TextBlock x:Name="ProgressCountersText" Grid.Column="1" Opacity="0.7" />
                     </Grid>
                     <ProgressBar x:Name="ScanProgress" Minimum="0" Maximum="1" Value="0" />
+                    <TextBlock x:Name="CurrentFileText" Opacity="0.65" TextTrimming="CharacterEllipsis" />
                     <ComboBox x:Name="WeekFilter" Width="190" HorizontalAlignment="Right" PlaceholderText="Week" SelectionChanged="OnWeekFilterChanged" />
                     <ListView x:Name="SynchronizationResultsList" SelectionMode="None" MaxHeight="360" ContainerContentChanging="OnResultContainerContentChanging">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="0" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
                         <ListView.ItemsPanel>
                             <ItemsPanelTemplate><ItemsStackPanel ItemsUpdatingScrollMode="KeepScrollOffset" /></ItemsPanelTemplate>
                         </ListView.ItemsPanel>
                         <ListView.ItemTemplate>
                             <DataTemplate>
-                                <Grid Padding="7" ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition Width="120" /><ColumnDefinition Width="150" /><ColumnDefinition Width="2*" /></Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
-                                    <Border Grid.Column="1" HorizontalAlignment="Left" Padding="8,2" Background="{Binding WeekKind, Converter={StaticResource WeekBadgeBrushConverter}}" BorderBrush="{Binding WeekKind, Converter={StaticResource WeekBadgeBrushConverter}, ConverterParameter=Border}" BorderThickness="1" CornerRadius="10"><TextBlock Foreground="{Binding WeekKind, Converter={StaticResource WeekBadgeBrushConverter}, ConverterParameter=Foreground}" Text="{Binding WeekDisplay}" /></Border>
-                                    <TextBlock Grid.Column="2" Text="{Binding State}" FontWeight="SemiBold" />
-                                    <TextBlock Grid.Column="3" Text="{Binding Message}" TextTrimming="CharacterEllipsis" />
-                                </Grid>
+                                <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                    <Expander.Header>
+                                        <Grid Padding="8,7" ColumnSpacing="14">
+                                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                            <TextBlock VerticalAlignment="Center" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
+                                            <Border Grid.Column="1" MinWidth="86" Padding="10,3" HorizontalAlignment="Right" Background="{Binding StateBackground}" BorderBrush="{Binding StateBorder}" BorderThickness="1" CornerRadius="11">
+                                                <TextBlock HorizontalAlignment="Center" Foreground="{Binding StateForeground}" FontWeight="SemiBold" Text="{Binding State}" />
+                                            </Border>
+                                        </Grid>
+                                    </Expander.Header>
+                                    <Grid Margin="34,0,12,10" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                        <Border HorizontalAlignment="Left" Padding="8,2" Background="{Binding WeekKind, Converter={StaticResource WeekBadgeBrushConverter}}" BorderBrush="{Binding WeekKind, Converter={StaticResource WeekBadgeBrushConverter}, ConverterParameter=Border}" BorderThickness="1" CornerRadius="10"><TextBlock Foreground="{Binding WeekKind, Converter={StaticResource WeekBadgeBrushConverter}, ConverterParameter=Foreground}" Text="{Binding WeekDisplay}" /></Border>
+                                        <TextBlock Grid.Column="1" VerticalAlignment="Center" Opacity="0.72" Text="{Binding Message}" TextWrapping="Wrap" />
+                                    </Grid>
+                                </Expander>
                             </DataTemplate>
                         </ListView.ItemTemplate>
                     </ListView>

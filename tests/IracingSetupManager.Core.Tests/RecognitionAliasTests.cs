@@ -32,7 +32,7 @@ public sealed class RecognitionAliasTests
         await environment.Aliases.SaveAsync(RecognitionAliasKind.Track, "my-track", "Watkins Glen");
 
         Assert.Single(environment.Aliases.Snapshot);
-        Assert.Equal("Watkins Glen", environment.Aliases.Snapshot[0].CanonicalValue);
+        Assert.Equal("Watkins Glen International", environment.Aliases.Snapshot[0].CanonicalValue);
     }
 
     [Fact]
@@ -121,6 +121,80 @@ public sealed class RecognitionAliasTests
             Assert.Equal(SetupWeekKind.Nec, setup.WeekKind);
         });
         Assert.Equal(2, await verify.SetupChangeHistory.CountAsync(item => ids.Contains(item.SetupId)));
+    }
+
+    [Fact]
+    public async Task GroupCorrectionCanChangeSeasonWhileCarAndTrackRemainUnidentified()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var id = Guid.NewGuid();
+        var sourceDirectory = Path.Combine(environment.Archive, "old");
+        Directory.CreateDirectory(sourceDirectory);
+        var source = Path.Combine(sourceDirectory, "unknown.sto");
+        await File.WriteAllTextAsync(source, "setup");
+        await using (var context = environment.Factory.Create())
+        {
+            context.ApplicationSettings.Add(new ApplicationSettingEntity
+            {
+                Key = "ArchivePath", Value = environment.Archive, UpdatedAtUtc = DateTimeOffset.UtcNow
+            });
+            context.Setups.Add(new SetupEntity
+            {
+                Id = id, OriginalFileName = "unknown.sto", Provider = "GO Setups", Category = "GT3",
+                Car = "À identifier", Track = "À identifier", SetupType = "À identifier", SizeInBytes = 5,
+                Sha256 = new string('c', 64), ArchivePath = source, Status = SetupStatus.AVerifier,
+                DownloadedAtUtc = DateTimeOffset.UtcNow
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var service = new SetupCorrectionService(environment.Factory, new ArchivePathBuilder(), environment.Aliases);
+        await service.CorrectManyAsync([id], new SetupBatchCorrection(Season: "2026 S3"));
+
+        await using var verify = environment.Factory.Create();
+        var setup = await verify.Setups.SingleAsync(item => item.Id == id);
+        Assert.Equal("2026 S3", setup.Season);
+        Assert.Equal("À identifier", setup.Car);
+        Assert.Equal("À identifier", setup.Track);
+        Assert.Equal("À identifier", setup.SetupType);
+        Assert.True(File.Exists(setup.ArchivePath));
+    }
+
+    [Fact]
+    public async Task InvalidGroupCorrectionIsRejectedBeforeAnySetupIsChanged()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var ids = new[] { Guid.NewGuid(), Guid.NewGuid() };
+        await using (var context = environment.Factory.Create())
+        {
+            context.ApplicationSettings.Add(new ApplicationSettingEntity
+            {
+                Key = "ArchivePath", Value = environment.Archive, UpdatedAtUtc = DateTimeOffset.UtcNow
+            });
+            for (var index = 0; index < ids.Length; index++)
+            {
+                var source = Path.Combine(environment.Archive, $"setup-invalid-{index}.sto");
+                await File.WriteAllTextAsync(source, "setup");
+                context.Setups.Add(new SetupEntity
+                {
+                    Id = ids[index], OriginalFileName = Path.GetFileName(source), Provider = "HYMO",
+                    Category = index == 0 ? "GT3" : "GT4", Car = "À identifier", Track = "Road America",
+                    Season = "2025 S4", SetupType = "Race", SizeInBytes = 5,
+                    Sha256 = new string((char)('d' + index), 64), ArchivePath = source,
+                    Status = SetupStatus.AVerifier, DownloadedAtUtc = DateTimeOffset.UtcNow
+                });
+            }
+            await context.SaveChangesAsync();
+        }
+
+        var service = new SetupCorrectionService(environment.Factory, new ArchivePathBuilder(), environment.Aliases);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CorrectManyAsync(
+            ids, new SetupBatchCorrection(Car: "Acura NSX GT3 EVO 22", Season: "2026 S3")));
+
+        await using var verify = environment.Factory.Create();
+        var setups = await verify.Setups.Where(item => ids.Contains(item.Id)).ToListAsync();
+        Assert.All(setups, setup => Assert.Equal("2025 S4", setup.Season));
+        Assert.Empty(await verify.SetupChangeHistory.Where(item => ids.Contains(item.SetupId)).ToListAsync());
     }
 
     private sealed class TestEnvironment : IAsyncDisposable

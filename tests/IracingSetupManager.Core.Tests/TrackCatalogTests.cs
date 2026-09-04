@@ -27,10 +27,10 @@ public sealed class TrackCatalogTests
             var entries = await catalog.GetAllAsync();
 
             Assert.Equal(5, entries.Count);
-            Assert.Contains(entries, item => item.IracingFolderName == "fuji gp" && item.TrackName == "Fuji" && item.Configuration == "GP");
+            Assert.Contains(entries, item => item.IracingFolderName == "fuji gp" && item.TrackName == "Fuji International Speedway" && item.Configuration == "GP");
             Assert.Contains(entries, item => item.IracingFolderName == "roadamerica full" && item.TrackName == "Road America" && item.Configuration == "Full");
-            Assert.Contains(entries, item => item.IracingFolderName == "mexico grandprix" && item.TrackName == "Mexique");
-            Assert.Contains(entries, item => item.IracingFolderName == "stpete grandprix" && item.TrackName == "Saint-Pétersbourg");
+            Assert.Contains(entries, item => item.IracingFolderName == "mexico grandprix" && item.TrackName == "Autódromo Hermanos Rodríguez");
+            Assert.Contains(entries, item => item.IracingFolderName == "stpete grandprix" && item.TrackName == "St. Petersburg Street Circuit");
             Assert.Equal("Road America", catalog.Find("VRS_27S5_RoadAmerica_R.sto")?.TrackName);
         }
         finally
@@ -54,7 +54,7 @@ public sealed class TrackCatalogTests
 
             var metadata = new SetupMetadataAnalyzer(catalog).Analyze("GO_27S5_WatkinsGlen2021FullCourse_R.sto");
 
-            Assert.Equal("Watkins Glen", metadata.Track);
+            Assert.Equal("Watkins Glen International", metadata.Track);
             Assert.Equal("2021 Fullcourse", metadata.TrackConfiguration);
         }
         finally

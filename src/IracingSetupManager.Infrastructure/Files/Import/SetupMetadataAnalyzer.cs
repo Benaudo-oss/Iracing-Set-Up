@@ -164,10 +164,13 @@ public sealed partial class SetupMetadataAnalyzer(
         return aliases.FirstOrDefault(alias => alias.All(character => char.IsLetterOrDigit(character)));
     }
 
-    public static string? ResolveKnownTrackName(string alias) =>
-        Tracks.GetValueOrDefault(alias) ??
-        Tracks.FirstOrDefault(item =>
-            NormalizeAlias(item.Key).Equals(NormalizeAlias(alias), StringComparison.OrdinalIgnoreCase)).Value;
+    public static string? ResolveKnownTrackName(string alias)
+    {
+        var resolved = Tracks.GetValueOrDefault(alias) ??
+            Tracks.FirstOrDefault(item =>
+                NormalizeAlias(item.Key).Equals(NormalizeAlias(alias), StringComparison.OrdinalIgnoreCase)).Value;
+        return string.IsNullOrWhiteSpace(resolved) ? null : SetupCatalog.CanonicalizeTrack(resolved);
+    }
 
     private static readonly IReadOnlyDictionary<string, string> Tracks =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -290,6 +293,7 @@ public sealed partial class SetupMetadataAnalyzer(
         };
 
     public static IReadOnlyList<string> KnownTrackNames { get; } = Tracks.Values
+        .Select(SetupCatalog.CanonicalizeTrack)
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .Order(StringComparer.CurrentCultureIgnoreCase)
         .ToArray();
@@ -300,7 +304,7 @@ public sealed partial class SetupMetadataAnalyzer(
         var tokens = Tokenize(filePath);
         var trackTitanFolders = GetTrackTitanFolders(filePath);
 
-        var provider = FindProvider(tokens) ?? defaults?.Provider ?? Unknown;
+        var provider = SetupCatalog.CanonicalizeProvider(FindProvider(tokens) ?? defaults?.Provider ?? Unknown);
         var learnedCar = recognitionAliases?.Find(RecognitionAliasKind.Car, Path.GetFileNameWithoutExtension(filePath));
         var learnedCarDefinition = SetupCatalog.Cars.FirstOrDefault(item =>
             item.DisplayName.Equals(learnedCar, StringComparison.OrdinalIgnoreCase));
@@ -319,6 +323,7 @@ public sealed partial class SetupMetadataAnalyzer(
             ?? recognitionAliases?.Find(RecognitionAliasKind.Track, Path.GetFileNameWithoutExtension(filePath))
             ?? FindTrack(filePath, tokens)
             ?? catalogTrack?.TrackName ?? EmptyAsNull(defaults?.Track) ?? Unknown;
+        track = SetupCatalog.CanonicalizeTrack(track);
         var seasonMatch = tokens.Select(token => SeasonRegex().Match(token))
             .FirstOrDefault(match => match.Success);
         var season = FindTrackTitanSeason(trackTitanFolders)
@@ -436,7 +441,8 @@ public sealed partial class SetupMetadataAnalyzer(
             var folderTrack = recognitionAliases?.Find(RecognitionAliasKind.Track, parts[0])
                 ?? FindTrack(parts[0], Tokenize(parts[0]))
                 ?? trackCatalog?.Find(parts[0])?.TrackName;
-            if (folderTrack?.Equals(track, StringComparison.OrdinalIgnoreCase) == true)
+            if (folderTrack is not null && SetupCatalog.CanonicalizeTrack(folderTrack)
+                    .Equals(track, StringComparison.OrdinalIgnoreCase))
                 return parts[1];
         }
 
@@ -583,7 +589,7 @@ public sealed partial class SetupMetadataAnalyzer(
         IReadOnlyList<string> tokens,
         string track)
     {
-        if (!track.Equals("Donington Park", StringComparison.OrdinalIgnoreCase)) return null;
+        if (!track.Equals("Donington Park Racing Circuit", StringComparison.OrdinalIgnoreCase)) return null;
 
         var normalizedName = NormalizeAlias(Path.GetFileNameWithoutExtension(filePath));
         if (tokens.Any(token => token.Equals("NTL", StringComparison.OrdinalIgnoreCase) ||

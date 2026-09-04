@@ -85,6 +85,11 @@ public sealed class SetupValidationService(ISetupDbContextFactory contextFactory
         {
             throw new KeyNotFoundException("Au moins un setup sélectionné n'existe pas.");
         }
+        if (newStatus == SetupStatus.Valide && setups.Any(item =>
+                SetupWeekPresentation.EffectiveKind(item.Week, item.WeekKind) == SetupWeekKind.Unknown))
+        {
+            throw new InvalidOperationException("La Week doit être renseignée avant de valider le setup.");
+        }
 
         foreach (var setup in setups)
         {
@@ -109,4 +114,3 @@ public sealed class SetupValidationService(ISetupDbContextFactory contextFactory
         await transaction.CommitAsync(cancellationToken);
     }
 }
-
