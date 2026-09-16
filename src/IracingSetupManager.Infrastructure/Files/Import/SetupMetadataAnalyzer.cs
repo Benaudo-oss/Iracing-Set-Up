@@ -99,6 +99,12 @@ public sealed partial class SetupMetadataAnalyzer(
             ["jsp320"] = ("Ligier JS P320", "LMP3"),
 
             ["acuraarx06gtp"] = ("Acura ARX-06 GTP", "GTP"),
+            ["amvalkyriegtp"] = ("Aston Martin Valkyrie AMR-LMH", "GTP"),
+            ["Valkyrie"] = ("Aston Martin Valkyrie AMR-LMH", "GTP"),
+            ["ValkyrieGTP"] = ("Aston Martin Valkyrie AMR-LMH", "GTP"),
+            ["AMRLMH"] = ("Aston Martin Valkyrie AMR-LMH", "GTP"),
+            ["AstonValkyrie"] = ("Aston Martin Valkyrie AMR-LMH", "GTP"),
+            ["Valk"] = ("Aston Martin Valkyrie AMR-LMH", "GTP"),
             ["bmwlmdh"] = ("BMW M Hybrid V8", "GTP"),
             ["cadillacvseriesgtp"] = ("Cadillac V-Series.R GTP", "GTP"),
             ["cadillacvseriesrgtp"] = ("Cadillac V-Series.R GTP", "GTP"),

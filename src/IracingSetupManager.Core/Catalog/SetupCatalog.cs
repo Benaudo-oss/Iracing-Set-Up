@@ -172,6 +172,7 @@ public static class SetupCatalog
         new("GTE", "Ford GTE", "fordgt2017"),
         new("GTE", "Porsche 911 RSR", "porsche991rsr"),
         new("GTP", "Acura ARX-06 GTP", "acuraarx06gtp"),
+        new("GTP", "Aston Martin Valkyrie AMR-LMH", "amvalkyriegtp"),
         new("GTP", "BMW M Hybrid V8", "bmwlmdh"),
         new("GTP", "Cadillac V-Series.R GTP", "cadillacvseriesgtp"),
         new("GTP", "Ferrari 499P", "ferrari499p"),

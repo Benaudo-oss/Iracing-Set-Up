@@ -64,7 +64,10 @@ public sealed class MonitoringAndPrivacyTests
         var folders = resolver.Resolve(new Infrastructure.Settings.SynchronizationSelection(
             ["HYMO"], ["GTP"]));
 
-        Assert.Equal(5, folders.Count);
+        Assert.Equal(6, folders.Count);
+        Assert.Contains(folders, folder => folder.Path.EndsWith(
+            Path.Combine("amvalkyriegtp", "Track Titan"),
+            StringComparison.OrdinalIgnoreCase));
         Assert.All(folders, folder =>
         {
             Assert.Equal(ImportFolderKind.TrackTitan, folder.Kind);

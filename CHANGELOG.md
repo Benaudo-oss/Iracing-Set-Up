@@ -5,6 +5,11 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.5.12.44
+
+- Correction du tableau « À vérifier » : chargement immédiat de la page suivante lorsque les 100 lignes visibles ont toutes été validées ou refusées.
+- Ajout de l’Aston Martin Valkyrie AMR-LMH en GTP avec son dossier iRacing `amvalkyriegtp` et ses alias, dont `Valk`.
+
 # 1.4.12.43
 
 - MAJ01 : uniformisation des noms de fournisseurs dans les dossiers d’archive.

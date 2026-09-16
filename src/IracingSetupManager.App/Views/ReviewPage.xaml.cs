@@ -317,6 +317,7 @@ public sealed partial class ReviewPage : Page
         await App.Services.Validation.ValidateAsync(setupId);
         ShowSuccess("Le setup a été validé.");
         RemoveSetup(setupId);
+        await LoadNextPageIfEmptyAsync();
     }
 
     private async void OnRefuseOne(object sender, RoutedEventArgs e) =>
@@ -328,6 +329,7 @@ public sealed partial class ReviewPage : Page
         await App.Services.Validation.RefuseAsync(setupId);
         ShowSuccess("Le setup a été refusé.");
         RemoveSetup(setupId);
+        await LoadNextPageIfEmptyAsync();
     }
 
     private async void OnValidateSelection(object sender, RoutedEventArgs e) =>
@@ -390,6 +392,15 @@ public sealed partial class ReviewPage : Page
 
         ShowSuccess($"{ids.Count} setup(s) ont été traités.");
         foreach (var id in ids) RemoveSetup(id);
+        await LoadNextPageIfEmptyAsync();
+    }
+
+    private async Task LoadNextPageIfEmptyAsync()
+    {
+        if (!_isPageActive || _visibleSetups.Count != 0 || _totalCount <= 0) return;
+        var version = _queryVersion;
+        var cancellationToken = _pageLoadCancellation?.Token ?? CancellationToken.None;
+        await LoadNextPageAsync(version, cancellationToken);
     }
 
     private async Task<bool> ResolveUnknownWeeksAsync(IReadOnlyCollection<SetupEntity> setups)

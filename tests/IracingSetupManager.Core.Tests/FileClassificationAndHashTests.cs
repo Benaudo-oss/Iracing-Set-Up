@@ -99,6 +99,21 @@ public sealed class FileClassificationAndHashTests
     }
 
     [Theory]
+    [InlineData("VRS_26S4_Spa_amvalkyriegtp_R.sto")]
+    [InlineData("HYMO_IMSA_26S4_Valkyrie_Daytona_R.sto")]
+    [InlineData("26S4-W03-GnG-Sebring-ValkyrieGTP-Endu.sto")]
+    [InlineData("SRS_26S4_AMR-LMH_LeMans_Q.sto")]
+    [InlineData("P1Doks_26S4_AstonValkyrie_Fuji_R.sto")]
+    [InlineData("VRS_26S4_LeMans_Valk_R.sto")]
+    public void AnalyzerRecognizesAstonMartinValkyrieAliases(string fileName)
+    {
+        var metadata = new SetupMetadataAnalyzer().Analyze(fileName);
+
+        Assert.Equal("GTP", metadata.Category);
+        Assert.Equal("Aston Martin Valkyrie AMR-LMH", metadata.Car);
+    }
+
+    [Theory]
     [InlineData("VRS_26S1_Spa_CadillacGTP_R.sto", "Cadillac V-Series.R GTP", "GTP")]
     [InlineData("VRS_26S1_Spa_PorscheGTP_R.sto", "Porsche 963 GTP", "GTP")]
     [InlineData("VRS_26S1_Spa_FerrariGTP_R.sto", "Ferrari 499P", "GTP")]
@@ -149,6 +164,7 @@ public sealed class FileClassificationAndHashTests
         { "GTE", "Ford GTE", "fordgt2017" },
         { "GTE", "Porsche 911 RSR", "porsche991rsr" },
         { "GTP", "Acura ARX-06 GTP", "acuraarx06gtp" },
+        { "GTP", "Aston Martin Valkyrie AMR-LMH", "amvalkyriegtp" },
         { "GTP", "BMW M Hybrid V8", "bmwlmdh" },
         { "GTP", "Cadillac V-Series.R GTP", "cadillacvseriesgtp" },
         { "GTP", "Porsche 963 GTP", "porsche963gtp" },
