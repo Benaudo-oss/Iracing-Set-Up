@@ -6,6 +6,7 @@ using IracingSetupManager.Infrastructure.Files;
 using IracingSetupManager.Infrastructure.Files.Import;
 using System.Text.RegularExpressions;
 using IracingSetupManager.Core.Catalog;
+using System.Security.Cryptography;
 
 namespace IracingSetupManager.Infrastructure.Iracing;
 
@@ -14,6 +15,14 @@ public enum IracingConflictChoice
     None,
     Skip,
     KeepBoth
+}
+
+public enum IracingConflictKind
+{
+    None,
+    IdenticalContent,
+    DifferentContent,
+    DestinationUnreadable
 }
 
 public enum IracingCopyTarget
@@ -31,7 +40,8 @@ public sealed record IracingCopyPlanItem(
     int? Week,
     SetupWeekKind WeekKind,
     bool HasConflict,
-    IracingConflictChoice ConflictChoice = IracingConflictChoice.None);
+    IracingConflictChoice ConflictChoice = IracingConflictChoice.None,
+    IracingConflictKind ConflictKind = IracingConflictKind.None);
 
 public sealed record IracingCopyResult(int Copied, int Skipped);
 public sealed record SetupWeekChoice(int? Week, SetupWeekKind Kind)
@@ -136,6 +146,7 @@ public sealed class IracingCopyService(
             var destination = SecurePath.EnsureChildOf(
                 Path.Combine([.. fixedSegments, .. dynamicSegments, setup.OriginalFileName]),
                 root);
+            var conflictKind = GetConflictKind(setup.ArchivePath, destination);
             return new IracingCopyPlanItem(
                 setup.Id,
                 setup.OriginalFileName,
@@ -144,7 +155,8 @@ public sealed class IracingCopyService(
                 destination,
                 week,
                 weekKind,
-                File.Exists(destination));
+                conflictKind != IracingConflictKind.None,
+                ConflictKind: conflictKind);
         }).ToList();
     }
 
@@ -269,6 +281,33 @@ public sealed class IracingCopyService(
             {
                 return candidate;
             }
+        }
+    }
+
+    private static IracingConflictKind GetConflictKind(string sourcePath, string destinationPath)
+    {
+        if (!File.Exists(destinationPath)) return IracingConflictKind.None;
+        try
+        {
+            var source = new FileInfo(sourcePath);
+            var destination = new FileInfo(destinationPath);
+            if (!source.Exists || source.Length != destination.Length) return IracingConflictKind.DifferentContent;
+
+            using var sourceStream = File.OpenRead(sourcePath);
+            using var destinationStream = File.OpenRead(destinationPath);
+            var sourceHash = SHA256.HashData(sourceStream);
+            var destinationHash = SHA256.HashData(destinationStream);
+            return sourceHash.AsSpan().SequenceEqual(destinationHash)
+                ? IracingConflictKind.IdenticalContent
+                : IracingConflictKind.DifferentContent;
+        }
+        catch (IOException)
+        {
+            return IracingConflictKind.DestinationUnreadable;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return IracingConflictKind.DestinationUnreadable;
         }
     }
 

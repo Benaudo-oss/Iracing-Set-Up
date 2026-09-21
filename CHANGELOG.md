@@ -5,6 +5,13 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.6.12.44
+
+- Actions groupées étendues à 500 setups dans « À vérifier » et dans les copies vers iRacing et iRacing Team.
+- Identification précise des conflits de copie : fichier strictement identique, contenu différent ou fichier impossible à comparer.
+- Application d’un même choix à plusieurs conflits sélectionnés.
+- Possibilité d’ignorer les conflits non résolus uniquement pour la copie en cours, sans les masquer définitivement.
+
 # 1.5.12.44
 
 - Correction du tableau « À vérifier » : chargement immédiat de la page suivante lorsque les 100 lignes visibles ont toutes été validées ou refusées.

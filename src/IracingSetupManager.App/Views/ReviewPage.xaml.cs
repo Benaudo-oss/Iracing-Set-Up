@@ -16,7 +16,8 @@ namespace IracingSetupManager.App.Views;
 
 public sealed partial class ReviewPage : Page
 {
-    private const int PageSize = 100;
+    private const int PageSize = 500;
+    private const int MaxGroupedActionSize = 500;
     private readonly HashSet<Guid> _setupIds = [];
     private readonly ObservableCollection<SetupEntity> _visibleSetups = [];
     private readonly HashSet<Guid> _visibleSetupIds = [];
@@ -131,6 +132,11 @@ public sealed partial class ReviewPage : Page
         if (selected.Count == 0)
         {
             ShowWarning("Sélectionnez au moins un setup à corriger.");
+            return;
+        }
+        if (selected.Count > MaxGroupedActionSize)
+        {
+            ShowWarning($"Une action groupée peut traiter au maximum {MaxGroupedActionSize} setups.");
             return;
         }
 
@@ -371,6 +377,11 @@ public sealed partial class ReviewPage : Page
         if (ids.Count == 0)
         {
             ShowWarning("Sélectionnez au moins un setup.");
+            return;
+        }
+        if (ids.Count > MaxGroupedActionSize)
+        {
+            ShowWarning($"Une action groupée peut traiter au maximum {MaxGroupedActionSize} setups.");
             return;
         }
 

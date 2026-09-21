@@ -52,6 +52,13 @@
         <Grid Grid.Row="6">
             <InfoBar x:Name="ActionInfo" HorizontalAlignment="Left" IsOpen="False" IsClosable="True" />
             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="10">
+                <StackPanel x:Name="BulkConflictPanel" Orientation="Horizontal" Spacing="8" Visibility="Collapsed">
+                    <ComboBox x:Name="BulkConflictChoice" Width="190" VerticalAlignment="Center" PlaceholderText="Action sur les conflits">
+                        <ComboBoxItem Content="Ignorer" />
+                        <ComboBoxItem Content="Conserver les deux" />
+                    </ComboBox>
+                    <Button Content="Appliquer à la sélection" Style="{StaticResource GraySecondaryButtonStyle}" Click="OnApplyConflictChoice" />
+                </StackPanel>
                 <Button x:Name="ExitPreviewButton" Content="Quitter l’aperçu" Style="{StaticResource GraySecondaryButtonStyle}" Visibility="Collapsed" Click="OnExitPreview" />
                 <Button x:Name="PreviewButton" Content="Afficher les fichiers à copier" Style="{StaticResource AccentButtonStyle}" Click="OnCreatePreview" />
                 <Button x:Name="CopyButton" Content="Copier les fichiers affichés" Style="{StaticResource BlueActionButtonStyle}" Visibility="Collapsed" Click="OnCopy" />

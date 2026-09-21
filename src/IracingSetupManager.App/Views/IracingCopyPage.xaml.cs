@@ -6,6 +6,7 @@ using IracingSetupManager.Core.Setups;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using System.ComponentModel;
 using Microsoft.UI.Xaml.Navigation;
 using IracingSetupManager.App.Services;
 using IracingSetupManager.Infrastructure.Resilience;
@@ -14,7 +15,8 @@ namespace IracingSetupManager.App.Views;
 
 public sealed partial class IracingCopyPage : Page
 {
-    private const int PageSize = 100;
+    private const int PageSize = 500;
+    private const int MaxGroupedActionSize = 500;
     private readonly ObservableCollection<CopyRow> rows = [];
     private readonly HashSet<Guid> loadedIds = [];
     private readonly Dictionary<Guid, CopyRow> selectedRows = [];
@@ -124,6 +126,31 @@ public sealed partial class IracingCopyPage : Page
         foreach (var row in e.RemovedItems.OfType<CopyRow>()) selectedRows.Remove(row.Id);
     }
 
+    private void OnApplyConflictChoice(object sender, RoutedEventArgs e)
+    {
+        var choiceIndex = BulkConflictChoice.SelectedIndex switch
+        {
+            0 => 1,
+            1 => 2,
+            _ => 0
+        };
+        if (choiceIndex == 0)
+        {
+            Show("Choisissez d’abord l’action à appliquer.", InfoBarSeverity.Warning);
+            return;
+        }
+
+        var conflicts = SetupList.SelectedItems.OfType<CopyRow>().Where(item => item.HasConflict).ToList();
+        if (conflicts.Count == 0)
+        {
+            Show("Sélectionnez au moins un fichier en conflit.", InfoBarSeverity.Warning);
+            return;
+        }
+
+        foreach (var conflict in conflicts) conflict.ConflictChoiceIndex = choiceIndex;
+        Show($"Action appliquée à {conflicts.Count} conflit(s) sélectionné(s).", InfoBarSeverity.Success);
+    }
+
     private async void OnFilterChanged(object sender, object e)
     {
         if (!filtersReady) return;
@@ -200,6 +227,11 @@ public sealed partial class IracingCopyPage : Page
             Show("Sélectionnez au moins un setup validé.", InfoBarSeverity.Warning);
             return;
         }
+        if (selected.Count > MaxGroupedActionSize)
+        {
+            Show($"Une copie groupée peut traiter au maximum {MaxGroupedActionSize} setups.", InfoBarSeverity.Warning);
+            return;
+        }
 
         var ids = selected.Select(item => item.Id).ToArray();
         var plan = await App.Services.IracingCopy.CreatePlanAsync(
@@ -250,6 +282,10 @@ public sealed partial class IracingCopyPage : Page
         PreviewButton.Visibility = previewMode ? Visibility.Collapsed : Visibility.Visible;
         CopyButton.Visibility = previewMode ? Visibility.Visible : Visibility.Collapsed;
         ExitPreviewButton.Visibility = previewMode ? Visibility.Visible : Visibility.Collapsed;
+        BulkConflictPanel.Visibility = previewMode && previewRows.Any(item => item.HasConflict)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        if (!previewMode) BulkConflictChoice.SelectedIndex = -1;
     }
 
     private async void OnCopy(object sender, RoutedEventArgs e)
@@ -261,10 +297,23 @@ public sealed partial class IracingCopyPage : Page
         }
 
         var plan = rows.Select(item => item.ToPlan()).ToList();
-        if (plan.Any(item => item.HasConflict && item.ConflictChoice == IracingConflictChoice.None))
+        var unresolvedConflicts = plan.Where(item => item.HasConflict && item.ConflictChoice == IracingConflictChoice.None).ToList();
+        if (unresolvedConflicts.Count > 0)
         {
-            Show("Choisissez une action pour chaque conflit.", InfoBarSeverity.Warning);
-            return;
+            var unresolvedDialog = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = "Conflits non résolus",
+                Content = $"{unresolvedConflicts.Count} fichier(s) présentent encore un conflit. Vous pouvez revenir à l’aperçu ou les ignorer uniquement pour cette copie.",
+                PrimaryButtonText = "Ignorer pour cette copie",
+                CloseButtonText = "Revenir à l’aperçu",
+                DefaultButton = ContentDialogButton.Close
+            };
+            if (await unresolvedDialog.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
+            var unresolvedIds = unresolvedConflicts.Select(item => item.SetupId).ToHashSet();
+            plan = plan.Select(item => unresolvedIds.Contains(item.SetupId)
+                ? item with { ConflictChoice = IracingConflictChoice.Skip }
+                : item).ToList();
         }
 
         var dialog = new ContentDialog
@@ -562,8 +611,10 @@ public sealed partial class IracingCopyPage : Page
         }
     }
 
-    private sealed class CopyRow
+    private sealed class CopyRow : INotifyPropertyChanged
     {
+        private int conflictChoiceIndex;
+        public event PropertyChangedEventHandler? PropertyChanged;
         public Guid Id { get; init; }
         public required string OriginalFileName { get; init; }
         public required string Car { get; init; }
@@ -580,11 +631,29 @@ public sealed partial class IracingCopyPage : Page
         public bool HasConflict => Plan?.HasConflict == true;
         public Visibility ConflictVisibility => HasConflict ? Visibility.Visible : Visibility.Collapsed;
         public string CopyDescription => Plan is not null
-            ? $"{(HasConflict ? "Conflit — " : string.Empty)}{Plan.DestinationPath}"
+            ? HasConflict
+                ? $"{ConflictReason}\nDestination : {Plan.DestinationPath}"
+                : Plan.DestinationPath
             : IsCopied
                 ? $"Déjà copié ({CopyCount} fois)"
                 : "Sélectionnable pour l’aperçu";
-        public int ConflictChoiceIndex { get; set; }
+        public string ConflictReason => Plan?.ConflictKind switch
+        {
+            IracingConflictKind.IdenticalContent => "Même nom, fichier strictement identique",
+            IracingConflictKind.DifferentContent => "Même nom, contenu différent",
+            IracingConflictKind.DestinationUnreadable => "Même nom, fichier existant impossible à comparer",
+            _ => "Aucun conflit"
+        };
+        public int ConflictChoiceIndex
+        {
+            get => conflictChoiceIndex;
+            set
+            {
+                if (conflictChoiceIndex == value) return;
+                conflictChoiceIndex = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ConflictChoiceIndex)));
+            }
+        }
 
         public static CopyRow FromSetup(SetupEntity setup, bool team) => new()
         {

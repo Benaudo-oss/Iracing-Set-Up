@@ -110,10 +110,29 @@ public sealed class IracingCopyTests
         await File.WriteAllTextAsync(destination, "existing");
         var plan = await environment.Service.CreatePlanAsync([environment.ValidatedId], environment.Target, new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
         Assert.True(plan[0].HasConflict);
+        Assert.Equal(IracingConflictKind.DifferentContent, plan[0].ConflictKind);
         await Assert.ThrowsAsync<InvalidOperationException>(() => environment.Service.ExecuteAsync(plan, true));
         await environment.Service.ExecuteAsync(plan.Select(item => item with { ConflictChoice = IracingConflictChoice.KeepBoth }).ToList(), true);
         Assert.Equal("existing", await File.ReadAllTextAsync(destination));
         Assert.True(File.Exists(Path.Combine(Path.GetDirectoryName(destination)!, "race (2).sto")));
+    }
+
+    [Fact]
+    public async Task ConflictIdentifiesStrictlyIdenticalContent()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var plan = await environment.Service.CreatePlanAsync(
+            [environment.ValidatedId], environment.Target,
+            new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
+        Directory.CreateDirectory(Path.GetDirectoryName(plan[0].DestinationPath)!);
+        File.Copy(plan[0].SourcePath, plan[0].DestinationPath);
+
+        plan = await environment.Service.CreatePlanAsync(
+            [environment.ValidatedId], environment.Target,
+            new Dictionary<Guid, int> { [environment.ValidatedId] = 7 });
+
+        Assert.True(plan[0].HasConflict);
+        Assert.Equal(IracingConflictKind.IdenticalContent, plan[0].ConflictKind);
     }
 
     [Fact]
