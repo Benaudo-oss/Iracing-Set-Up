@@ -305,8 +305,10 @@ public sealed class ImportMonitoringService(
         var selection = await selectionSettings.GetAsync(cancellationToken);
         var results = await importService.ImportAsync(file.FullPath, archivePath, sourceKind, defaults, cancellationToken,
             metadata => SynchronizationImportPolicy.Allows(selection, metadata));
-        foreach (var result in results)
+        var sourceFullyDuplicate = results.Count > 0 && results.All(item => item.Outcome == SetupImportOutcome.Duplicate);
+        foreach (var originalResult in results)
         {
+            var result = originalResult with { SourceFullyDuplicate = sourceFullyDuplicate };
             NotifyImportCompleted(result);
             if (raiseProgress)
             {

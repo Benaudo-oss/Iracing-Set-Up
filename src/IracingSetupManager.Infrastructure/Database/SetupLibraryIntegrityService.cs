@@ -1,5 +1,6 @@
 using IracingSetupManager.Core.Setups;
 using IracingSetupManager.Infrastructure.Database.Entities;
+using IracingSetupManager.Infrastructure.Files;
 using Microsoft.EntityFrameworkCore;
 
 namespace IracingSetupManager.Infrastructure.Database;
@@ -101,6 +102,38 @@ public sealed class SetupLibraryIntegrityService(ISetupDbContextFactory contextF
 
         context.Setups.RemoveRange(setups);
         if (setups.Count > 0) await context.SaveChangesAsync(cancellationToken);
+        return setups.Count;
+    }
+
+    public async Task<int> DeleteRejectedAsync(
+        IReadOnlyCollection<Guid> setupIds,
+        string archiveRoot,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = setupIds.Distinct().Take(500).ToArray();
+        await using var context = contextFactory.Create();
+        var setups = await context.Setups
+            .Where(item => ids.Contains(item.Id) && item.Status == SetupStatus.Refuse)
+            .ToListAsync(cancellationToken);
+
+        foreach (var setup in setups)
+        {
+            SecurePath.EnsureChildOf(setup.ArchivePath, archiveRoot);
+            if (File.Exists(setup.ArchivePath)) File.Delete(setup.ArchivePath);
+            context.SetupChangeHistory.Add(new SetupChangeHistoryEntity
+            {
+                SetupId = setup.Id,
+                OriginalFileName = setup.OriginalFileName,
+                ChangeType = "Suppression d’un setup refusé",
+                PreviousStatus = SetupStatus.Refuse,
+                ChangedAtUtc = DateTimeOffset.UtcNow
+            });
+            context.Setups.Remove(setup);
+        }
+
+        if (setups.Count > 0) await context.SaveChangesAsync(cancellationToken);
+        foreach (var setup in setups)
+            EmptyArchiveDirectoryCleaner.RemoveEmptyParents(setup.ArchivePath, archiveRoot);
         return setups.Count;
     }
 }

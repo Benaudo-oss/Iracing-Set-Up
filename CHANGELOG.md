@@ -5,6 +5,13 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.7.12.44
+
+- Suppression groupée de 500 setups refusés depuis la bibliothèque, avec confirmation, historique et nettoyage des dossiers d’archive vides.
+- Suppression groupée des fichiers sources signalés comme doublons dans la synchronisation.
+- Nouvelle vérification SHA-256 avant chaque suppression de doublon, sans jamais supprimer la copie conservée dans l’archive.
+- Protection des archives ZIP et RAR mixtes : elles ne sont pas supprimées automatiquement si tous leurs setups ne sont pas des doublons.
+
 # 1.6.12.44
 
 - Actions groupées étendues à 500 setups dans « À vérifier » et dans les copies vers iRacing et iRacing Team.

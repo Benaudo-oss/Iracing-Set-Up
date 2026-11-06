@@ -37,16 +37,17 @@
         </Grid>
 
         <Grid Grid.Row="2" ColumnSpacing="12">
-            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled"><StackPanel x:Name="ActiveFiltersPanel" Orientation="Horizontal" Spacing="8" /></ScrollViewer>
             <TextBlock x:Name="ResultCountText" Grid.Column="1" VerticalAlignment="Center" Opacity="0.7" Text="0 résultat" />
             <Button Grid.Column="2" Padding="10,6" Style="{StaticResource GraySecondaryButtonStyle}" Click="OnClearFilters" ToolTipService.ToolTip="Effacer tous les filtres"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="13" Glyph="&#xE711;" /><TextBlock Text="Effacer" /></StackPanel></Button>
-            <Button Grid.Column="3" Content="Retirer les fichiers manquants" Style="{StaticResource RedDangerButtonStyle}" Click="OnRemoveMissing" />
+            <Button Grid.Column="3" Content="Supprimer les refusés sélectionnés" Style="{StaticResource RedDangerButtonStyle}" Click="OnDeleteRejected" />
+            <Button Grid.Column="4" Content="Retirer les fichiers manquants" Style="{StaticResource RedDangerButtonStyle}" Click="OnRemoveMissing" />
         </Grid>
 
         <Border Grid.Row="3" Background="#FF20242B" BorderBrush="#FF343A43" BorderThickness="1" CornerRadius="10">
             <Grid>
-                <ListView x:Name="SetupList" HorizontalContentAlignment="Stretch" SelectionMode="None" ContainerContentChanging="OnContainerContentChanging">
+                <ListView x:Name="SetupList" HorizontalContentAlignment="Stretch" SelectionMode="Multiple" IsMultiSelectCheckBoxEnabled="True" ContainerContentChanging="OnContainerContentChanging">
                     <ListView.ItemsPanel>
                         <ItemsPanelTemplate><ItemsStackPanel ItemsUpdatingScrollMode="KeepScrollOffset" /></ItemsPanelTemplate>
                     </ListView.ItemsPanel>

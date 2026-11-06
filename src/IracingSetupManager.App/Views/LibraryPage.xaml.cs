@@ -16,7 +16,7 @@ namespace IracingSetupManager.App.Views;
 
 public sealed partial class LibraryPage : Page
 {
-    private const int PageSize = 100;
+    private const int PageSize = 500;
     private readonly HashSet<Guid> _setupIds = [];
     private readonly ObservableCollection<LibrarySetupRow> _visibleSetups = [];
     private readonly HashSet<Guid> _visibleSetupIds = [];
@@ -174,6 +174,37 @@ public sealed partial class LibraryPage : Page
         }
         _totalCount = Math.Max(0, _totalCount - selected.Length);
         UpdateEmptyState();
+    }
+
+    private async void OnDeleteRejected(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(DeleteRejectedAsync, "Impossible de supprimer les setups refusés");
+
+    private async Task DeleteRejectedAsync()
+    {
+        var selected = SetupList.SelectedItems.OfType<LibrarySetupRow>()
+            .Where(item => item.Setup.Status == SetupStatus.Refuse)
+            .Take(500).ToArray();
+        if (selected.Length == 0)
+        {
+            await new ContentDialog { XamlRoot = XamlRoot, Title = "Aucun setup refusé sélectionné", CloseButtonText = "Fermer" }
+                .ApplyActionStyles().ShowAsync();
+            return;
+        }
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Supprimer définitivement ?",
+            Content = $"{selected.Length} setup(s) refusé(s) seront supprimés de l’archive et de la bibliothèque. Les fichiers sources et les dossiers iRacing ne seront pas touchés.",
+            PrimaryButtonText = "Supprimer",
+            CloseButtonText = "Annuler",
+            DefaultButton = ContentDialogButton.Close
+        };
+        if (await dialog.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
+        var archiveRoot = await App.Services.ArchivePaths.GetAsync();
+        if (string.IsNullOrWhiteSpace(archiveRoot)) throw new InvalidOperationException("Le dossier d’archive n’est pas configuré.");
+        await App.Services.LibraryIntegrity.DeleteRejectedAsync(selected.Select(item => item.Setup.Id).ToArray(), archiveRoot);
+        SetupList.SelectedItems.Clear();
+        await ReloadAsync(true);
     }
 
     private async void OnSearchChanged(object sender, TextChangedEventArgs e)

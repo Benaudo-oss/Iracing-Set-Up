@@ -24,6 +24,12 @@ public sealed class SynchronizationActivityStore
         LastSummary = null;
     }
 
+    public void Remove(IEnumerable<string> paths)
+    {
+        lock (gate)
+            foreach (var path in paths) items.Remove(path);
+    }
+
     public void SetSummary(SynchronizationSummary summary) => LastSummary = summary;
 
     private void OnProgressChanged(object? sender, SynchronizationProgress progress)

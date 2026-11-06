@@ -150,6 +150,53 @@ public sealed partial class SynchronizationPage : Page
         ScanProgress.Value = 0;
     }
 
+    private void OnSelectDuplicates(object sender, RoutedEventArgs e)
+    {
+        SynchronizationResultsList.SelectedItems.Clear();
+        foreach (var row in results.Where(item => item.StateCode == SynchronizationFileState.Duplicate).Take(500))
+            SynchronizationResultsList.SelectedItems.Add(row);
+    }
+
+    private async void OnDeleteDuplicates(object sender, RoutedEventArgs e) =>
+        await UiOperation.RunAsync(DeleteDuplicatesAsync, "Impossible de supprimer les doublons", ActionInfo);
+
+    private async Task DeleteDuplicatesAsync()
+    {
+        var selected = SynchronizationResultsList.SelectedItems.OfType<SynchronizationResultRow>()
+            .Where(item => item.StateCode == SynchronizationFileState.Duplicate && item.SourceFullyDuplicate)
+            .Take(500).ToArray();
+        if (selected.Length == 0)
+        {
+            ShowWarning("Aucun doublon supprimable n’est sélectionné. Une archive mixte n’est jamais supprimée automatiquement.");
+            return;
+        }
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Supprimer les sources en double ?",
+            Content = $"{selected.Length} fichier(s) source seront revérifiés par SHA-256. Les copies conservées dans l’archive ne seront jamais supprimées.",
+            PrimaryButtonText = "Supprimer",
+            CloseButtonText = "Annuler",
+            DefaultButton = ContentDialogButton.Close
+        };
+        if (await dialog.ApplyActionStyles().ShowAsync() != ContentDialogResult.Primary) return;
+        var paths = selected.Select(item => item.FullPath).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var outcome = await App.Services.DuplicateCleanup.DeleteVerifiedAsync(paths);
+        if (outcome.Deleted > 0)
+        {
+            App.Services.SynchronizationActivity.Remove(paths.Where(path => !File.Exists(path)));
+            foreach (var path in paths.Where(path => !File.Exists(path)).ToArray())
+            {
+                allResultRows.Remove(path);
+                resultOrder.Remove(path);
+            }
+            RebuildVisibleResults();
+        }
+        ActionInfo.Severity = outcome.Skipped == 0 ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
+        ActionInfo.Message = $"{outcome.Deleted} doublon(s) source supprimé(s), {outcome.Skipped} ignoré(s) après vérification.";
+        ActionInfo.IsOpen = true;
+    }
+
     private void OnOpenSettings(object sender, RoutedEventArgs e) => Frame.Navigate(typeof(SettingsPage));
 
     private void OnSelectAllProviders(object sender, RoutedEventArgs e) => SetProviderSelection(true);
@@ -361,7 +408,8 @@ public sealed partial class SynchronizationPage : Page
         SetupWeekKind WeekKind,
         SynchronizationFileState StateCode,
         string State,
-        string Message)
+        string Message,
+        bool SourceFullyDuplicate)
     {
         public SolidColorBrush StateBackground => LibraryPage.Brush(StateCode switch
         {
@@ -407,6 +455,7 @@ public sealed partial class SynchronizationPage : Page
                 SynchronizationFileState.Error => "Erreur",
                 _ => "Interrompu"
             },
-            progress.Message);
+            progress.Message,
+            progress.Result?.SourceFullyDuplicate == true);
     }
 }

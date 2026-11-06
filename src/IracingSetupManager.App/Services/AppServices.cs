@@ -38,6 +38,7 @@ public sealed class AppServices
         SetupCorrection = new SetupCorrectionService(ContextFactory, new ArchivePathBuilder(), RecognitionAliases);
         MetadataRefresh = new SetupMetadataRefreshService(ContextFactory, metadataAnalyzer);
         LibraryIntegrity = new SetupLibraryIntegrityService(ContextFactory);
+        DuplicateCleanup = new DuplicateSourceCleanupService(ContextFactory, new Sha256Calculator(), new SecureZipExtractor(), new SecureRarExtractor());
         ArchiveReorganization = new ArchiveReorganizationService(ContextFactory, new ArchivePathBuilder(), new Sha256Calculator());
         Validation = new SetupValidationService(ContextFactory);
         IracingPathLayout = new IracingPathLayoutService(ContextFactory);
@@ -90,6 +91,7 @@ public sealed class AppServices
     public SetupCorrectionService SetupCorrection { get; }
     public SetupMetadataRefreshService MetadataRefresh { get; }
     public SetupLibraryIntegrityService LibraryIntegrity { get; }
+    public DuplicateSourceCleanupService DuplicateCleanup { get; }
     public ArchiveReorganizationService ArchiveReorganization { get; }
     public SetupValidationService Validation { get; }
     public IracingCopyService IracingCopy { get; }
