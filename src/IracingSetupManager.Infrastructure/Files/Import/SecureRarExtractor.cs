@@ -18,6 +18,7 @@ public sealed class SecureRarExtractor(
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!entry.IsDirectory && !string.IsNullOrWhiteSpace(entry.Key) &&
+                !ArchiveImportEntry.IsMacMetadata(entry.Key) &&
                 (nestedOnly ? ArchiveImportEntry.IsArchive(entry.Key) : ArchiveImportEntry.IsSupported(entry.Key, includeNestedArchives))) return true;
         }
         return false;
@@ -41,6 +42,7 @@ public sealed class SecureRarExtractor(
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (entry.IsDirectory || string.IsNullOrWhiteSpace(entry.Key) ||
+                ArchiveImportEntry.IsMacMetadata(entry.Key) ||
                 !ArchiveImportEntry.IsSupported(entry.Key, includeNestedArchives)) continue;
             if (entries.Count >= maximumEntries) throw new InvalidDataException("L’archive contient trop de setups.");
             SecurePath.ValidateArchiveEntry(entry.Key);

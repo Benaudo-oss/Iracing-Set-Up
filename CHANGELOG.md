@@ -5,6 +5,10 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.8.12.45
+
+- L’import ZIP et RAR ignore les métadonnées macOS (`._*` et `__MACOSX`) pour éviter les erreurs lors de la lecture des archives imbriquées.
+
 # 1.8.12.44
 
 - Export des setups depuis la Bibliothèque : un ZIP principal contenant un ZIP par voiture, avec aperçu, filtre par date et suivi des setups exportés.

@@ -18,6 +18,7 @@ public sealed class SecureZipExtractor(
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrEmpty(entry.Name) &&
+                !ArchiveImportEntry.IsMacMetadata(entry.FullName) &&
                 (nestedOnly ? ArchiveImportEntry.IsArchive(entry.Name) : ArchiveImportEntry.IsSupported(entry.Name, includeNestedArchives))) return true;
         }
         return false;
@@ -37,6 +38,7 @@ public sealed class SecureZipExtractor(
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrEmpty(entry.Name) ||
+                ArchiveImportEntry.IsMacMetadata(entry.FullName) ||
                 !ArchiveImportEntry.IsSupported(entry.Name, includeNestedArchives)) continue;
             if (entries.Count >= maximumEntries) throw new InvalidDataException("L'archive contient trop de setups.");
             totalSize = checked(totalSize + entry.Length);

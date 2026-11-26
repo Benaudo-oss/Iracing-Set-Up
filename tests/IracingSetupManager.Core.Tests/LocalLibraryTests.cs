@@ -307,8 +307,14 @@ public sealed class LocalLibraryTests
         await using var environment = await LibraryTestEnvironment.CreateAsync();
         var outerPath = Path.Combine(environment.SourcePath, "outer.zip");
         using (var outer = ZipFile.Open(outerPath, ZipArchiveMode.Create))
-        using (var inner = new ZipArchive(outer.CreateEntry("inner.zip").Open(), ZipArchiveMode.Create))
         {
+            foreach (var name in new[] { "._inner.zip", "__MACOSX/inner.rar", "__MACOSX/ghost.sto" })
+            {
+                using var metadata = new StreamWriter(outer.CreateEntry(name).Open());
+                metadata.Write("Pas une archive ni un setup");
+            }
+            using var inner = new ZipArchive(outer.CreateEntry("inner.zip").Open(), ZipArchiveMode.Create);
+            inner.CreateEntry("GT3/._VRS_M4GT3_R.sto");
             if (includeSecondLevelSetup)
             {
                 using var setup = new StreamWriter(inner.CreateEntry("GT3/VRS_M4GT3_R.sto").Open());
@@ -326,6 +332,22 @@ public sealed class LocalLibraryTests
         Assert.Equal(includeSecondLevelSetup ? 1 : 0,
             Directory.EnumerateFiles(environment.ArchivePath, "*.sto", SearchOption.AllDirectories).Count());
         Assert.True(File.Exists(outerPath));
+    }
+
+    [Fact]
+    public async Task ZipWithOnlyMacMetadataDoesNotContainSetups()
+    {
+        await using var environment = await LibraryTestEnvironment.CreateAsync();
+        var path = Path.Combine(environment.SourcePath, "metadata.zip");
+        using (var zip = ZipFile.Open(path, ZipArchiveMode.Create))
+        {
+            zip.CreateEntry("._setup.sto");
+            zip.CreateEntry("__MACOSX/inner.zip");
+        }
+        Assert.False(new SecureZipExtractor().ContainsSetup(path, includeNestedArchives: true));
+        var result = Assert.Single(await environment.Service.ImportAsync(
+            path, environment.ArchivePath, SetupSourceKind.DownloadsFolder));
+        Assert.Equal(SetupImportOutcome.Unsupported, result.Outcome);
     }
 
     [Fact]
