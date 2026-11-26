@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
 {
-    public const int CurrentSchemaVersion = 9;
+    public const int CurrentSchemaVersion = 10;
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -202,12 +202,17 @@ public sealed class SetupDatabase(ISetupDbContextFactory contextFactory)
                 () => EnsureSetupSortKeySchemaAsync(context, cancellationToken),
                 cancellationToken);
         }
+        if (version < 10)
+            await RunMigrationAsync(context, 10,
+                () => EnsureSetupColumnAsync(context, "LastExportedAtUtc", "TEXT NULL", cancellationToken),
+                cancellationToken);
     }
 
     private static async Task RepairRequiredSchemaAsync(
         SetupDbContext context,
         CancellationToken cancellationToken)
     {
+        await EnsureSetupColumnAsync(context, "LastExportedAtUtc", "TEXT NULL", cancellationToken);
         await EnsureSetupColumnAsync(context, "Week", "INTEGER NULL", cancellationToken);
         await EnsureSetupColumnAsync(context, "WeekKind", "TEXT NOT NULL DEFAULT 'Unknown'", cancellationToken);
         await context.Database.ExecuteSqlRawAsync(

@@ -42,8 +42,8 @@ public sealed class LibraryImportService(
         }
 
         var containsSetup = extension.Equals(".rar", StringComparison.OrdinalIgnoreCase)
-            ? rarExtractor.ContainsSetup(sourcePath, cancellationToken)
-            : zipExtractor.ContainsSetup(sourcePath, cancellationToken);
+            ? rarExtractor.ContainsSetup(sourcePath, cancellationToken, includeNestedArchives: true)
+            : zipExtractor.ContainsSetup(sourcePath, cancellationToken, includeNestedArchives: true);
         if (!containsSetup) return [new SetupImportResult(sourcePath, SetupImportOutcome.Unsupported)];
 
         var temporaryRoot = Path.Combine(
@@ -55,9 +55,10 @@ public sealed class LibraryImportService(
         try
         {
             var extractedFiles = extension.Equals(".rar", StringComparison.OrdinalIgnoreCase)
-                ? await rarExtractor.ExtractAsync(sourcePath, temporaryRoot, cancellationToken)
-                : await zipExtractor.ExtractAsync(sourcePath, temporaryRoot, cancellationToken);
+                ? await rarExtractor.ExtractAsync(sourcePath, temporaryRoot, cancellationToken, includeNestedArchives: true)
+                : await zipExtractor.ExtractAsync(sourcePath, temporaryRoot, cancellationToken, includeNestedArchives: true);
             var results = new List<SetupImportResult>();
+            var totalExtractedBytes = extractedFiles.Sum(path => new FileInfo(path).Length);
 
             foreach (var extractedFile in extractedFiles.Where(path =>
                          Path.GetExtension(path).Equals(".sto", StringComparison.OrdinalIgnoreCase)))
@@ -70,6 +71,26 @@ public sealed class LibraryImportService(
                     cancellationToken,
                     originalSourcePath: sourcePath,
                     metadataFilter: metadataFilter));
+            }
+
+            // Only the outer archive can yield more archives. Inner extraction yields .sto files only.
+            foreach (var nested in extractedFiles.Where(ArchiveImportEntry.IsArchive))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var nestedRoot = Path.Combine(temporaryRoot, Guid.NewGuid().ToString("N"));
+                try
+                {
+                    var setups = Path.GetExtension(nested).Equals(".rar", StringComparison.OrdinalIgnoreCase)
+                        ? await rarExtractor.ExtractAsync(nested, nestedRoot, cancellationToken)
+                        : await zipExtractor.ExtractAsync(nested, nestedRoot, cancellationToken);
+                    totalExtractedBytes += setups.Sum(path => new FileInfo(path).Length);
+                    if (results.Count + setups.Count > 10_000 || totalExtractedBytes > 2L * 1024 * 1024 * 1024)
+                        throw new InvalidDataException("Les archives imbriquées dépassent les limites d’import.");
+                    foreach (var setup in setups)
+                        results.Add(await ImportSetupAsync(setup, archiveRoot, sourceKind, metadataDefaults,
+                            cancellationToken, originalSourcePath: sourcePath, metadataFilter: metadataFilter));
+                }
+                finally { TryDeleteTemporaryDirectory(nestedRoot); }
             }
 
             return results.Count == 0

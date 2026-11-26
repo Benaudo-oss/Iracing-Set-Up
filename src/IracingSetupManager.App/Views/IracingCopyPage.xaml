@@ -5,7 +5,7 @@
     <Grid Padding="32" RowSpacing="16">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
         <StackPanel Spacing="4">
-            <TextBlock x:Name="PageTitle" FontSize="32" FontWeight="SemiBold" Text="Copie vers iRacing" />
+            <TextBlock x:Name="PageTitle" FontSize="32" FontWeight="SemiBold" Text="Copie vers G61 Perso" />
             <TextBlock x:Name="PageSubtitle" Opacity="0.65" Text="Prévisualisez chaque destination avant de copier les setups validés." />
         </StackPanel>
         <Grid Grid.Row="1" ColumnSpacing="10">

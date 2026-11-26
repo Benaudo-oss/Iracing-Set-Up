@@ -43,6 +43,11 @@ public sealed class DuplicateSourceCleanupService(
         var temporaryRoot = Path.Combine(Path.GetTempPath(), "IracingSetupManager", "DuplicateCheck", Guid.NewGuid().ToString("N"));
         try
         {
+            // The cleanup verifier only checks direct entries; never delete nested archives on that basis.
+            if (extension.Equals(".rar", StringComparison.OrdinalIgnoreCase)
+                ? rarExtractor.ContainsSetup(sourcePath, cancellationToken, nestedOnly: true)
+                : zipExtractor.ContainsSetup(sourcePath, cancellationToken, nestedOnly: true)) return false;
+
             var extracted = extension.Equals(".rar", StringComparison.OrdinalIgnoreCase)
                 ? await rarExtractor.ExtractAsync(sourcePath, temporaryRoot, cancellationToken)
                 : await zipExtractor.ExtractAsync(sourcePath, temporaryRoot, cancellationToken);

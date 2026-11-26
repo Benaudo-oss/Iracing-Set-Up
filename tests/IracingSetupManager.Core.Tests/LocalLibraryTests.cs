@@ -299,6 +299,82 @@ public sealed class LocalLibraryTests
         Assert.True(File.Exists(zipPath));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ImportsZipSetupsOnlyThroughTheSecondArchiveLevel(bool includeSecondLevelSetup)
+    {
+        await using var environment = await LibraryTestEnvironment.CreateAsync();
+        var outerPath = Path.Combine(environment.SourcePath, "outer.zip");
+        using (var outer = ZipFile.Open(outerPath, ZipArchiveMode.Create))
+        using (var inner = new ZipArchive(outer.CreateEntry("inner.zip").Open(), ZipArchiveMode.Create))
+        {
+            if (includeSecondLevelSetup)
+            {
+                using var setup = new StreamWriter(inner.CreateEntry("GT3/VRS_M4GT3_R.sto").Open());
+                setup.Write("second level");
+            }
+            using var third = new ZipArchive(inner.CreateEntry("third.zip").Open(), ZipArchiveMode.Create);
+            using var tooDeep = new StreamWriter(third.CreateEntry("VRS_M4GT3_Q.sto").Open());
+            tooDeep.Write("third level");
+        }
+
+        var result = Assert.Single(await environment.Service.ImportAsync(
+            outerPath, environment.ArchivePath, SetupSourceKind.DownloadsFolder));
+        Assert.Equal(includeSecondLevelSetup ? SetupImportOutcome.Imported : SetupImportOutcome.Unsupported, result.Outcome);
+        Assert.Equal(outerPath, result.SourcePath);
+        Assert.Equal(includeSecondLevelSetup ? 1 : 0,
+            Directory.EnumerateFiles(environment.ArchivePath, "*.sto", SearchOption.AllDirectories).Count());
+        Assert.True(File.Exists(outerPath));
+    }
+
+    [Fact]
+    public async Task ExportsOneZipPerCarAndOnlyMarksIncludedSetups()
+    {
+        await using var environment = await LibraryTestEnvironment.CreateAsync();
+        foreach (var name in new[] { "VRS_M4GT3_R", "VRS_M4GT3_Q", "HYMO_ARX06_R", "HYMO_ARX06_Q" })
+        {
+            var source = Path.Combine(environment.SourcePath, name + ".sto");
+            await File.WriteAllTextAsync(source, name);
+            await environment.Service.ImportAsync(source, environment.ArchivePath, SetupSourceKind.DownloadsFolder);
+        }
+        var query = new SetupQueryService(environment.Factory);
+        var setups = await query.GetAllAsync();
+        var omitted = setups.Single(setup => setup.OriginalFileName == "HYMO_ARX06_Q.sto");
+        var selected = setups.Where(setup => setup.Id != omitted.Id).Select(setup => setup.Id).ToArray();
+        var export = new SetupZipExportService(environment.Factory);
+        var path = Path.Combine(environment.SourcePath, "pack.zip");
+
+        Assert.True(await export.ExportAsync(selected, path));
+        using (var pack = ZipFile.OpenRead(path))
+        {
+            Assert.Equal(2, pack.Entries.Count);
+            var contents = new List<string>();
+            foreach (var car in pack.Entries)
+            {
+                Assert.EndsWith(".zip", car.Name);
+                using var inner = new ZipArchive(car.Open(), ZipArchiveMode.Read);
+                foreach (var setup in inner.Entries)
+                {
+                    using var reader = new StreamReader(setup.Open());
+                    contents.Add(await reader.ReadToEndAsync());
+                }
+            }
+            Assert.Equal(new[] { "HYMO_ARX06_R", "VRS_M4GT3_Q", "VRS_M4GT3_R" }, contents.Order());
+        }
+        var reimport = await environment.Service.ImportAsync(path, environment.ArchivePath, SetupSourceKind.DownloadsFolder);
+        Assert.Equal(3, reimport.Count);
+        Assert.All(reimport, item => Assert.Equal(SetupImportOutcome.Duplicate, item.Outcome));
+        Assert.All(setups, setup => Assert.True(File.Exists(setup.ArchivePath)));
+
+        await Assert.ThrowsAsync<IOException>(() => export.ExportAsync([omitted.Id], path));
+        var remaining = await query.GetPageAsync(new SetupPageRequest(0, 10, NeverExported: true,
+            AddedFrom: omitted.DownloadedAtUtcSortKey, AddedBefore: omitted.DownloadedAtUtcSortKey + 1));
+        Assert.Equal(omitted.Id, Assert.Single(remaining.Items).Id);
+        Assert.Equal(0, (await query.GetPageAsync(new SetupPageRequest(0, 10, NeverExported: true,
+            AddedBefore: omitted.DownloadedAtUtcSortKey))).TotalCount);
+    }
+
     private sealed class LibraryTestEnvironment : IAsyncDisposable
     {
         private LibraryTestEnvironment(string rootPath, LocalSetupDbContextFactory factory, LibraryImportService service)

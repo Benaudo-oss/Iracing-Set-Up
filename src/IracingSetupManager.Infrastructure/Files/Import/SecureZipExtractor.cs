@@ -11,19 +11,19 @@ public sealed class SecureZipExtractor(
 {
     private readonly IAtomicFileOperations atomicFiles = atomicFileOperations ?? new AtomicFileOperations();
 
-    public bool ContainsSetup(string zipPath, CancellationToken cancellationToken = default)
+    public bool ContainsSetup(string zipPath, CancellationToken cancellationToken = default, bool includeNestedArchives = false, bool nestedOnly = false)
     {
         using var archive = ZipFile.OpenRead(SecurePath.GetFullPath(zipPath));
         foreach (var entry in archive.Entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrEmpty(entry.Name) &&
-                Path.GetExtension(entry.Name).Equals(".sto", StringComparison.OrdinalIgnoreCase)) return true;
+                (nestedOnly ? ArchiveImportEntry.IsArchive(entry.Name) : ArchiveImportEntry.IsSupported(entry.Name, includeNestedArchives))) return true;
         }
         return false;
     }
 
-    public async Task<IReadOnlyList<string>> ExtractAsync(string zipPath, string destinationDirectory, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<string>> ExtractAsync(string zipPath, string destinationDirectory, CancellationToken cancellationToken = default, bool includeNestedArchives = false)
     {
         var source = SecurePath.GetFullPath(zipPath);
         var destinationRoot = SecurePath.GetFullPath(destinationDirectory);
@@ -37,7 +37,7 @@ public sealed class SecureZipExtractor(
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrEmpty(entry.Name) ||
-                !Path.GetExtension(entry.Name).Equals(".sto", StringComparison.OrdinalIgnoreCase)) continue;
+                !ArchiveImportEntry.IsSupported(entry.Name, includeNestedArchives)) continue;
             if (entries.Count >= maximumEntries) throw new InvalidDataException("L'archive contient trop de setups.");
             totalSize = checked(totalSize + entry.Length);
             if (totalSize > maximumUncompressedBytes) throw new InvalidDataException("L'archive dépasse la taille maximale autorisée.");

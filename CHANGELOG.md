@@ -5,6 +5,14 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 1.8.12.44
+
+- Export des setups depuis la Bibliothèque : un ZIP principal contenant un ZIP par voiture, avec aperçu, filtre par date et suivi des setups exportés.
+- Import des archives ZIP et RAR imbriquées jusqu’à deux niveaux.
+- Nouveau logo dans l’application et pour l’icône Windows.
+- Notification discrète au démarrage lorsqu’une mise à jour est disponible.
+- Onglets renommés « Copie vers G61 Perso » et « Copie vers G61 Team », sans modification des destinations.
+
 # 1.7.12.44
 
 - Suppression groupée de 500 setups refusés depuis la bibliothèque, avec confirmation, historique et nettoyage des dossiers d’archive vides.

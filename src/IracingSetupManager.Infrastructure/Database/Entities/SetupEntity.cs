@@ -66,4 +66,6 @@ public sealed class SetupEntity
 
     public int IracingTeamCopyCount { get; set; }
 
+    public DateTimeOffset? LastExportedAtUtc { get; set; }
+
 }

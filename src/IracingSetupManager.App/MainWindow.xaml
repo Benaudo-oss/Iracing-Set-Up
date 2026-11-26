@@ -38,10 +38,10 @@
             <NavigationViewItem Content="À vérifier" Tag="review">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D5;" /></NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem Content="Copie vers iRacing" Tag="iracing-copy">
+            <NavigationViewItem Content="Copie vers G61 Perso" Tag="iracing-copy">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem Content="Copie vers iRacing Team" Tag="iracing-team-copy">
+            <NavigationViewItem Content="Copie vers G61 Team" Tag="iracing-team-copy">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE902;" /></NavigationViewItem.Icon>
             </NavigationViewItem>
             <NavigationViewItem Content="Historique" Tag="history">
@@ -56,6 +56,14 @@
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE946;" /></NavigationViewItem.Icon>
             </NavigationViewItem>
         </NavigationView.FooterMenuItems>
-        <Frame x:Name="ContentFrame" />
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <InfoBar x:Name="UpdateNotification" Margin="16,8,16,0" IsOpen="False"
+                     IsClosable="True" Severity="Informational" Title="Mise à jour disponible" />
+            <Frame x:Name="ContentFrame" Grid.Row="1" />
+        </Grid>
     </NavigationView>
 </Window>

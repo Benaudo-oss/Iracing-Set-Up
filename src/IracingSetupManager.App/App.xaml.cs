@@ -36,7 +36,33 @@ public partial class App : Application
         MainWindowInstance = new MainWindow();
         MainWindowInstance.Closed += OnMainWindowClosed;
         MainWindowInstance.Activate();
-        _optionalStartupTask = Task.Run(() => RunOptionalStartupTasksAsync(_shutdown.Token), _shutdown.Token);
+        var window = MainWindowInstance;
+        var shutdownToken = _shutdown.Token;
+        _optionalStartupTask = Task.Run(() => Task.WhenAll(
+            RunOptionalStartupTasksAsync(shutdownToken),
+            CheckForUpdateNotificationAsync(window, shutdownToken)), shutdownToken);
+    }
+
+    private static async Task CheckForUpdateNotificationAsync(MainWindow window, CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+        try
+        {
+            var installed = typeof(App).Assembly.GetName().Version ?? new Version(0, 0);
+            var update = await Services.Updates.CheckAsync(installed, timeout.Token);
+            if (!update.IsAvailable || update.AvailableVersion is not { } version ||
+                !await Services.UpdatePreferences.ShouldOfferAsync(version, timeout.Token)) return;
+            window.DispatcherQueue.TryEnqueue(() =>
+            {
+                if (!cancellationToken.IsCancellationRequested) window.NotifyUpdateAvailable(version);
+            });
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested) { }
+        catch (Exception exception)
+        {
+            Services.ApplicationLog.Error(exception, "Vérification de disponibilité d’une mise à jour au démarrage");
+        }
     }
 
     private static async Task RunOptionalStartupTasksAsync(CancellationToken cancellationToken)

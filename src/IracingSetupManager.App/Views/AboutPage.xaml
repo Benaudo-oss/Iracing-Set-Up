@@ -9,6 +9,10 @@
                 <TextBlock Opacity="0.65" Text="Informations légales, propriété intellectuelle et utilisation de l’application" />
             </StackPanel>
 
+            <Image Width="220" Height="220" HorizontalAlignment="Left"
+                   AutomationProperties.Name="Emblème iRacing Setup Manager"
+                   Source="ms-appx:///Assets/AboutEmblem.png" />
+
             <Border Padding="24" Background="#FF20242B" CornerRadius="10">
                 <StackPanel Spacing="16">
                     <TextBlock FontSize="22" FontWeight="SemiBold" Text="© Copyright et propriété intellectuelle" />

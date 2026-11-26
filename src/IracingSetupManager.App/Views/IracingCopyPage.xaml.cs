@@ -68,7 +68,7 @@ public sealed partial class IracingCopyPage : Page
     {
         if (isTeam)
         {
-            PageTitle.Text = "Copie vers iRacing Team";
+            PageTitle.Text = "Copie vers G61 Team";
             teamName = await App.Services.IracingTeam.GetNameAsync();
             PageSubtitle.Text = string.IsNullOrWhiteSpace(teamName)
                 ? "Définissez d’abord le nom de la Team dans les paramètres."
@@ -319,7 +319,7 @@ public sealed partial class IracingCopyPage : Page
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
-            Title = isTeam ? "Confirmer la copie vers iRacing Team" : "Confirmer la copie vers iRacing",
+            Title = isTeam ? "Confirmer la copie vers G61 Team" : "Confirmer la copie vers G61 Perso",
             Content = $"{plan.Count(item => !item.HasConflict || item.ConflictChoice != IracingConflictChoice.Skip)} fichier(s) seront copiés. Les originaux resteront dans l’archive.",
             PrimaryButtonText = "Copier",
             CloseButtonText = "Annuler",

@@ -11,14 +11,14 @@ public sealed class SecureRarExtractor(
 {
     private readonly IAtomicFileOperations atomicFiles = atomicFileOperations ?? new AtomicFileOperations();
 
-    public bool ContainsSetup(string rarPath, CancellationToken cancellationToken = default)
+    public bool ContainsSetup(string rarPath, CancellationToken cancellationToken = default, bool includeNestedArchives = false, bool nestedOnly = false)
     {
         using var archive = ArchiveFactory.OpenArchive(SecurePath.GetFullPath(rarPath));
         foreach (var entry in archive.Entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!entry.IsDirectory && !string.IsNullOrWhiteSpace(entry.Key) &&
-                Path.GetExtension(entry.Key).Equals(".sto", StringComparison.OrdinalIgnoreCase)) return true;
+                (nestedOnly ? ArchiveImportEntry.IsArchive(entry.Key) : ArchiveImportEntry.IsSupported(entry.Key, includeNestedArchives))) return true;
         }
         return false;
     }
@@ -26,7 +26,7 @@ public sealed class SecureRarExtractor(
     public async Task<IReadOnlyList<string>> ExtractAsync(
         string rarPath,
         string destinationDirectory,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, bool includeNestedArchives = false)
     {
         var source = SecurePath.GetFullPath(rarPath);
         var destinationRoot = SecurePath.GetFullPath(destinationDirectory);
@@ -41,7 +41,7 @@ public sealed class SecureRarExtractor(
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (entry.IsDirectory || string.IsNullOrWhiteSpace(entry.Key) ||
-                !Path.GetExtension(entry.Key).Equals(".sto", StringComparison.OrdinalIgnoreCase)) continue;
+                !ArchiveImportEntry.IsSupported(entry.Key, includeNestedArchives)) continue;
             if (entries.Count >= maximumEntries) throw new InvalidDataException("L’archive contient trop de setups.");
             SecurePath.ValidateArchiveEntry(entry.Key);
 

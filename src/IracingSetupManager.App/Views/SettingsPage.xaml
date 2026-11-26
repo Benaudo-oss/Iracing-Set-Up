@@ -16,7 +16,7 @@
             </Border>
             <Border Padding="20" Background="#FF20242B" CornerRadius="10">
                 <StackPanel Spacing="14">
-                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="Copie vers iRacing Team" />
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="Copie vers G61 Team" />
                     <TextBlock Opacity="0.65" Text="Saisissez exactement le nom utilisé par la Team sur Garage61. Le dossier sera créé sous la forme Garage 61 - Nom de la Team." TextWrapping="Wrap" />
                     <Grid ColumnSpacing="10">
                         <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
@@ -43,7 +43,7 @@
             </Border>
             <Border Padding="20" Background="#FF20242B" CornerRadius="10">
                 <StackPanel Spacing="14">
-                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="Arborescence de copie vers iRacing" />
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="Arborescence de copie vers G61 Perso" />
                     <TextBlock Opacity="0.65" Text="Modifiez l’ordre des dossiers variables. Le dossier de la voiture et Garage 61 restent obligatoires pour iRacing." TextWrapping="Wrap" />
                     <ListView x:Name="PathLayoutList" SelectionMode="Single" MaxWidth="520" HorizontalAlignment="Left">
                         <ListView.ItemTemplate>

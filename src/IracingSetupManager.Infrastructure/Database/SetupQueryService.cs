@@ -37,7 +37,10 @@ public sealed record SetupPageRequest(
     bool ToReviewOnly = false,
     bool ValidatedOnly = false,
     string? CopyState = null,
-    bool TeamCopy = false);
+    bool TeamCopy = false,
+    bool NeverExported = false,
+    long? AddedFrom = null,
+    long? AddedBefore = null);
 
 public sealed record SetupPage(IReadOnlyList<SetupEntity> Items, int TotalCount);
 
@@ -276,6 +279,9 @@ public sealed class SetupQueryService(ISetupDbContextFactory contextFactory)
         IQueryable<SetupEntity> query,
         SetupPageRequest request)
     {
+        if (request.NeverExported) query = query.Where(item => item.LastExportedAtUtc == null);
+        if (request.AddedFrom is long from) query = query.Where(item => item.DownloadedAtUtcSortKey >= from);
+        if (request.AddedBefore is long before) query = query.Where(item => item.DownloadedAtUtcSortKey < before);
         if (request.ToReviewOnly) query = query.Where(item => item.Status == SetupStatus.AVerifier);
         if (request.ValidatedOnly) query = query.Where(item => item.Status == SetupStatus.Valide);
         if (!string.IsNullOrWhiteSpace(request.Provider)) query = query.Where(item => item.Provider == request.Provider);

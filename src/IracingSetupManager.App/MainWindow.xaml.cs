@@ -9,6 +9,13 @@ namespace IracingSetupManager.App;
 public sealed partial class MainWindow : Window
 {
     private object? currentNavigationParameter;
+
+    internal void NotifyUpdateAvailable(Version version)
+    {
+        UpdateNotification.Message = $"La version {version} est disponible dans l’onglet Mises à jour.";
+        UpdateNotification.IsOpen = true;
+    }
+
     public MainWindow()
     {
         InitializeComponent();

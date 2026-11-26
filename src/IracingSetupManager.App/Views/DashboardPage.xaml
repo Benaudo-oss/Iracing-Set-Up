@@ -69,7 +69,7 @@
                 <Border Grid.Column="3" MinHeight="128" Style="{StaticResource DashboardCardStyle}">
                     <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                            <TextBlock Foreground="{StaticResource DashboardMutedBrush}" Text="Copiés vers iRacing Team" />
+                            <TextBlock Foreground="{StaticResource DashboardMutedBrush}" Text="Copiés vers G61 Team" />
                             <Border Grid.Column="1" Width="34" Height="34" Background="#FF30264C" CornerRadius="8"><FontIcon Foreground="{StaticResource DashboardPurpleBrush}" Glyph="&#xE8B0;" /></Border>
                         </Grid>
                         <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Bottom"><TextBlock x:Name="IracingTeamText" HorizontalAlignment="Center" FontSize="34" FontWeight="SemiBold" Foreground="{StaticResource DashboardPurpleBrush}" Text="0" /><TextBlock x:Name="ProvidersText" HorizontalAlignment="Center" TextAlignment="Center" Foreground="{StaticResource DashboardMutedBrush}" Text="0 fournisseur" /></StackPanel>
