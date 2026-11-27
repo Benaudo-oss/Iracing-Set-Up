@@ -15,7 +15,9 @@ public sealed class ImportMonitoringService(
     SynchronizationSelectionSettingsService selectionSettings,
     HymoMonitoringSettingsService hymoMonitoringSettings,
     TrackTitanFolderResolver trackTitanFolders,
-    MonitoredFileStateStore fileStateStore) : IAsyncDisposable
+    MonitoredFileStateStore fileStateStore,
+    TelemetryCopySettingsService? telemetrySettings = null,
+    TelemetryCopyService? telemetryCopy = null) : IAsyncDisposable
 {
     private const int QueueCapacity = 2048;
     private const int StateSaveBatchSize = 100;
@@ -131,7 +133,7 @@ public sealed class ImportMonitoringService(
                         else if (state == SynchronizationFileState.Duplicate) duplicates++;
                         else if (state == SynchronizationFileState.Filtered) filtered++;
                         else unsupported++;
-                        Raise(file.FullPath, state, ToMessage(state), completed + 1, files.Count, false, result);
+                        Raise(file.FullPath, state, result.Message ?? ToMessage(state), completed + 1, files.Count, false, result);
                     }
                 }
                 catch (OperationCanceledException) when (linked.IsCancellationRequested) { throw; }
@@ -159,6 +161,44 @@ public sealed class ImportMonitoringService(
     }
 
     public void CancelImportNow() => manualScanCancellation?.Cancel();
+
+    public async Task<SetupImportResult> CompleteTelemetryAsync(string path, TelemetryCompletion fields,
+        CancellationToken cancellationToken = default)
+    {
+        await processingLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (IsManualScanRunning) throw new InvalidOperationException("Attendez la fin de la synchronisation manuelle.");
+            if (!TelemetryCopyService.IsSupported(path) || telemetryCopy is null || telemetrySettings is null ||
+                !await telemetrySettings.IsEnabledAsync(cancellationToken))
+                throw new InvalidOperationException("Activez d’abord la copie des fichiers de télémétrie dans Paramètres.");
+            var active = (await ResolveFoldersAsync(cancellationToken))
+                .Where(folder => folder.IncludeTelemetry && TelemetryCopyService.IsWithin(path, folder.Path))
+                .OrderByDescending(folder => folder.Path.Length)
+                .FirstOrDefault();
+            if (active is null) throw new InvalidOperationException("Le fichier n’est pas dans un dossier surveillé actif.");
+            var archiveRoot = await getArchivePath(cancellationToken);
+            if (string.IsNullOrWhiteSpace(archiveRoot)) throw new InvalidOperationException("Choisissez d’abord le dossier de bibliothèque.");
+            if (!await stableFileAwaiter.WaitAsync(path, cancellationToken) || TryCaptureSnapshot(path) is not { } snapshot)
+                throw new IOException("Le fichier est introuvable ou encore en cours d’écriture.");
+            var defaults = string.IsNullOrWhiteSpace(active.Provider) ? null
+                : new SetupMetadata(active.Provider, "À identifier", "À identifier", "À identifier", null, null, "À identifier");
+            var result = await telemetryCopy.CopyAsync(path, archiveRoot, defaults, cancellationToken, fields);
+            if (result.Outcome is SetupImportOutcome.Imported or SetupImportOutcome.Duplicate)
+            {
+                try { await telemetrySettings.SaveCompletionAsync(snapshot, fields, cancellationToken); }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    NotifyImportFailed(exception);
+                    result = result with { Message = "Télémétrie présente dans la bibliothèque, mais les choix n’ont pas pu être mémorisés." };
+                }
+                await RememberExaminedFileAsync(path, cancellationToken);
+            }
+            Raise(path, ToState(result.Outcome), result.Message ?? "Télémétrie traitée.", 0, 0, false, result, rowOnly: true);
+            return result;
+        }
+        finally { processingLock.Release(); }
+    }
 
     public async Task StopAsync()
     {
@@ -302,6 +342,21 @@ public sealed class ImportMonitoringService(
             ? SetupSourceKind.DownloadsFolder : SetupSourceKind.OfficialProviderApplication;
         SetupMetadata? defaults = string.IsNullOrWhiteSpace(file.Provider) ? null
             : new SetupMetadata(file.Provider, "À identifier", "À identifier", "À identifier", null, null, "À identifier");
+        if (TelemetryCopyService.IsSupported(file.FullPath))
+        {
+            if (telemetryCopy is null || telemetrySettings is null ||
+                !await telemetrySettings.IsEnabledAsync(cancellationToken) ||
+                (automatic && !folders.Any(folder => folder.IncludeTelemetry &&
+                    TelemetryCopyService.IsWithin(file.FullPath, folder.Path)))) return [];
+            var stored = TryCaptureSnapshot(file.FullPath) is { } snapshot
+                ? await telemetrySettings.ReadCompletionAsync(snapshot, cancellationToken) : null;
+            var result = await telemetryCopy.CopyAsync(file.FullPath, archivePath, defaults, cancellationToken, stored);
+            if (raiseProgress)
+                Raise(file.FullPath, ToState(result.Outcome), result.Message ?? "Télémétrie traitée.", 0, 0, automatic, result);
+            if (result.Outcome is SetupImportOutcome.Imported or SetupImportOutcome.Duplicate)
+                await RememberExaminedFileAsync(file.FullPath, cancellationToken);
+            return [result];
+        }
         var selection = await selectionSettings.GetAsync(cancellationToken);
         var results = await importService.ImportAsync(file.FullPath, archivePath, sourceKind, defaults, cancellationToken,
             metadata => SynchronizationImportPolicy.Allows(selection, metadata));
@@ -507,11 +562,20 @@ public sealed class ImportMonitoringService(
         var configured = await settingsService.GetAsync(cancellationToken);
         var selection = await selectionSettings.GetAsync(cancellationToken);
         var hymoEnabled = await hymoMonitoringSettings.IsEnabledAsync(cancellationToken);
+        var telemetryEnabled = telemetrySettings is not null && await telemetrySettings.IsEnabledAsync(cancellationToken);
+        var archiveRoot = telemetrySettings is not null ? await getArchivePath(cancellationToken) : null;
+        var telemetryDestination = string.IsNullOrWhiteSpace(archiveRoot)
+            ? null : Path.Combine(archiveRoot, TelemetryCopyService.FolderName);
         return configured
             .Where(folder => !(folder.Kind == ImportFolderKind.OfficialProviderApplication &&
                                string.Equals(folder.Provider, "HYMO", StringComparison.OrdinalIgnoreCase)))
             .Concat(hymoEnabled ? trackTitanFolders.Resolve(selection) : [])
             .DistinctBy(folder => folder.Path, StringComparer.OrdinalIgnoreCase)
+            .Select(folder => folder with
+            {
+                IncludeTelemetry = telemetryEnabled && telemetryDestination is not null,
+                TelemetryDestination = telemetryDestination
+            })
             .ToList();
     }
 
@@ -562,10 +626,11 @@ public sealed class ImportMonitoringService(
         int completed,
         int total,
         bool automatic,
-        SetupImportResult? result = null)
+        SetupImportResult? result = null,
+        bool rowOnly = false)
     {
         if (ProgressChanged is null) return;
-        var progress = new SynchronizationProgress(path, state, message, completed, total, automatic, result);
+        var progress = new SynchronizationProgress(path, state, message, completed, total, automatic, result, rowOnly);
         foreach (EventHandler<SynchronizationProgress> handler in ProgressChanged.GetInvocationList())
         {
             try { handler(this, progress); }

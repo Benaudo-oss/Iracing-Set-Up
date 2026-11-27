@@ -131,9 +131,11 @@
                                         </Grid>
                                     </Expander.Header>
                                     <Grid Margin="34,0,12,10" ColumnSpacing="12">
-                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <Border HorizontalAlignment="Left" Padding="8,2" Background="{Binding WeekKind, Converter={StaticResource WeekBadgeBrushConverter}}" BorderBrush="{Binding WeekKind, Converter={StaticResource WeekBadgeBrushConverter}, ConverterParameter=Border}" BorderThickness="1" CornerRadius="10"><TextBlock Foreground="{Binding WeekKind, Converter={StaticResource WeekBadgeBrushConverter}, ConverterParameter=Foreground}" Text="{Binding WeekDisplay}" /></Border>
                                         <TextBlock Grid.Column="1" VerticalAlignment="Center" Opacity="0.72" Text="{Binding Message}" TextWrapping="Wrap" />
+                                        <Button Grid.Column="2" Content="Compléter" Tag="{Binding FullPath}" Visibility="{Binding TelemetryCompletionVisibility}"
+                                                Style="{StaticResource BlueActionButtonStyle}" Click="OnCompleteTelemetry" />
                                     </Grid>
                                 </Expander>
                             </DataTemplate>

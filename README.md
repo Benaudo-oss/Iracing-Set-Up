@@ -12,7 +12,7 @@ des setups iRacing sans modifier les fichiers originaux.
 
 ## État du projet
 
-La version du projet est `2.8.12.45`. Elle comprend la bibliothèque locale, la
+La version du projet est `2.9.12.45`. Elle comprend la bibliothèque locale, la
 surveillance des dossiers autorisés, la validation, la copie vers iRacing et
 iRacing Team, les sauvegardes et les mises à jour automatiques.
 
@@ -110,7 +110,7 @@ dotnet publish src/IracingSetupManager.App/IracingSetupManager.App.csproj `
 
 ### Installateur Windows
 
-La commande `installer/Build-Installer.ps1 -Version 2.8.12.45` publie l’application
+La commande `installer/Build-Installer.ps1 -Version 2.9.12.45` publie l’application
 autonome, génère l’installateur Inno Setup versionné et son empreinte SHA-256. Le
 même identifiant d’application assure installation, désinstallation et mise à
 niveau. L’installateur ne supprime jamais `%LocalAppData%\IracingSetupManager`,

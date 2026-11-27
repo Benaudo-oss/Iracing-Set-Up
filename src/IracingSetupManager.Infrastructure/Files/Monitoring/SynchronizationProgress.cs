@@ -6,7 +6,7 @@ public enum SynchronizationFileState { Detected, Analyzing, Imported, Duplicate,
 
 public sealed record SynchronizationProgress(
     string FilePath, SynchronizationFileState State, string Message,
-    int Completed, int Total, bool Automatic, SetupImportResult? Result = null);
+    int Completed, int Total, bool Automatic, SetupImportResult? Result = null, bool RowOnly = false);
 
 public sealed record SynchronizationSummary(
     int Detected, int Imported, int Duplicates, int Filtered,

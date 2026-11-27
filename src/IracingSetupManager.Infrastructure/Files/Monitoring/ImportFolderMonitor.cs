@@ -85,12 +85,13 @@ public sealed class ImportFolderMonitor(MonitoredFolderPolicy policy) : IDisposa
             while (pendingDirectories.TryPop(out var currentDirectory))
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (IsTelemetryDestination(currentDirectory, folder)) continue;
                 try
                 {
                     foreach (var path in Directory.GetFiles(currentDirectory, "*", SearchOption.TopDirectoryOnly))
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        if (IsSupported(path)) files.Add(CreateDetectedFile(path, folder));
+                        if (IsSupported(path, folder)) files.Add(CreateDetectedFile(path, folder));
                         if (++processedSinceYield >= 256)
                         {
                             processedSinceYield = 0;
@@ -147,7 +148,7 @@ public sealed class ImportFolderMonitor(MonitoredFolderPolicy policy) : IDisposa
 
     private void RaiseIfSupported(string path, MonitoredFolder folder)
     {
-        if (IsSupported(path))
+        if (IsSupported(path, folder))
         {
             FileDetected?.Invoke(this, CreateDetectedFile(path, folder));
         }
@@ -162,6 +163,10 @@ public sealed class ImportFolderMonitor(MonitoredFolderPolicy policy) : IDisposa
         ArgumentException or
         NotSupportedException;
 
-    private static bool IsSupported(string path) =>
-        SupportedExtensions.Contains(Path.GetExtension(path));
+    private static bool IsSupported(string path, MonitoredFolder folder) =>
+        !IsTelemetryDestination(path, folder) && (SupportedExtensions.Contains(Path.GetExtension(path)) ||
+            (folder.IncludeTelemetry && Import.TelemetryCopyService.IsSupported(path)));
+
+    private static bool IsTelemetryDestination(string path, MonitoredFolder folder) =>
+        folder.TelemetryDestination is { } destination && Import.TelemetryCopyService.IsWithin(path, destination);
 }

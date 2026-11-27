@@ -29,6 +29,8 @@
                 <StackPanel Spacing="14">
                     <TextBlock FontSize="20" FontWeight="SemiBold" Text="Dossiers surveillés" />
                     <ToggleSwitch x:Name="AutomaticMonitoringToggle" Header="Surveillance automatique" OnContent="Activée" OffContent="Désactivée" Toggled="OnAutomaticMonitoringToggled" />
+                    <ToggleSwitch x:Name="TelemetryCopyToggle" Header="Copier les fichiers de télémétrie" OnContent="Activée" OffContent="Désactivée" Toggled="OnTelemetryCopyToggled" />
+                    <TextBlock Opacity="0.65" Text="Copie les .blap, .olap et .ibt dans Télémétrie, dans un dossier par voiture. Les originaux restent en place." TextWrapping="Wrap" />
                     <TextBlock Opacity="0.65" Text="Lorsqu’elle est désactivée, seuls les imports lancés manuellement depuis Synchronisation sont effectués." TextWrapping="Wrap" />
                     <InfoBar IsOpen="True" IsClosable="False" Severity="Warning" Title="Protection des setups privés" Message="Le dossier iRacing général reste interdit. Pour HYMO, seuls les dossiers Track Titan des voitures appartenant aux catégories sélectionnées sont surveillés." />
                     <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Téléchargements" /><TextBox x:Name="DownloadsPathBox" Grid.Column="1" IsReadOnly="True" /><ToggleSwitch x:Name="DownloadsToggle" Grid.Column="2" OnContent="Actif" OffContent="Inactif" Toggled="OnSourceMonitoringToggled" /></Grid>

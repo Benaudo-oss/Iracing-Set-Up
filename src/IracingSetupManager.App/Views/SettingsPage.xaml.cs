@@ -30,6 +30,7 @@ public sealed partial class SettingsPage : Page
         ArchivePathBox.Text = await App.Services.ArchivePaths.GetAsync() ?? string.Empty;
         IracingTeamNameBox.Text = await App.Services.IracingTeam.GetNameAsync() ?? string.Empty;
         AutomaticMonitoringToggle.IsOn = await App.Services.AutomaticMonitoring.IsEnabledAsync();
+        TelemetryCopyToggle.IsOn = await App.Services.TelemetryCopySettings.IsEnabledAsync();
         var folders = await App.Services.MonitoredFolders.GetAsync();
         var downloadsFolder = folders.FirstOrDefault(item => item.Kind == ImportFolderKind.Downloads);
         DownloadsPathBox.Text = downloadsFolder?.Path
@@ -51,6 +52,28 @@ public sealed partial class SettingsPage : Page
         RefreshRecognitionAliases();
         }
         finally { loadingSettings = false; }
+    }
+
+    private async void OnTelemetryCopyToggled(object sender, RoutedEventArgs e)
+    {
+        if (loadingSettings) return;
+        TelemetryCopyToggle.IsEnabled = false;
+        try
+        {
+            await UiOperation.RunAsync(async () =>
+            {
+                try { await App.Services.TelemetryCopySettings.SaveAsync(TelemetryCopyToggle.IsOn); }
+                catch
+                {
+                    loadingSettings = true;
+                    try { TelemetryCopyToggle.IsOn = !TelemetryCopyToggle.IsOn; }
+                    finally { loadingSettings = false; }
+                    throw;
+                }
+                await App.Services.Monitoring.RefreshFoldersAsync();
+            }, "Impossible de modifier la copie de télémétrie", SettingsInfo);
+        }
+        finally { TelemetryCopyToggle.IsEnabled = true; }
     }
 
     private async void OnAutomaticMonitoringToggled(object sender, RoutedEventArgs e)

@@ -48,6 +48,7 @@ public sealed class AppServices
         MonitoredFolders = new MonitoredFolderSettingsService(ContextFactory, FolderPolicy);
         AutomaticMonitoring = new AutomaticMonitoringSettingsService(ContextFactory);
         HymoMonitoring = new HymoMonitoringSettingsService(ContextFactory);
+        TelemetryCopySettings = new TelemetryCopySettingsService(ContextFactory);
         MonitoredFileStates = new MonitoredFileStateStore(ContextFactory);
         UpdatePreferences = new UpdatePreferenceService(ContextFactory);
         SynchronizationSelection = new SynchronizationSelectionSettingsService(ContextFactory);
@@ -73,7 +74,9 @@ public sealed class AppServices
             SynchronizationSelection,
             HymoMonitoring,
             new TrackTitanFolderResolver(),
-            MonitoredFileStates);
+            MonitoredFileStates,
+            TelemetryCopySettings,
+            new TelemetryCopyService(metadataAnalyzer, sha256));
         SynchronizationActivity = new SynchronizationActivityStore();
         SynchronizationActivity.Attach(Monitoring);
         Monitoring.ImportFailed += (_, exception) =>
@@ -101,6 +104,7 @@ public sealed class AppServices
     public MonitoredFolderSettingsService MonitoredFolders { get; }
     public AutomaticMonitoringSettingsService AutomaticMonitoring { get; }
     public HymoMonitoringSettingsService HymoMonitoring { get; }
+    public TelemetryCopySettingsService TelemetryCopySettings { get; }
     public MonitoredFileStateStore MonitoredFileStates { get; }
     public ImportMonitoringService Monitoring { get; }
     public SynchronizationActivityStore SynchronizationActivity { get; }

@@ -15,7 +15,9 @@ public sealed record SetupImportResult(
     string? Sha256 = null,
     int? Week = null,
     IracingSetupManager.Core.Setups.SetupWeekKind WeekKind = IracingSetupManager.Core.Setups.SetupWeekKind.Unknown,
-    bool SourceFullyDuplicate = false)
+    bool SourceFullyDuplicate = false,
+    string? Message = null,
+    bool NeedsTelemetryCar = false)
 {
     public string WeekDisplay => IracingSetupManager.Core.Setups.SetupWeekPresentation.Display(Week, WeekKind);
 }

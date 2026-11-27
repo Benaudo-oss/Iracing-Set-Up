@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using IracingSetupManager.App.Services;
 using IracingSetupManager.Infrastructure.Files.Monitoring;
+using IracingSetupManager.Infrastructure.Files.Import;
 using IracingSetupManager.Infrastructure.Settings;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -241,6 +242,7 @@ public sealed partial class SynchronizationPage : Page
         }
         else if (resultIndexes.TryGetValue(progress.FilePath, out var visibleIndex)) RemoveVisibleResultAt(visibleIndex);
         EmptyResultsText.Visibility = Visibility.Collapsed;
+        if (progress.RowOnly) return;
         ProgressText.Text = progress.Automatic ? "Progression automatique" : "Progression manuelle";
         CurrentFileText.Text = row.FileName;
         if (progress.Total > 0)
@@ -409,8 +411,11 @@ public sealed partial class SynchronizationPage : Page
         SynchronizationFileState StateCode,
         string State,
         string Message,
-        bool SourceFullyDuplicate)
+        bool SourceFullyDuplicate,
+        bool NeedsTelemetryCar)
     {
+        public Visibility TelemetryCompletionVisibility => NeedsTelemetryCar ? Visibility.Visible : Visibility.Collapsed;
+
         public SolidColorBrush StateBackground => LibraryPage.Brush(StateCode switch
         {
             SynchronizationFileState.Imported => "#FF173C26",
@@ -448,14 +453,16 @@ public sealed partial class SynchronizationPage : Page
             {
                 SynchronizationFileState.Detected => "Détecté",
                 SynchronizationFileState.Analyzing => "Analyse",
-                SynchronizationFileState.Imported => "Importé",
+                SynchronizationFileState.Imported => TelemetryCopyService.IsSupported(progress.FilePath) ? "Copié" : "Importé",
                 SynchronizationFileState.Duplicate => "Doublon",
-                SynchronizationFileState.Filtered => "Ignoré",
+                SynchronizationFileState.Filtered => progress.Result?.NeedsTelemetryCar == true
+                    ? "À compléter" : "Ignoré",
                 SynchronizationFileState.Unsupported => "Ignoré",
                 SynchronizationFileState.Error => "Erreur",
                 _ => "Interrompu"
             },
             progress.Message,
-            progress.Result?.SourceFullyDuplicate == true);
+            progress.Result?.SourceFullyDuplicate == true,
+            progress.Result?.NeedsTelemetryCar == true);
     }
 }

@@ -5,6 +5,12 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 2.9.12.45
+
+- Nouvelle option de copie des fichiers de télémétrie `.blap`, `.olap` et `.ibt` depuis les dossiers surveillés actifs, en mode manuel ou automatique.
+- Classement dans `Télémétrie/<voiture>`, sans déplacer les originaux ni écraser les fichiers existants.
+- Bouton « Compléter » dans Synchronisation pour identifier la voiture si nécessaire, avec mémorisation du choix pour le fichier inchangé.
+
 # 2.8.12.45
 
 - iRacing Setup Manager devient Setup Paddock, sans changement des dossiers de données ni des réglages existants.
