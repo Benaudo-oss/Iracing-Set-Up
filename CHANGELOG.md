@@ -5,6 +5,12 @@ utilise le versionnement sémantique.
 
 ## [Non publié]
 
+# 2.8.12.45
+
+- iRacing Setup Manager devient Setup Paddock, sans changement des dossiers de données ni des réglages existants.
+- Nouveau tableau de bord et thème sombre cyan harmonisé sur l’ensemble des écrans.
+- Logo original et icônes de navigation conservés.
+
 # 1.8.12.45
 
 - L’import ZIP et RAR ignore les métadonnées macOS (`._*` et `__MACOSX`) pour éviter les erreurs lors de la lecture des archives imbriquées.

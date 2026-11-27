@@ -9,10 +9,43 @@
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
-            <SolidColorBrush x:Key="ApplicationPageBackgroundThemeBrush" Color="#FF111317" />
-            <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#FF171A1F" />
-            <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#FF171A1F" />
-            <SolidColorBrush x:Key="NavigationViewTopPaneBackground" Color="#FF171A1F" />
+            <Color x:Key="PaddockAccentColor">#FF00BFFF</Color>
+            <Color x:Key="SystemAccentColor">#FF00BFFF</Color>
+            <Color x:Key="SystemAccentColorLight1">#FF00BFFF</Color>
+            <Color x:Key="SystemAccentColorLight2">#FF36D0FF</Color>
+            <Color x:Key="SystemAccentColorLight3">#FF80E3FF</Color>
+            <SolidColorBrush x:Key="PaddockAccentBrush" Color="{StaticResource PaddockAccentColor}" />
+            <SolidColorBrush x:Key="PaddockBackgroundBrush" Color="#FF10161E" />
+            <SolidColorBrush x:Key="PaddockSurfaceBrush" Color="#FF19222C" />
+            <SolidColorBrush x:Key="PaddockBorderBrush" Color="#FF364654" />
+            <SolidColorBrush x:Key="PaddockTableHeaderBrush" Color="#FF222F3B" />
+            <Style x:Key="PaddockPanelStyle" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource PaddockSurfaceBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource PaddockBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="10" />
+            </Style>
+            <Style x:Key="PaddockHeaderAccentStyle" TargetType="ContentControl">
+                <Setter Property="IsHitTestVisible" Value="False" />
+                <Setter Property="IsTabStop" Value="False" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ContentControl">
+                            <Path Width="132" Height="10" HorizontalAlignment="Left" Margin="0,0,0,6" Stretch="Fill"
+                                  Stroke="{StaticResource PaddockAccentBrush}" StrokeThickness="2"
+                                  Data="M 0,10 L 10,0 L 110,0 M 116,7 L 123,0 M 125,7 L 132,0" />
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <SolidColorBrush x:Key="ApplicationPageBackgroundThemeBrush" Color="#FF10161E" />
+            <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#FF171E27" />
+            <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#FF171E27" />
+            <SolidColorBrush x:Key="NavigationViewTopPaneBackground" Color="#FF171E27" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundSelected" Color="#FF113547" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPointerOver" Color="#FF18465A" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPressed" Color="#FF0F2B3B" />
+            <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="{StaticResource PaddockAccentColor}" />
             <services:WeekBadgeBrushConverter x:Key="WeekBadgeBrushConverter" />
 
             <Style x:Key="ActionButtonBaseStyle" TargetType="Button">
@@ -24,9 +57,9 @@
             </Style>
 
             <Style x:Key="BlueActionButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonBaseStyle}">
-                <Setter Property="Background" Value="#FF168BC2" />
-                <Setter Property="BorderBrush" Value="#FF39AFE5" />
-                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Background" Value="{StaticResource PaddockAccentBrush}" />
+                <Setter Property="BorderBrush" Value="#FF53D7FF" />
+                <Setter Property="Foreground" Value="#FF081820" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
@@ -34,8 +67,8 @@
                                 <VisualStateManager.VisualStateGroups>
                                     <VisualStateGroup x:Name="CommonStates">
                                         <VisualState x:Name="Normal" />
-                                        <VisualState x:Name="PointerOver"><VisualState.Setters><Setter Target="Root.Background" Value="#FF20A2DF" /><Setter Target="Root.BorderBrush" Value="#FF6AC8F1" /></VisualState.Setters></VisualState>
-                                        <VisualState x:Name="Pressed"><VisualState.Setters><Setter Target="Root.Background" Value="#FF0D6E9B" /><Setter Target="Root.BorderBrush" Value="#FF168BC2" /></VisualState.Setters></VisualState>
+                                        <VisualState x:Name="PointerOver"><VisualState.Setters><Setter Target="Root.Background" Value="#FF36D0FF" /><Setter Target="Root.BorderBrush" Value="#FF80E3FF" /></VisualState.Setters></VisualState>
+                                        <VisualState x:Name="Pressed"><VisualState.Setters><Setter Target="Root.Background" Value="#FF009FD6" /><Setter Target="Root.BorderBrush" Value="#FF00BFFF" /></VisualState.Setters></VisualState>
                                         <VisualState x:Name="Disabled"><VisualState.Setters><Setter Target="Root.Opacity" Value="0.42" /></VisualState.Setters></VisualState>
                                     </VisualStateGroup>
                                 </VisualStateManager.VisualStateGroups>

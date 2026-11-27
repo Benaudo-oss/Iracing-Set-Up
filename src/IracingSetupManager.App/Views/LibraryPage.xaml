@@ -13,6 +13,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Spacing="4">
+            <ContentControl Style="{StaticResource PaddockHeaderAccentStyle}" />
             <TextBlock FontSize="32" FontWeight="SemiBold" Text="Bibliothèque" />
             <TextBlock Opacity="0.65" Text="Recherchez et filtrez tous les setups archivés" />
         </StackPanel>
@@ -46,7 +47,7 @@
             <Button x:Name="ExportZipButton" Grid.Column="5" Content="Exporter en ZIP" Style="{StaticResource AccentButtonStyle}" Click="OnExportZip" />
         </Grid>
 
-        <Border Grid.Row="3" Background="#FF20242B" BorderBrush="#FF343A43" BorderThickness="1" CornerRadius="10">
+        <Border Grid.Row="3" Style="{StaticResource PaddockPanelStyle}">
             <Grid>
                 <ListView x:Name="SetupList" HorizontalContentAlignment="Stretch" SelectionMode="Multiple" IsMultiSelectCheckBoxEnabled="True" ContainerContentChanging="OnContainerContentChanging">
                     <ListView.ItemsPanel>
@@ -58,7 +59,7 @@
                         </Style>
                     </ListView.ItemContainerStyle>
                     <ListView.Header>
-                        <Grid Padding="20,14" Background="#FF252A31" ColumnSpacing="16">
+                        <Grid Padding="20,14" Background="{StaticResource PaddockTableHeaderBrush}" ColumnSpacing="16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="2*" />
                                 <ColumnDefinition />

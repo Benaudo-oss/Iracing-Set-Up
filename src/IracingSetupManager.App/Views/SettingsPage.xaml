@@ -5,8 +5,8 @@
     Loaded="OnLoaded">
     <ScrollViewer>
         <StackPanel Padding="32" Spacing="20">
-            <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Paramètres" /><TextBlock Opacity="0.65" Text="Archive, dossiers surveillés, sécurité et préférences" /></StackPanel>
-            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+            <StackPanel Spacing="4"><ContentControl Style="{StaticResource PaddockHeaderAccentStyle}" /><TextBlock FontSize="32" FontWeight="SemiBold" Text="Paramètres" /><TextBlock Opacity="0.65" Text="Archive, dossiers surveillés, sécurité et préférences" /></StackPanel>
+            <Border Padding="20" Style="{StaticResource PaddockPanelStyle}">
                 <StackPanel Spacing="14">
                     <TextBlock FontSize="20" FontWeight="SemiBold" Text="Bibliothèque principale" />
                     <TextBlock Opacity="0.65" Text="Les fichiers originaux restent dans cette archive et ne sont jamais renommés." />
@@ -14,7 +14,7 @@
                     <Button HorizontalAlignment="Left" Content="Réorganiser l’archive maintenant" Click="OnReorganizeArchive" />
                 </StackPanel>
             </Border>
-            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+            <Border Padding="20" Style="{StaticResource PaddockPanelStyle}">
                 <StackPanel Spacing="14">
                     <TextBlock FontSize="20" FontWeight="SemiBold" Text="Copie vers G61 Team" />
                     <TextBlock Opacity="0.65" Text="Saisissez exactement le nom utilisé par la Team sur Garage61. Le dossier sera créé sous la forme Garage 61 - Nom de la Team." TextWrapping="Wrap" />
@@ -25,7 +25,7 @@
                     </Grid>
                 </StackPanel>
             </Border>
-            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+            <Border Padding="20" Style="{StaticResource PaddockPanelStyle}">
                 <StackPanel Spacing="14">
                     <TextBlock FontSize="20" FontWeight="SemiBold" Text="Dossiers surveillés" />
                     <ToggleSwitch x:Name="AutomaticMonitoringToggle" Header="Surveillance automatique" OnContent="Activée" OffContent="Désactivée" Toggled="OnAutomaticMonitoringToggled" />
@@ -41,7 +41,7 @@
                     <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="CDA" /><TextBox x:Name="CdaPathBox" Grid.Column="1" IsReadOnly="True" PlaceholderText="Dossier de Coach Dave Academy" /><ToggleSwitch x:Name="CdaToggle" Grid.Column="2" OnContent="Actif" OffContent="Inactif" /><Button Grid.Column="3" Content="Choisir" Tag="Coach Dave Academy (CDA)" Click="OnChooseProviderFolder" /></Grid>
                 </StackPanel>
             </Border>
-            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+            <Border Padding="20" Style="{StaticResource PaddockPanelStyle}">
                 <StackPanel Spacing="14">
                     <TextBlock FontSize="20" FontWeight="SemiBold" Text="Arborescence de copie vers G61 Perso" />
                     <TextBlock Opacity="0.65" Text="Modifiez l’ordre des dossiers variables. Le dossier de la voiture et Garage 61 restent obligatoires pour iRacing." TextWrapping="Wrap" />
@@ -62,7 +62,7 @@
                     <Button HorizontalAlignment="Left" Content="Rétablir l’ordre par défaut" Click="OnResetPathLayout" />
                 </StackPanel>
             </Border>
-            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+            <Border Padding="20" Style="{StaticResource PaddockPanelStyle}">
                 <StackPanel Spacing="12">
                     <TextBlock FontSize="20" FontWeight="SemiBold" Text="Dictionnaire de reconnaissance" />
                     <TextBlock Opacity="0.65" Text="Les abréviations mémorisées lors d’une correction sont prioritaires pour les prochains imports. Vous pouvez les supprimer ici." TextWrapping="Wrap" />
@@ -84,8 +84,8 @@
                     <TextBlock x:Name="NoRecognitionAliasesText" Opacity="0.65" Text="Aucune abréviation personnelle enregistrée." />
                 </StackPanel>
             </Border>
-            <Border Padding="20" Background="#FF20242B" CornerRadius="10"><StackPanel Spacing="8"><TextBlock FontSize="20" FontWeight="SemiBold" Text="Confidentialité" /><TextBlock Opacity="0.75" Text="Les setups inconnus restent dans À vérifier. Toute validation groupée demande une confirmation explicite." TextWrapping="Wrap" /></StackPanel></Border>
-            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+            <Border Padding="20" Style="{StaticResource PaddockPanelStyle}"><StackPanel Spacing="8"><TextBlock FontSize="20" FontWeight="SemiBold" Text="Confidentialité" /><TextBlock Opacity="0.75" Text="Les setups inconnus restent dans À vérifier. Toute validation groupée demande une confirmation explicite." TextWrapping="Wrap" /></StackPanel></Border>
+            <Border Padding="20" Style="{StaticResource PaddockPanelStyle}">
                 <StackPanel Spacing="12">
                     <TextBlock FontSize="20" FontWeight="SemiBold" Text="Sauvegarde locale" />
                     <TextBlock Opacity="0.65" Text="Crée une copie cohérente de la base SQLite, sans mot de passe ni cookie." />

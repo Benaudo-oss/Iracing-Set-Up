@@ -5,8 +5,8 @@
     Loaded="OnLoaded">
     <ScrollViewer>
         <StackPanel Padding="32" Spacing="20">
-            <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Mises à jour" /><TextBlock Opacity="0.65" Text="Versions publiées et intégrité des installateurs" /></StackPanel>
-            <Border Padding="24" Background="#FF20242B" CornerRadius="10">
+            <StackPanel Spacing="4"><ContentControl Style="{StaticResource PaddockHeaderAccentStyle}" /><TextBlock FontSize="32" FontWeight="SemiBold" Text="Mises à jour" /><TextBlock Opacity="0.65" Text="Versions publiées et intégrité des installateurs" /></StackPanel>
+            <Border Padding="24" Style="{StaticResource PaddockPanelStyle}">
                 <Grid ColumnSpacing="24">
                     <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <StackPanel Spacing="8"><TextBlock FontSize="18" FontWeight="SemiBold" Text="Version installée" /><TextBlock x:Name="InstalledVersionText" FontSize="30" /></StackPanel>
@@ -14,10 +14,10 @@
                     <Button x:Name="CheckButton" Grid.Column="2" VerticalAlignment="Center" Content="Rechercher" Style="{StaticResource AccentButtonStyle}" Click="OnCheckUpdates" />
                 </Grid>
             </Border>
-            <ProgressBar x:Name="UpdateProgress" IsIndeterminate="True" Visibility="Collapsed" />
+            <ProgressBar x:Name="UpdateProgress" IsIndeterminate="True" Visibility="Collapsed" Foreground="{StaticResource PaddockAccentBrush}" />
             <TextBlock x:Name="UpdateProgressText" Opacity="0.7" Visibility="Collapsed" />
             <InfoBar x:Name="UpdateInfo" IsOpen="False" IsClosable="True" />
-            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+            <Border Padding="20" Style="{StaticResource PaddockPanelStyle}">
                 <StackPanel Spacing="12">
                     <TextBlock FontSize="20" FontWeight="SemiBold" Text="Notes de version" />
                     <TextBlock x:Name="ReleaseNotesText" Opacity="0.75" TextWrapping="Wrap" Text="Recherchez une version publiée sur GitHub Releases." />
@@ -29,7 +29,7 @@
                     </StackPanel>
                 </StackPanel>
             </Border>
-            <Border Padding="20" Background="#FF20242B" CornerRadius="10">
+            <Border Padding="20" Style="{StaticResource PaddockPanelStyle}">
                 <StackPanel Spacing="10">
                     <TextBlock FontSize="20" FontWeight="SemiBold" Text="Retour à la version précédente" />
                     <TextBlock x:Name="RollbackDescription" Opacity="0.7" Text="Aucun installateur précédent conservé." />

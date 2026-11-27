@@ -134,7 +134,7 @@ jobs:
           if (gh release view $env:RELEASE_TAG 2>$null) {
             gh release upload $env:RELEASE_TAG $installer $checksum --clobber
           } else {
-            gh release create $env:RELEASE_TAG $installer $checksum --verify-tag --generate-notes --title "iRacing Setup Manager ${{ steps.version.outputs.number }}"
+            gh release create $env:RELEASE_TAG $installer $checksum --verify-tag --generate-notes --title "Setup Paddock ${{ steps.version.outputs.number }}"
           }
           $compatibilityInstaller = '${{ steps.compatibility.outputs.installer }}'
           $compatibilityChecksum = '${{ steps.compatibility.outputs.checksum }}'

@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "1.8.12.45"
+  #define AppVersion "2.8.12.45"
 #endif
 #ifndef PublishDir
   #define PublishDir "..\artifacts\publish\win-x64"
@@ -10,13 +10,13 @@
 
 [Setup]
 AppId={{8FA61ABA-1765-40E6-9F7D-56FF46D8D587}
-AppName=iRacing Setup Manager
+AppName=Setup Paddock
 AppVersion={#AppVersion}
-AppVerName=iRacing Setup Manager {#AppVersion}
+AppVerName=Setup Paddock {#AppVersion}
 AppPublisher=Benaudo
 DefaultDirName={localappdata}\Programs\IracingSetupManager
-DefaultGroupName=iRacing Setup Manager
-UninstallDisplayName=iRacing Setup Manager
+DefaultGroupName=Setup Paddock
+UninstallDisplayName=Setup Paddock
 OutputDir={#OutputDir}
 OutputBaseFilename=IracingSetupManager-{#AppVersion}-win-x64-setup
 Compression=lzma2/max
@@ -33,7 +33,7 @@ WizardStyle=modern
 SetupLogging=yes
 VersionInfoVersion={#AppVersion}
 VersionInfoProductVersion={#AppVersion}
-VersionInfoProductName=iRacing Setup Manager
+VersionInfoProductName=Setup Paddock
 SetupIconFile={#PublishDir}\Assets\AppLogo.ico
 UninstallDisplayIcon={app}\IracingSetupManager.App.exe
 
@@ -41,22 +41,28 @@ UninstallDisplayIcon={app}\IracingSetupManager.App.exe
 Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\iRacing Setup Manager"; Filename: "{app}\IracingSetupManager.App.exe"
+Name: "{group}\Setup Paddock"; Filename: "{app}\IracingSetupManager.App.exe"; Check: ShouldCreateStartMenuShortcut
 ; Ne pas recréer un raccourci déjà présent pendant une mise à niveau : Windows
 ; conserve ainsi sa position, son apparence et les réglages choisis par l'utilisateur.
-Name: "{autodesktop}\iRacing Setup Manager"; Filename: "{app}\IracingSetupManager.App.exe"; IconFilename: "{app}\IracingSetupManager.App.exe"; Tasks: desktopicon; Check: ShouldCreateDesktopShortcut
+Name: "{autodesktop}\Setup Paddock"; Filename: "{app}\IracingSetupManager.App.exe"; IconFilename: "{app}\IracingSetupManager.App.exe"; Tasks: desktopicon; Check: ShouldCreateDesktopShortcut
 
 [Tasks]
 Name: "desktopicon"; Description: "Créer un raccourci sur le Bureau"; GroupDescription: "Raccourcis supplémentaires :"; Flags: unchecked
 
 [Run]
-Filename: "{app}\IracingSetupManager.App.exe"; Description: "Lancer iRacing Setup Manager"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\IracingSetupManager.App.exe"; Description: "Lancer Setup Paddock"; Flags: nowait postinstall skipifsilent
 Filename: "{app}\IracingSetupManager.App.exe"; Flags: nowait; Check: ShouldRelaunchApplication
 
 [Code]
 function ShouldCreateDesktopShortcut(): Boolean;
 begin
-  Result := not FileExists(ExpandConstant('{autodesktop}\iRacing Setup Manager.lnk'));
+  Result := not FileExists(ExpandConstant('{autodesktop}\iRacing Setup Manager.lnk')) and
+            not FileExists(ExpandConstant('{autodesktop}\Setup Paddock.lnk'));
+end;
+
+function ShouldCreateStartMenuShortcut(): Boolean;
+begin
+  Result := not FileExists(ExpandConstant('{group}\iRacing Setup Manager.lnk'));
 end;
 
 function ShouldRelaunchApplication(): Boolean;

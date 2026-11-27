@@ -1,4 +1,6 @@
-# iRacing Setup Manager
+# Setup Paddock
+
+Bibliothèque et gestion de setups pour iRacing.
 
 Application Windows en français destinée à centraliser, classer, vérifier et copier
 des setups iRacing sans modifier les fichiers originaux.
@@ -10,7 +12,7 @@ des setups iRacing sans modifier les fichiers originaux.
 
 ## État du projet
 
-La version du projet est `1.8.12.45`. Elle comprend la bibliothèque locale, la
+La version du projet est `2.8.12.45`. Elle comprend la bibliothèque locale, la
 surveillance des dossiers autorisés, la validation, la copie vers iRacing et
 iRacing Team, les sauvegardes et les mises à jour automatiques.
 
@@ -45,7 +47,7 @@ docs/                                   Architecture et décisions
 Pour installer et utiliser une version publiée :
 
 - Windows 10 version 1809 ou Windows 11 ;
-- l'installateur iRacing Setup Manager.
+- l'installateur Setup Paddock.
 
 Visual Studio et le SDK .NET ne sont pas nécessaires. Les versions publiées seront
 autonomes et embarqueront .NET ainsi que les composants Windows App SDK requis.
@@ -108,7 +110,7 @@ dotnet publish src/IracingSetupManager.App/IracingSetupManager.App.csproj `
 
 ### Installateur Windows
 
-La commande `installer/Build-Installer.ps1 -Version 1.8.12.45` publie l’application
+La commande `installer/Build-Installer.ps1 -Version 2.8.12.45` publie l’application
 autonome, génère l’installateur Inno Setup versionné et son empreinte SHA-256. Le
 même identifiant d’application assure installation, désinstallation et mise à
 niveau. L’installateur ne supprime jamais `%LocalAppData%\IracingSetupManager`,

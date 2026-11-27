@@ -8,12 +8,12 @@
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /></Grid.RowDefinitions>
         <Grid ColumnSpacing="16">
             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-            <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Historique" /><TextBlock Opacity="0.65" Text="Imports, validations, refus, notes et copies" /></StackPanel>
+            <StackPanel Spacing="4"><ContentControl Style="{StaticResource PaddockHeaderAccentStyle}" /><TextBlock FontSize="32" FontWeight="SemiBold" Text="Historique" /><TextBlock Opacity="0.65" Text="Imports, validations, refus, notes et copies" /></StackPanel>
             <Button Grid.Column="1" VerticalAlignment="Center" Content="Effacer l’historique de l’application" Style="{StaticResource RedDangerButtonStyle}" Click="OnClearHistoryClick" />
         </Grid>
         <TextBox x:Name="HistorySearch" Grid.Row="1" PlaceholderText="Rechercher un fichier ou une action…" TextChanged="OnSearchChanged" />
         <InfoBar x:Name="HistoryInfo" Grid.Row="2" IsOpen="False" IsClosable="True" Severity="Error" />
-        <Border Grid.Row="3" Padding="12" Background="#FF20242B" CornerRadius="10">
+        <Border Grid.Row="3" Padding="12" Style="{StaticResource PaddockPanelStyle}">
             <Grid>
                 <ListView x:Name="HistoryList" ContainerContentChanging="OnContainerContentChanging">
                     <ListView.ItemsPanel><ItemsPanelTemplate><ItemsStackPanel ItemsUpdatingScrollMode="KeepScrollOffset" /></ItemsPanelTemplate></ListView.ItemsPanel>

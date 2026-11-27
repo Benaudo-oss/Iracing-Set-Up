@@ -6,7 +6,7 @@
     Unloaded="OnUnloaded">
     <Grid Padding="32" RowSpacing="18">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-        <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="À vérifier" /><TextBlock Opacity="0.65" Text="Contrôlez chaque setup avant validation ou envoi" /></StackPanel>
+        <StackPanel Spacing="4"><ContentControl Style="{StaticResource PaddockHeaderAccentStyle}" /><TextBlock FontSize="32" FontWeight="SemiBold" Text="À vérifier" /><TextBlock Opacity="0.65" Text="Contrôlez chaque setup avant validation ou envoi" /></StackPanel>
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
             <Button Content="Tout sélectionner" Click="OnSelectAll" />
             <Button Content="Sélectionner les identifiés" Click="OnSelectIdentified" ToolTipService.ToolTip="Sélectionne uniquement les setups ne contenant aucun champ À identifier" />
@@ -25,7 +25,7 @@
             <Grid Grid.Column="6"><ComboBox x:Name="WeekFilter" Height="40" Padding="30,0,6,0" HorizontalAlignment="Stretch" PlaceholderText="Week" SelectionChanged="OnFilterChanged" /><FontIcon Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="14" Glyph="&#xE787;" /></Grid>
         </Grid>
         <Grid Grid.Row="3" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled"><StackPanel x:Name="ActiveFiltersPanel" Orientation="Horizontal" Spacing="8" /></ScrollViewer><TextBlock x:Name="ResultCountText" Grid.Column="1" VerticalAlignment="Center" Opacity="0.7" Text="0 résultat" /><Button Grid.Column="2" Padding="10,6" Style="{StaticResource GraySecondaryButtonStyle}" Click="OnClearFilters" ToolTipService.ToolTip="Effacer tous les filtres"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="13" Glyph="&#xE711;" /><TextBlock Text="Effacer" /></StackPanel></Button></Grid>
-        <Border Grid.Row="4" Padding="12" Background="#FF20242B" CornerRadius="10">
+        <Border Grid.Row="4" Padding="12" Style="{StaticResource PaddockPanelStyle}">
             <Grid>
                 <ListView x:Name="ReviewList" SelectionMode="Multiple" SelectionChanged="OnSelectionChanged" ContainerContentChanging="OnContainerContentChanging">
                     <ListView.ItemsPanel>
@@ -59,7 +59,7 @@
                 <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8"><FontIcon FontSize="36" Glyph="&#xE9D5;" Opacity="0.45" /><TextBlock Opacity="0.65" Text="Aucun nouveau setup à vérifier" /></StackPanel>
             </Grid>
         </Border>
-        <Border Grid.Row="5" Padding="16" Background="#FF20242B" CornerRadius="10">
+        <Border Grid.Row="5" Padding="16" Style="{StaticResource PaddockPanelStyle}">
             <Grid ColumnSpacing="12">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="160" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <NumberBox x:Name="RatingBox" Header="Note personnelle / 5" Minimum="1" Maximum="5" SpinButtonPlacementMode="Compact" />

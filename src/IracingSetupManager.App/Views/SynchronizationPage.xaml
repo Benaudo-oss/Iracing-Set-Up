@@ -25,11 +25,11 @@
     </Page.Resources>
     <ScrollViewer>
         <StackPanel Padding="32" Spacing="20">
-            <StackPanel Spacing="4"><TextBlock FontSize="32" FontWeight="SemiBold" Text="Synchronisation" /><TextBlock Opacity="0.65" Text="Importe les fichiers .sto et les archives qui contiennent des setups .sto" /></StackPanel>
+            <StackPanel Spacing="4"><ContentControl Style="{StaticResource PaddockHeaderAccentStyle}" /><TextBlock FontSize="32" FontWeight="SemiBold" Text="Synchronisation" /><TextBlock Opacity="0.65" Text="Importe les fichiers .sto et les archives qui contiennent des setups .sto" /></StackPanel>
             <InfoBar IsOpen="True" IsClosable="False" Severity="Informational" Title="Fichiers acceptés" Message="Seuls les fichiers .sto, ainsi que les archives .zip ou .rar contenant au moins un fichier .sto, sont importés. Dans iRacing, seuls les dossiers Track Titan des voitures appartenant aux catégories sélectionnées sont surveillés pour HYMO." />
             <Grid ColumnSpacing="20">
                 <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                <Border Padding="20" Background="#FF20242B" BorderBrush="#FF303640" BorderThickness="1" CornerRadius="12">
+                <Border Padding="20" Style="{StaticResource PaddockPanelStyle}">
                     <StackPanel Spacing="16">
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
@@ -55,7 +55,7 @@
                         </Grid>
                     </StackPanel>
                 </Border>
-                <Border Grid.Column="1" Padding="20" Background="#FF20242B" BorderBrush="#FF303640" BorderThickness="1" CornerRadius="12">
+                <Border Grid.Column="1" Padding="20" Style="{StaticResource PaddockPanelStyle}">
                     <StackPanel Spacing="16">
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
@@ -82,7 +82,7 @@
                     </StackPanel>
                 </Border>
             </Grid>
-            <Border Padding="16" Background="#FF20242B" CornerRadius="10">
+            <Border Padding="16" Style="{StaticResource PaddockPanelStyle}">
                 <Grid ColumnSpacing="12">
                     <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <StackPanel Spacing="4"><TextBlock FontWeight="SemiBold" Text="Mode de synchronisation" /><TextBlock x:Name="SynchronizationModeText" Opacity="0.7" TextWrapping="Wrap" /></StackPanel>
@@ -94,14 +94,14 @@
                 <Button x:Name="StopScanButton" Content="Interrompre" Style="{StaticResource RedDangerButtonStyle}" IsEnabled="False" Click="OnStopScan" />
                 <Button x:Name="ScanNowButton" Content="Synchroniser maintenant" Style="{StaticResource AccentButtonStyle}" Click="OnScanNow" />
             </StackPanel>
-            <Border Padding="18" Background="#FF20242B" CornerRadius="10">
+            <Border Padding="18" Style="{StaticResource PaddockPanelStyle}">
                 <StackPanel Spacing="12">
                     <Grid ColumnSpacing="16">
                         <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                         <TextBlock x:Name="ProgressText" FontWeight="SemiBold" Text="Progression" />
                         <TextBlock x:Name="ProgressCountersText" Grid.Column="1" Opacity="0.7" />
                     </Grid>
-                    <ProgressBar x:Name="ScanProgress" Minimum="0" Maximum="1" Value="0" />
+                    <ProgressBar x:Name="ScanProgress" Minimum="0" Maximum="1" Value="0" Foreground="{StaticResource PaddockAccentBrush}" />
                     <TextBlock x:Name="CurrentFileText" Opacity="0.65" TextTrimming="CharacterEllipsis" />
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
                         <ComboBox x:Name="WeekFilter" Width="190" PlaceholderText="Week" SelectionChanged="OnWeekFilterChanged" />

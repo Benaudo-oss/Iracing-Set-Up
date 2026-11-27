@@ -327,7 +327,7 @@ public sealed partial class LibraryPage : Page
 
     private void OnRowPointerEntered(object sender, PointerRoutedEventArgs e)
     {
-        if (sender is Border row) row.Background = Brush("#FF2B333B");
+        if (sender is Border row) row.Background = Brush("#FF283D4C");
     }
 
     private void OnRowPointerExited(object sender, PointerRoutedEventArgs e)
@@ -346,7 +346,7 @@ public sealed partial class LibraryPage : Page
         };
         return new LibrarySetupRow(
             setup,
-            Brush(index % 2 == 0 ? "#FF1F2227" : "#FF23262C"),
+            Brush(index % 2 == 0 ? "#FF19222C" : "#FF1E2935"),
             Brush(background), Brush(border), Brush(foreground), glyph);
     }
 

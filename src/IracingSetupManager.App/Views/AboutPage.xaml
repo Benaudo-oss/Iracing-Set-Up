@@ -5,19 +5,20 @@
     <ScrollViewer>
         <StackPanel MaxWidth="1100" Padding="32" HorizontalAlignment="Left" Spacing="20">
             <StackPanel Spacing="4">
+                <ContentControl Style="{StaticResource PaddockHeaderAccentStyle}" />
                 <TextBlock FontSize="32" FontWeight="SemiBold" Text="À propos / Mentions légales" />
                 <TextBlock Opacity="0.65" Text="Informations légales, propriété intellectuelle et utilisation de l’application" />
             </StackPanel>
 
             <Image Width="220" Height="220" HorizontalAlignment="Left"
-                   AutomationProperties.Name="Emblème iRacing Setup Manager"
+                   AutomationProperties.Name="Emblème Setup Paddock"
                    Source="ms-appx:///Assets/AboutEmblem.png" />
 
-            <Border Padding="24" Background="#FF20242B" CornerRadius="10">
+            <Border Padding="24" Style="{StaticResource PaddockPanelStyle}">
                 <StackPanel Spacing="16">
                     <TextBlock FontSize="22" FontWeight="SemiBold" Text="© Copyright et propriété intellectuelle" />
 
-                    <TextBlock FontSize="20" FontWeight="Bold" Text="iRacing Setup Manager" />
+                    <TextBlock FontSize="20" FontWeight="Bold" Text="Setup Paddock" />
                     <TextBlock FontWeight="SemiBold" Text="© 2026 BENAUDO. Tous droits réservés." />
 
                     <TextBlock TextWrapping="Wrap">
@@ -33,7 +34,7 @@
                     </TextBlock>
 
                     <TextBlock TextWrapping="Wrap">
-                        iRacing Setup Manager est un projet indépendant et n’est ni affilié, ni sponsorisé, ni approuvé par iRacing.com Motorsport Simulations, HYMO Setups, GO Setups, Grid &amp; Go ou Garage61.
+                        Setup Paddock est un projet indépendant et n’est ni affilié, ni sponsorisé, ni approuvé par iRacing.com Motorsport Simulations, HYMO Setups, GO Setups, Grid &amp; Go ou Garage61.
                     </TextBlock>
 
                     <TextBlock TextWrapping="Wrap">
